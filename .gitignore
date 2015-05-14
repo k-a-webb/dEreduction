@@ -1,3 +1,15 @@
+IFU_reduction/*.fits
+IFU_reduction/*.lis
+IFU_reduction/*.log
+IFU_reduction/*.dat
+IFU_reduction/*file
+IFU_reduction/tmp*
+IFU_reduction/std
+IFU_reduction/*.xml
+IFU_reduction_examples/
+
+
+
 .CFUserTextEncoding
 .DS_Store
 .PyCharm40/
