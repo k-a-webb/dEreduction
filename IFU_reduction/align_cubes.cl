@@ -153,6 +153,89 @@ hedit amdcslqtexbrgN20051205S0006_integer[0] nsciext 1 update+ verify-
 #### THEN REPEAT FOR OTHER SCIENCE FRAMES
 
 
+# DECIMAL SHIFT (108)
+# -------------------
+
+mkdir tmp_cal/; mkdir tmp_cal/108; mkdir tmp_cal/108/science; mkdir tmp_cal/108/var; mkdir tmp_cal/108/dq
+mkdir tmp_cal/108/science/big; tmp_cal/108/science/new; tmp_cal/108/science/orig; tmp_cal/108/science/shift
+mkdir tmp_cal/108/var/big; mkdir tmp_cal/108/var/new; mkdir tmp_cal/108/var/orig; mkdir tmp_cal/108/var/shift
+mkdir tmp_cal/108/dq/big; mkdir tmp_cal/108/dq/new; mkdir tmp_cal/108/dq/orig; mkdir tmp_cal/108/dq/shift
+
+# SCIENCE
+imslice mdcslqtexbrgN20051205S0108[sci] tmp_cal/6/science/orig/sci_0108_ 3
+for (i=1;i<=1301;i+=1) {mkimage(("tmp_cal/6/science/new/new_sci_0108_0000"+i)//".fits","make",0,2,"88 69")}
+for (i=1;i<=1301;i+=1) {mkheader(("tmp_cal/6/science/new/new_sci_0108_0000"+i)//".fits",("tmp_cal/6/science/orig/sci_0108_000"+i)//".fits")}
+for (i=1;i<=1301;i+=1) {iminsert(("tmp_cal/6/science/new/new_sci_0108_0000"+i)//".fits",("tmp_cal/6/science/orig/sci_0108_000"+i)//".fits",("tmp_cal/6/science/big/big_sci_0108_0000"+i)//".fits","replace","mkim_coords.dat")}
+for (i=1;i<=1301;i+=1) {imshift(("tmp_cal/6/science/big/big_sci_0108_0000"+i)//".fits",("tmp_cal/6/science/shift/shift_sci_0108_0000"+i)//".fits",-9.5,0.75)}
+for (i=1;i<=1301;i+=1) {print(("tmp_cal/6/science/shift/shift_sci_0108_0000"+i)//".fits",>> "tmp_cal/2D_sci_108.lis")}
+imstack @tmp_cal_2D_sci_108.lis tmp/cal/shifted_sci_108.fits
+
+# VARIANCE
+imclice mdcslqtexbrgN20051205S0108[var] tmp_cal/6/var/orig/var_0108_ 3
+for (i=1;i<=1301;i+=1) {mkimage(("tmp_cal/6/var/new/new_var_0108_0000"+i)//".fits","make",0,2,"88 69")}
+for (i=1;i<=1301;i+=1) {mkheader(("tmp_cal/6/var/new/new_var_0108_0000"+i)//".fits",("tmp_cal/6/var/orig/var_0108_000"+i)//".fits")}
+for (i=1;i<=1301;i+=1) {iminsert(("tmp_cal/6/var/new/new_var_0108_0000"+i)//".fits",("tmp_cal/6/var/orig/var_0108_000"+i)//".fits",("tmp_cal/6/var/big/big_var_0108_0000"+i)//".fits","replace","mkim_coords.dat")}
+for (i=1;i<=1301;i+=1) {imshift(("tmp_cal/6/var/big/big_var_0108_0000"+i)//".fits",("tmp_cal/6/var/shift/shift_var_0108_0000"+i)//".fits",-9.5,0.75)}
+for (i=1;i<=1301;i+=1) {print(("tmp_cal/6/var/shift/shift_var_0108_0000"+i)//".fits",>> "tmp_cal/2D_var_108.lis")}
+imstack @tmp_cal/2D_var_108.lis tmp_cal/shifted_var_108.fits
+
+# AND AGAIN FOR THE DQ
+imslice mdcslqtexbrgN20051205S0108[dq] tmp_cal/6/dq/orig/dq_0108_ 3
+for (i=1;i<=1301;i+=1) {mkimage(("tmp_cal/6/dq/new/new_dq_0108_0000"+i)//".fits","make",0,2,"88 69")}
+for (i=1;i<=1301;i+=1) {mkheader(("tmp_cal/6/dq/new/new_dq_0108_0000"+i)//".fits",("tmp_cal/6/dq/orig/dq_0108_000"+i)//".fits")}
+for (i=1;i<=1301;i+=1) {iminsert(("tmp_cal/6/dq/new/new_dq_0108_0000"+i)//".fits",("tmp_cal/6/dq/orig/dq_0108_000"+i)//".fits",("tmp_cal/6/dq/big/big_dq_0108_0000"+i)//".fits","replace","mkim_coords.dat")}
+for (i=1;i<=1301;i+=1) {imshift(("tmp_cal/6/dq/big/big_dq_0108_0000"+i)//".fits",("tmp_cal/6/dq/shift/shift_dq_0108_0000"+i)//".fits",-9.5,0.75)}
+for (i=1;i<=1301;i+=1) {print(("tmp_cal/6/dq/shift/shift_dq_0108_0000"+i)//".fits",>> "tmp_cal/2D_dq_108.lis")}
+imstack @tmp_cal/2D_dq_108.lis tmp_cal/shifted_dq_108.fits
+
+# Change the DQ plane to integer type rather than real
+imreplace tmp_cal/shifted_dq_108.fits 1. lower=0.01 upper=INDEF
+chpixtype tmp_cal/shifted_dq_108.fits tmp_cal/shifted_dq_108.fits "short" verb-
+
+# MERGE all the planes into an aligned MEF
+imcopy dcslqtexbrgN20051205S0108.fits[0] amdcslqtexbrgN20051205S0108_decimal.fits
+tcopy cslqtexbrgN20051205S0108.fits[1] amdcslqtexbrgN20051205S0108_decimal.fits[1]
+imcopy tmp_cal/shifted_sci_108.fits  amdcslqtexbrgN20051205S0108_decimal[SCI,1,append+]
+imcopy tmp_cal/shifted_var_108.fits amdcslqtexbrgN20051205S0108_decimal[VAR,1,append+]
+imcopy tmp_cal/shifted_dq_108.fits amdcslqtexbrgN20051205S0108_decimal[DQ,1,append+]
+hedit amdcslqtexbrgN20051205S0108_decimal[0] nextend 4 update+ verify-
+hedit amdcslqtexbrgN20051205S0108_decimal[0] nsciext 1 update+ verify-
+
+# INTEGER SHIFT (108)
+# ------------------
+
+mkdir tmp_cal/108_integer; mkdir tmp_cal/108_integer/science; mkdir tmp_cal/108_integer/var; mkdir tmp_cal/_integer108/dq
+mkdir tmp_cal/108_integer/science/shift; mkdir tmp_cal/108_integer/var/shift; mkdir tmp_cal/108_integer/dq/shift
+
+# BEGIN WITH SCIENCE
+for (i=1;i<=1301;i+=1) {imshift(("tmp_cal/6/science/big/big_sci_0108_0000"+i)//".fits",("tmp_cal/6_integer/science/shift/shift_sci_0108_0000"+i)//".fits",-10,1)}
+for (i=1;i<=1301;i+=1) {print(("tmp_cal/6_integer/science/shift/shift_sci_0108_0000"+i)//".fits",>> "tmp_cal/2D_sci_108_integer.lis")}
+imstack @tmp_cal/2D_sci_108_integer.lis tmp_cal/shifted_sci_108_integer.fits
+
+# VARIANCE
+for (i=1;i<=1301;i+=1) {imshift(("tmp_cal/6/var/big/big_var_0108_0000"+i)//".fits",("tmp_cal/6_integer/var/shift/shift_var_0108_0000"+i)//".fits",-10,1)}
+for (i=1;i<=1301;i+=1) {print(("tmp_cal/6_integer/var/shift/shift_var_0108_0000"+i)//".fits",>> "tmp_cal/2D_var_108_integer.lis")}
+imstack @tmp_cal/2D_var_108_integer.lis tmp_cal/shifted_var_108_integer.fits
+
+# DQ
+for (i=1;i<=1301;i+=1) {imshift(("tmp_cal/6/dq/big/big_dq_0108_0000"+i)//".fits",("tmp_cal/6_integer/dq/shift/shift_dq_0108_0000"+i)//".fits",-10,1)}
+for (i=1;i<=1301;i+=1) {print(("tmp_cal/6_integer/dq/shift/shift_dq_0108_0000"+i)//".fits",>> "tmp_cal/2D_dq_108_integer.lis")}
+imstack @tmp_cal/2D_dq_108_integer.lis tmp_cal/shifted_dq_108_integer.fits
+
+# Change the DQ plane to integer type from real
+imreplace tmp_cal/shifted_dq_108_integer.fits 1. lower=0.01 upper=INDEF
+chpixtype tmp_cal/shifted_dq_108_integer.fits tmp_cal/shifted_dq_108_integer.fits "short" verb-
+
+# MERGE all the planes into an aligned MEF
+imcopy dcslqtexbrgN20051205S0108.fits[0] amdcslqtexbrgN20051205S0108_integer.fits
+tcopy cslqtexbrgN20051205S0108.fits[1] amdcslqtexbrgN20051205S0108_integer.fits[1]
+imcopy tmp_cal/shifted_sci_108_integer.fits  amdcslqtexbrgN20051205S0108_integer[SCI,1,append+]
+imcopy tmp_cal/shifted_var_108_integer.fits amdcslqtexbrgN20051205S0108_integer[VAR,1,append+]
+imcopy tmp_cal/shifted_dq_108_integer.fits amdcslqtexbrgN20051205S0108_integer[DQ,1,append+]
+hedit amdcslqtexbrgN20051205S0108_integer[0] nextend 4 update+ verify-
+hedit amdcslqtexbrgN20051205S0108_integer[0] nsciext 1 update+ verify-
+
+
 # DECIMAL SHIFT (112)
 # -------------------
 
