@@ -63,6 +63,55 @@
 #GN-2005B-DD-5-5            ok
 
 
+# 2005dec20
+
+
+#GN-CAL20051220-6  16:36:44    11-15        228-232       Bias         none     mirror     none  0.0            full
+
+
+# 2005dec22
+
+
+#GN-2005B-DD-5-2   06:42:26    4            103           IC225        g        mirror      none       10.0           ccd2
+
+#GN-2005B-DD-5-2   06:51:19    5            104           IC225        g        mirror      IFU        60             full
+
+#GN-2005B-DD-5-2   06:55:33    6            105           IC225        g        mirror      IFU        60             full
+
+#GN-2005B-DD-5-1   06:59:30    6            106           CuAr         g        B600/482.0  IFU        120.0          full
+
+#GN-2005B-DD-5-1   07:02:58    7            107           GCALflat     g        B600/482.0  IFU        40.0           full
+
+#GN-2005B-DD-5-1   07:05:16    8            108           IC225        g        B600/482.0  IFU        3300.0         full
+
+#GN-2005B-DD-5-1   08:01:54    9            109           CuAr         g        B600/482.0  IFU        120.0          full
+
+#GN-2005B-DD-5-1   08:05:36    10-11        110-111       CuAr         g        B600/478.0  IFU        120.0          full
+
+#GN-2005B-DD-5-1   08:12:35    12           112           IC225        g        B600/478.0  IFU        3300.0         full
+
+#GN-2005B-DD-5-1   09:09:13    13           113           GCALflat     g        B600/478.0  IFU        40.0           full
+
+#GN-2005B-DD-5-1   09:11:21    14           114           CuAr         g        B600/478.0  IFU        120.0          full
+
+
+# 2005dec23
+
+
+#GN-2005B-DD-5-2  06:42:20    7            116           IC225        g        mirror     none  10.0           ccd2
+
+#GN-2005B-DD-5-2  06:57:01    8            117           IC225        g        mirror     IFU   60             full
+
+#GN-2005B-DD-5-2  07:02:47    9            118           IC225        g        mirror     IFU   60             full
+
+#Entries for images 119-122 missing, added manually from headers
+#GN-2005B-DD-5-1   07:07:36    15            119           CuAr         g        B600/482.0  IFU        120.0          full
+
+#GN-2005B-DD-5-1   07:11:04    16            120           GCALflat     g        B600/482.0  IFU        40.0           full
+
+#GN-2005B-DD-5-1   07:13:23    17            121           IC225        g        B600/482.0  IFU        3300.0         full
+
+#GN-2005B-DD-5-1   08:10:01    18            122           CuAr         g        B600/482.0  IFU        120.0          full
 
 #Aliases
 #-------
@@ -81,6 +130,7 @@ gemini
 nmisc
 #gemlocal   # not required
 gmos
+rv
 task gscrspec=mygmos$gscrspec.cl
 #task specx2w=mygmos$specx2w.cl     # not required
 task wrbox=mygmos$wrbox.cl
@@ -102,7 +152,7 @@ task chkblocks=mygmos$chkblocks.cl
 task gkeywpars=mygmos$gkeywpars.cl
 task gfshift=mygmos$gfshift.cl
 task gfxcor=mygmos$gfxcor.cl
-rv
+task mkmbpm=mygmos$mkmbpm.cl
 
 #task $pqecorr="$foreign"   # if executing python script in qecorr from iraf, else use the execute command below
 pyexecute('mygmos$pqecorr_iraf.py')
@@ -113,6 +163,7 @@ gfreduce.bias="gN20051204S0227_bias.fits"
 gfreduce.bpmfile="gmos$data/chipgaps.dat"
 gfreduce.fl_fluxcal=no
 gfreduce.fl_gscrrej=no
+gfreduce.slits="both"
 
 # use bpms for the appropriate binning, mbpm is created from the others
 ifuproc.mbpm="gn_bpm2x1m.fits"
@@ -128,25 +179,35 @@ ifuproc.gap12=19
 ifuproc.gap23=19 
 ifuproc.fwidth=2.
 
+#int l_input
+string l_input
+int l_shift
+string l_file
 
 
-### PREPARE the bias, twilights, and flux standards once
+# PREPARE the bias, twilights, and flux standards once
+# ------------------------------------------------------
+
 # biases - combine
 gemlist N20051204S 227-231 > bias.lis
 gbias @bias.lis gN20051204S0227_bias.fits rawpath=rawdir$ fl_over-
+gemlist N20051220S 228-232 > bias20.lis
+gbias @bias20.lis gN20051220S0228_bias.fits rawpath=rawdir$
 
 # twilight - bias subtract
 gemlist N20051203S 239-241 > twi.lis
 gfreduce @twi.lis fl_extract- fl_gsappwave- fl_wavtran- fl_skysub- bias=gN20051204S0227_bias.fits
+# gwen also puts the twilight through ifuproc
 
 # flux standard - bias subtract
 gemlist N20051206S 133,134,135,138 > dec06.lis
 gfreduce @dec06.lis fl_extract- fl_gsappwave- fl_wavtran- fl_skysub- bias=gN20051204S0227_bias.fits
 
-# files should now have prefix rg*
+# files should now have prefix rg*. gprepared then gireduced
 
 
-# IFUPROC DOES MOST OF THE WORK NOW - process the standards, Hiltner600
+# IFUPROC - process the standards, Hiltner600
+# -------------------------------------------
 ##### here gwen processes rgN20051206S0133 first, then rgN20051206S0134
 ##### gwen: twilight=rgN20051203S0240.fits fl_inter- bkgmask=s0007_blkreg.dat fl_crspec+ fl_qecor+ \
 #        mbpm="gn_bpm2x1m.fits" bpm1=caldir$gn_ccd1_bpm2x1f.pl bpm2=caldir$gn_bpm_ccd2_2x1f.pl bpm3=caldir$gn_bpm_ccd3_2x1f.pl \
@@ -155,36 +216,23 @@ gfreduce @dec06.lis fl_extract- fl_gsappwave- fl_wavtran- fl_skysub- bias=gN2005
 #        all the same \
 #        dw not set default if INDEF, nw not set default INDEF, w1 not set default INDEF
 # inputs: image, flat(s), arc(s)
+
 ifuproc rgN20051206S0134 rgN20051206S0135 rgN20051206S0138 twilight=rgN20051203S0239 fl_inter- bkgmask=s0135_blkreg.dat fl_crspec- fl_qecorr+
+#### not sure if necessary, gwen puts through a twilight? from dec03
+#ifuproc rgN20051203S0240 rgN20051203S0244 rgN20051203S0245 twilight=rgN20051203S0239 fl_inter- bkgmask=s0135_blkreg.dat fl_crspec- fl_qecorr+
+#### gwen also proceses the second standard
+#ifuproc rgN20051203S0133 rgN20051203S0135 rgN20051203S0138 twilight=rgN20051203S0240 fl_inter- bkgmask=s0135_blkreg.dat fl_crspec- fl_qecorr+
 
 # files should now have prefix qtexbrg* as bad pixel masked, extracted, wavelength transformed, and then QE corrected ???
+
 
 # visually confirm proper reconstructed spectra
 gfdisplay sqtebrgN20051206S0134.fits ver=1 z1=0 z2=1.e8
 
 
-#### here gwen measures the velocity difference between the two output slits using arcs
-# gtransform ergN20051206S0138.fits wavtraname=ergN20051206S0138
-# gfxcor tergN20051206S0138.fits observ="Gemini-North"
-# tselect tergN20051206S0138.fits[mdf] s0138_1.fits "NO <= 750"
-# tselect tergN20051206S0138.fits[mdf] s0138_2.fits "NO >= 751"
-#### calculates the pixel shift
-# tstat s0138_1.fits,s0138_2.fits SHIFT lowlim=-9999.0 highlim=10.
-## s0138_1.fits  SHIFT
-## 749      0.0155420561     0.0169317         0.012        -0.015         0.083
-## s0138_2.fits  SHIFT
-## 747      0.1295689425     0.0347344         0.133         0.029         0.222
-##=0.1295689425-0.0155420561
-##0.1140268864
-#### corrects velocity difference between two output slits
-# gfshift qtexbrgN20051206S0133.fits lqtexbrgN20051206S0133.fits  fl_scal=no shift1=0 shift2=-0.1140268864
-# gfshift qtexbrgN20051206S0134.fits lqtexbrgN20051206S0134.fits  fl_scal=no shift1=0 shift2=-0.1140268864
-#### sky subtraction
-# gfskysub lqtexbrgN20051206S0133.fits expr="XINST>10" fl_inter-
-# gfskysub lqtexbrgN20051206S0134.fits expr="XINST>10" fl_inter-
-
-
 # SUM ALL SPECTRA
+# ---------------
+
 #### here gwen also does this for: slqtexbrgN20051206S0133.fits outimages="" expr="default" fl_inter-
 #### then combines the two images: gscombine aslqtexbrgN20051206S0133.fits,aslqtexbrgN20051206S0134.fits \
 #        Hiltner600_20051206.fits logfile="gmos.log" combine="average" scale="mean" sample="4550:4850" fl_vard-
@@ -201,19 +249,9 @@ gfapsum sqtebrgN20051206S0134.fits
 gsstandard asqtebrgN20051206S0134.fits starname=h600 caldir=onedstds$ctionewcal/ extinction=gmos$calib/mkoextinct.dat fl_inter-
 
 
-# GALAXY science images - bias subtract
-gemlist N20051205S 5-8 > dec05.lis
-gfreduce @dec05.lis fl_extract- fl_gsappwave- fl_wavtran- fl_skysub- bias=gN20051204S0227_bias.fits
+# MEASURE VELOCITY DIFFERENCE between the two output slits using arcs - enter results into list below
+# -------------------------------------------------------------------
 
-# IFUPROC - with one arc only, central wavelength is 478 so flat is 240 (cite gwen)
-#### here gwen also does this with both arcs
-ifuproc rgN20051205S0006 rgN20051205S0007 rgN20051205S0008  twilight=rgN20051203S0240  fl_inter- bkgmask=s0007_blkreg.dat fl_crspec+ fl_qecorr+ fl_skysub-
-
-# visually inspect reconstructed image
-gfdisplay qtexbrgN20051205S0006.fits ver=1 z2=1.e8
-
-
-# SHIFTS BETWEEN THE SLITS - do the same as gwen above but for a different arc
 #### could do for all arcs and calculate average shift as done by gwen
 # We have found small pixel offsets between the two pseudo slits that are not removed by the wavelength calibration.
 # The reason for this is not understood but here is one workaround using the arc to determine the shift and then
@@ -231,7 +269,7 @@ gfdisplay qtexbrgN20051205S0006.fits ver=1 z2=1.e8
 #0.115
 #### calculate the shift - subtract the difference with gfshit and confirm the new shift ~0
 #gfshift tergN20051205S0008.fits stergN20051205S0008.fits shift2=-0.115
-#gfxcor stergN20051205S0008.fits obs=Gemini-North 
+#gfxcor stergN20051205S0008.fits obs=Gemini-North
 #delete slit?.fits
 #tselect stergN20051205S0008.fits[mdf] slit1.fits "NO <= 750"
 #tselect stergN20051205S0008.fits[mdf] slit2.fits "NO >= 751"
@@ -241,15 +279,75 @@ gfdisplay qtexbrgN20051205S0006.fits ver=1 z2=1.e8
 # slit2.fits  SHIFT
 #  747     0.02548995992     0.0365223         0.028        -0.073         0.098
 
-# CORRECT VELOCITY difference between two output slits
-gfshift qtexbrgN20051205S0006.fits hqtexbrgN20051205S0006.fits shift2=-0.115
-
-# SKY SUBtraction
-gfskysub hqtexbrgN20051205S0006.fits fl_inter-
-
-# CALIBRATE and visually inspect
-gscalibrate shqtexbrgN20051205S0006.fits extinction=gmos$calib/mkoextinct.dat fl_ext+ fl_vardq+
-gfdispl cshqtexbrgN20051205S0006.fits ver=1 z2=500
 
 
-#### Repeat for science taken on Dec 22nd, 23rd
+
+
+# REPEAT FOR ALL SCIENCE FRAMES
+# -----------------------------
+
+#l_input[1] = 'N20051205S0006'
+#l_input[2]='N20051222S0108'
+#l_input[3]='N20051222S0112'
+#l_input[4]='N20051223S0121'
+#l_shift[1]=-0.115
+#l_shift[2]=-0.1042
+#l_shift[3]=-0.1082
+#l_shift[4]=-0.1047
+l_input='108'
+l_shift=-0.1042
+
+
+# GALAXY science images - bias subtract
+gemlist N20051205S 5-8 > dec05.lis
+gfreduce @dec05.lis fl_extract- fl_gsappwave- fl_wavtran- fl_skysub- bias=gN20051204S0227_bias.fits
+
+gemlist N20051222S 6-14 > dec22.lis
+gfreduce @dec22.lis fl_extract- fl_gsappwave- fl_wavtran- fl_skysub- bias=gN20051220S0228_bias.fits
+
+gemlist N20051223S 19-22 > dec23.lis
+gfreduce @dec23.lis fl_extract- fl_gsappwave- fl_wavtran- fl_skysub- bias=gN20051220S0228_bias.fits
+
+
+# IFUPROC - with one arc only, central wavelength is 478 so flat is 240 (cite gwen)
+# ---------------------------
+
+#### here gwen also does this with both arcs ************* is this necessary?
+#ifuproc rgN20051205S0006 rgN20051205S0007 rgN20051205S0008  twilight=rgN20051203S0240  fl_inter- bkgmask=s0007_blkreg.dat fl_crspec+ fl_qecorr+ fl_skysub-
+ifuproc rgN20051205S0006 rgN20051205S0007 rgN20051205S0008 twilight=rgN20051203S0240 fl_inter- bkgmask=s0007_blkreg.dat fl_crspec+ fl_qecorr+ fl_skysub-
+ifuproc rgN20051222S0108 rgN20051222S0107 rgN20051222S0109 twilight=rgN20051203S0240 fl_inter- bkgmask=s0007_blkreg.dat fl_crspec+ fl_qecorr+ fl_skysub-
+ifuproc rgN20051222S0112 rgN20051222S0113 rgN20051222S0111 twilight=rgN20051203S0240 fl_inter- bkgmask=s0007_blkreg.dat fl_crspec+ fl_qecorr+ fl_skysub-
+ifuproc rgN20051222S0121 rgN20051222S0120 rgN20051222S0122 twilight=rgN20051203S0241 fl_inter- bkgmask=s0007_blkreg.dat fl_crspec+ fl_qecorr+ fl_skysub-
+
+
+    # ITERATE THROUGH SCIENCE FRAMES
+    # ------------------------------
+
+    #for (i=1; i<=4; i+=1) {
+
+    print('gets here')
+
+    l_file = "rg"//l_input
+
+    # visually inspect reconstructed image
+    #gfdisplay qtexbrgN20051205S0006.fits ver=1 z2=1.e8
+    gfdisplay ("qtexb"//l_file//".fits", ver=1, z2=1.e8)
+
+    # CORRECT VELOCITY difference between two output slits
+    #gfshift qtexbrgN20051205S0006.fits hqtexbrgN20051205S0006.fits shift2=-0.115
+    gfshift ("qtexb"//l_file//".fits", "hqtexb"//l_file//".fits", shift2=l_shift)
+
+    # SKY SUBtraction
+    #### gwen uses "expr='XINST>10'" ****** necessary?
+    #gfskysub hqtexbrgN20051205S0006.fits fl_inter-
+    gfskysub ("hqtexb"//l_file//".fits", fl_inter-)
+
+    # CALIBRATE and visually inspect
+    #gscalibrate shqtexbrgN20051205S0006.fits extinction=gmos$calib/mkoextinct.dat fl_ext+ fl_vardq+
+    gscalibrate ("shqtexb"//l_file//".fits", extinction=gmos$calib/mkoextinct.dat, fl_ext+, fl_vardq+)
+
+    #gfdispl cshqtexbrgN20051205S0006.fits ver=1 z2=500
+    gfdisplay ("cshqtexb"//l_file//".fits", ver=1, z2=500)
+
+
+    }
