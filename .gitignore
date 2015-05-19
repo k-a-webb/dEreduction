@@ -7,7 +7,7 @@ IFU_reduction/tmp*
 IFU_reduction/std
 IFU_reduction/*.xml
 IFU_reduction_examples/
-
+IFU_reduction/proc
 
 
 .CFUserTextEncoding
