@@ -10,6 +10,7 @@ string arc       {"",prompt="List of arcs"}
 string twilight  {"",prompt="Twilight flat"}
 int    iarc      {1,prompt="Index for arc to use for flat"}
 string mbpm      {"mbpm.fits",prompt="Mosaiced bpm file"}
+string umbpm      {"umbpm.fits",prompt="Unmosaiced bpm file"}
 string bpm1      {"ccd1_badpix.pl",prompt="CCD1 bpm"}
 string bpm2      {"ccd2_badpix.pl",prompt="CCD2 bpm"}
 string bpm3      {"ccd3_badpix.pl",prompt="CCD3 bpm"}
@@ -39,7 +40,7 @@ bool   fl_wrbox  {no,prompt="Mark emission lines in flats?"} # added to be simil
 begin
 
 string l_image,l_flat,l_arc,l_twilight,l_weights
-string l_mbpm,l_bpm[3],l_bpmgaps,l_ccdsum,l_bkgmask,l_sky
+string l_mbpm,l_umbpm,l_bpm[3],l_bpmgaps,l_ccdsum,l_bkgmask,l_sky
 string inst,detect,dettype,detsec,ccdsec,ccdsum,obsmode
 string pre,flatlis,fflat,arclis,img,earc[2]
 real l_xoffset,l_yoffset,l_apwidth
@@ -57,7 +58,7 @@ real dx
 int ii,nflat
 
 l_image=image ; l_flat=flat ; l_arc=arc ; l_twilight=twilight
-l_mbpm=mbpm ; l_bpm[1]=bpm1 ; l_bpm[2]=bpm2; l_bpm[3]=bpm3
+l_mbpm=mbpm ; l_umbpm=umbpm ; l_bpm[1]=bpm1 ; l_bpm[2]=bpm2; l_bpm[3]=bpm3
 l_bpmgaps=bpmgaps ; l_bkgmask=bkgmask
 l_xoffset=xoffset ; l_yoffset=0.0
 l_fl_xshift=fl_xshift ; l_fl_inter=fl_inter
@@ -69,7 +70,7 @@ l_wshift=wshift
 status=0
 l_fl_wrbox=fl_wrbox
 
-#cache("gspecshift","fparse","imgets")      # commented out as gspecshift was unrecognised
+cache("fparse","imgets")      # commented out as gspecshift was unrecognised
 
 ## Get various header parameters 
 	hselect(l_image//"[0]","INSTRUME,OBSMODE,DETECTOR,DETTYPE","yes") | scan(inst,obsmode,detect,dettype)
@@ -106,12 +107,12 @@ l_fl_wrbox=fl_wrbox
 #### Not including commented out gmosaic and x offset
 
 ## Make bad pixel mask if cannot access the default 'mbpm.fits'
-#### to be applied in gfreduce ??
+## Use the unmosaiced bad pixel mask with addbpm - l_umbpm
 	if (!access(l_mbpm)) {
-		mkmbpm (l_mbpm, l_flat, bpm1=l_bpm[1], bpm2=l_bpm[2], bpm3=l_bpm[3],\
+		mkmbpm (l_mbpm, l_flat, bpm1=l_bpm[1], bpm2=l_bpm[2], bpm3=l_bpm[3], bpm=l_umbpm,\
 			   bpmgaps=l_bpmgaps, fl_wrbox=l_fl_wrbox)
  	}
-
+print ('>>>>> 1')
 
 # Flat, first processing
 # ----------------------
@@ -148,32 +149,27 @@ l_fl_wrbox=fl_wrbox
 			}
 		}
 	}
+	
 print ('>>>>> 2')	
 	scanfile = ""
-	if (!imaccess("eb"//l_aflat)) {		#### changed in ifuproc from 'e' to 'eb'
-	
-#		addbpm(l_flat, l_mbpm)
-		scanfile = flatlis
-		while(fscan(scanfile,l_flat) != EOF) {	
-			for (ii=1; ii<=3; ii+=1) {
-				nmisc.fixpix(l_flat//"[sci,"//ii//"]",l_bpm[ii], ninterp=1)
-#				gemfix(l_flat//"[sci,"//ii//"]", "p"//l_flat//"[sci,"//ii//"]", method="fixpix", fl_inter-)
-			}
-		}
-
-		scanfile = ""
+	if (!imaccess("bp"//l_aflat)) {		#### changed in ifuproc from 'e' to 'eb'
+		
 		if (nflat > 1) {		
 			gemcombine("@"//flatlis, l_aflat, combine="average", reject="avsigclip",\
 					   offsets="none", scale="none", zero="none", weight="none")
 		}
-
-		gfreduce(l_aflat, fl_addmdf-, fl_trim-, fl_bias-, fl_wavtran-, fl_skysub-, fl_over-,\
-				 fl_gscrrej-, fl_fluxcal-, rawpath="", weights=l_weights,\
-				 fl_extract+, fl_gsappwave+, fl_vardq+, xoffset=l_xoffset, fl_inter-)#=l_fl_inter)
-				 #### fl_vardq- changed to match james'
-
-# maybe put gemfix here?				 
-		## Make a background mask with gffindblocks if cannot access default mask
+		
+		if (!imaccess("p"//l_aflat)) {
+			addbpm(l_aflat, l_umbpm)
+			gemfix(l_aflat, "p"//l_aflat, method="fit1d", bitmask=1, order=15, fl_inter-)
+		}	
+			
+		if (!imaccess("ep"//l_aflat)) {
+			gfreduce(l_aflat, fl_addmdf-, fl_trim-, fl_bias-, fl_wavtran-, fl_skysub-, fl_over-,\
+					 fl_gscrrej-, fl_fluxcal-, rawpath="", weights=l_weights,\
+					 fl_extract+, fl_gsappwave+, fl_vardq+, xoffset=l_xoffset, fl_inter-)#=l_fl_inter)
+		}
+				 
 		if (l_bkgmask != "" && !access(l_bkgmask)) {
 		
 			gffindblocks(l_aflat, "e"//l_aflat, l_bkgmask)
@@ -181,7 +177,7 @@ print ('>>>>> 2')
 				goto error
 			}
 		}
-		
+print ('>>>>> 2.3')	
 		## Subtract the scattered light
 		if (l_bkgmask != "" && access(l_bkgmask)) {
 			
@@ -210,10 +206,14 @@ print ('>>>>> 3')
 	}
 	
 	if (l_twilight != "" && !imaccess("e"//pre//l_twilight)) {
-		for (ii=1; ii<=3; ii+=1) {
-			nmisc.fixpix(l_twilight//"[sci,"//ii//"]",l_bpm[ii], ninterp=1)
-#			gemfix(l_twilight//"[sci,"//ii//"]", l_bpm[ii], ninterp=1)
-		}
+	
+		addbpm(l_twilight, l_umbpm)
+		gemfix(l_twilight, "p"//l_twilight, method="fit1d", bitmask=1, order=15, fl_inter-)
+		l_twilight = "p"//l_twilight
+#		for (ii=1; ii<=3; ii+=1) {
+#			nmisc.fixpix(l_twilight//"[sci,"//ii//"]",l_bpm[ii], ninterp=1)
+#		}
+
 		if (l_bkgmask != "" && access(l_bkgmask)) {
 			if (!imaccess("b"//l_twilight)) {
 				print("Subtracting background from "//l_twilight//" using ", l_bkgmask)
@@ -280,8 +280,7 @@ print ('>>>>> 5')
 #			gqecorr(pre//l_twilight, outimage="q"//pre//l_twilight, gap12=l_gap12, gap23=l_gap23, fl_fixpix+)
 		}
 		l_sky = ""
-print (l_twilight)
-print (pre)		
+		
 		if (l_twilight != "") {		
  			l_sky = pre//l_twilight
 			gfreduce (l_sky, fl_addmdf-, fl_trim-, fl_bias-, fl_wavtran-, fl_skysub-, \
@@ -318,7 +317,11 @@ print ('>>>>> 7')
 		pre = "e"
 	}
 	
-	if (!imaccess(pre//l_image)) {
+	#### chagned prefix here, not sure how to make it work better yet
+	if (!imaccess("steqpxb"//l_image)) {
+	
+		addbpm(l_image, l_umbpm)
+	
 		if (l_bkgmask != "" && access(l_bkgmask)) {	
 			if (!imaccess("b"//l_image)) {
 				print("Subtracting background from "//l_image//" using ", l_bkgmask)
@@ -331,45 +334,18 @@ print ('>>>>> 7')
 			gemcrspec ("b"//l_image, "xb"//l_image, fl_vardq+)
 		}
 		if (!imaccess("qxb"//l_image)) {
+			
+			gemfix("xb"//l_image, "pxb"//l_image, bitmask=8, method="fixpix", fl_inter-)
+			#nmisc.fixpix(l_image//"[sci,2]", l_bpm[2], ninterp=1)
+			#nmisc.fixpix(l_image//"[sci,3]", l_bpm[3], ninterp=1)
 		
-# To be changed to gemfix eventually (this time fixpix)		
-			nmisc.fixpix(l_image//"[sci,2]", l_bpm[2], ninterp=1)
-			nmisc.fixpix(l_image//"[sci,3]", l_bpm[3], ninterp=1)
-		
-			gqecorr ("xb"//l_image, refimages=earc[1], fl_vardq+)
+			gqecorr ("pxb"//l_image, refimages=earc[1], fl_vardq+)
 		}
 
-		gfreduce ("qxb"//l_image, fl_sky+, fl_flux-, trace-, recenter-, fl_vardq+, fl_inter-,\
+		gfreduce ("qpxb"//l_image, fl_sky+, fl_flux-, trace-, recenter-, fl_vardq+, fl_inter-,\
 		          reference="e"//l_aflat, response=l_oflat, wavtraname=earc[1], sepslits+,\
 		          w1=l_w1, w2=l_w2, dw=l_dw, nw=l_nw, rawpath="")
-	
-	
-#	if (!imaccess(pre//l_image)) {
-#		nmisc.fixpix(l_image//"[sci,2]",l_bpm[2],  ninterp=1)
-#        nmisc.fixpix(l_image//"[sci,3]", l_bpm[3], ninterp=1)
-#
-#		if (l_bkgmask != "" && access(l_bkgmask)) {	
-#			if (!imaccess("b"//l_image)) {
-#				print("Subtracting background from "//l_image//" using ", l_bkgmask)
-#				gfscatsub(l_image, l_bkgmask, outimage="", prefix="b", xorder="5,9,5",\
-#							 yorder="5,7,5", cross=yes)
-#			}
-#		}
-#
-#		gfreduce("b"//l_image, fl_addmdf-, fl_trim-, fl_bias-, fl_wavtran+, fl_skysub=l_fl_skysub, fl_fluxcal-,\
-#                 rawpath="", fl_inter-, trace-, weights=l_weights, recenter-, ref="e"//l_aflat,\
-#                 response=l_oflat, wavtraname=earc[1], fl_gscrrej=l_fl_crspec, fl_vardq+,\
-#                 w1=l_w1, w2=l_w2, dw=l_dw, nw=l_nw, xoffset=l_xoffset)
-#		
-#		
-#		gfreduce ("b"//l_image, fl_vardq+, fl_addmdf-, fl_trim-, fl_bias-, fl_over-,\		
-#			      fl_gscrrej=l_fl_crspec, fl_extract+, fl_gsappwave+, fl_skysub=l_fl_skysub,\
-#			      fl_wavtran+, fl_fluxcal-, rawpath="", weights=l_weights, reference="e"//l_aflat,\
-#			      response=l_oflat, wavtraname=earc[1], trace-, recenter-, xoffset=l_xoffset,\
-#			      sepslits+, w1=l_w1, w2=l_w2, dw=l_dw, nw=l_nw, fl_inter-)
-                 #### removed: gap12=l_gap12, gap23=l_gap23, wavtranalt=earc[2], datares=l_fwidth, \
-                 #### wshift=l_wshift, perlen=l_perlen, wavtranalt=earc[2], mbpmfile=l_mbpm
-                 # chnaged addmdf- so won't call greduce, vardq- to amtch above
+
         if (gfreduce.status != 0) {
             goto error
         }
