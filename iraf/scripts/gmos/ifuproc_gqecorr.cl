@@ -106,13 +106,14 @@ cache("fparse","imgets")      # commented out as gspecshift was unrecognised
 	
 #### Not including commented out gmosaic and x offset
 
+print ('>>>>> Making bad pixel mask')
 ## Make bad pixel mask if cannot access the default 'mbpm.fits'
 ## Use the unmosaiced bad pixel mask with addbpm - l_umbpm
 	if (!access(l_mbpm)) {
-		mkmbpm (l_mbpm, l_flat, bpm1=l_bpm[1], bpm2=l_bpm[2], bpm3=l_bpm[3], bpm=l_umbpm,\
+		mkmbpm (l_mbpm, l_flat, bpm1=l_bpm[1], bpm2=l_bpm[2], bpm3=l_bpm[3], umbpm=l_umbpm,\
 			   bpmgaps=l_bpmgaps, fl_wrbox=l_fl_wrbox)
  	}
-print ('>>>>> 1')
+
 
 # Flat, first processing
 # ----------------------
@@ -149,10 +150,17 @@ print ('>>>>> 1')
 			}
 		}
 	}
-	
-print ('>>>>> 2')	
 	scanfile = ""
-	if (!imaccess("bp"//l_aflat)) {		#### changed in ifuproc from 'e' to 'eb'
+	
+print ('>>>>> Flat - first processing')
+
+	if (l_bkgmask != "") {
+		pre = "bp"
+	} else {
+		pre = "p"
+	}
+	
+	if (!imaccess(pre//l_aflat)) {		#### changed in ifuproc from 'e' to 'eb'
 		
 		if (nflat > 1) {		
 			gemcombine("@"//flatlis, l_aflat, combine="average", reject="avsigclip",\
@@ -163,74 +171,54 @@ print ('>>>>> 2')
 			addbpm(l_aflat, l_umbpm)
 			gemfix(l_aflat, "p"//l_aflat, method="fit1d", bitmask=1, order=15, fl_inter-)
 		}	
-			
+		
 		if (!imaccess("ep"//l_aflat)) {
-			gfreduce(l_aflat, fl_addmdf-, fl_trim-, fl_bias-, fl_wavtran-, fl_skysub-, fl_over-,\
-					 fl_gscrrej-, fl_fluxcal-, rawpath="", weights=l_weights,\
+			gfreduce("p"//l_aflat, fl_addmdf-, fl_trim-, fl_bias-, fl_wavtran-, fl_skysub-,\
+					 fl_over-, fl_gscrrej-, fl_fluxcal-, rawpath="", weights=l_weights,\
 					 fl_extract+, fl_gsappwave+, fl_vardq+, xoffset=l_xoffset, fl_inter-)#=l_fl_inter)
 		}
-				 
+					 
 		if (l_bkgmask != "" && !access(l_bkgmask)) {
-		
-			gffindblocks(l_aflat, "e"//l_aflat, l_bkgmask)
+			gffindblocks("p"//l_aflat, "ep"//l_aflat, l_bkgmask)
 			if (gffindblocks.status != 0) {
 				goto error
 			}
 		}
-print ('>>>>> 2.3')	
+
 		## Subtract the scattered light
 		if (l_bkgmask != "" && access(l_bkgmask)) {
-			
-			if (!imaccess("b"//l_aflat)) {
-				print("Subtracting scattered light from "//l_aflat//" using ", l_bkgmask)
-				
-				gfscatsub(l_aflat, l_bkgmask, outimage="", prefix="b", xorder="5,9,5",\
-						  yorder="5,7,5", cross=yes)
-			}
-# what is this for?			
-#			gfreduce("b"//l_aflat, fl_addmdf-, fl_trim-, fl_bias-, fl_wavtran-, fl_skysub-,\
-#					 weights=l_weights, fl_extract+, fl_gsappwave+,\
-#					 reference="e"//l_aflat, trace-, recenter-, wshift=l_wshift,\
-#                    fl_vardq+, fl_qecorr-, xoffset=l_xoffset, rawpath="", fl_inter-)                
-        }
+			print("Subtracting scattered light from "//l_aflat//" using ", l_bkgmask)
+			gfscatsub("p"//l_aflat, l_bkgmask, outimage="", prefix="b", xorder="5,9,5",\
+					  yorder="5,7,5", cross=yes)
+		}
     }
+    
 	
-print ('>>>>> 3')	
 # Twilight processing - optional, may not have a significant affect if included
 # -------------------
-
-	if (l_bkgmask != "") {
-		pre = "b"
-	} else {
-		pre = ""
-	}
 	
-	if (l_twilight != "" && !imaccess("e"//pre//l_twilight)) {
+print ('>>>>>> Twilight - first processing')	
+	if (l_twilight != "" && !imaccess(pre//l_twilight)) {
 	
-		addbpm(l_twilight, l_umbpm)
-		gemfix(l_twilight, "p"//l_twilight, method="fit1d", bitmask=1, order=15, fl_inter-)
-		l_twilight = "p"//l_twilight
-#		for (ii=1; ii<=3; ii+=1) {
-#			nmisc.fixpix(l_twilight//"[sci,"//ii//"]",l_bpm[ii], ninterp=1)
-#		}
-
-		if (l_bkgmask != "" && access(l_bkgmask)) {
-			if (!imaccess("b"//l_twilight)) {
-				print("Subtracting background from "//l_twilight//" using ", l_bkgmask)
-				gfscatsub(l_twilight, l_bkgmask, outimage="", prefix="b", xorder="5,9,5",\
-						 yorder="5,7,5", cross=yes)
-			}
+		if (!imaccess("p"//l_twilight)) {
+			addbpm(l_twilight, l_umbpm)
+			gemfix(l_twilight, "p"//l_twilight, method="fit1d", bitmask=1, order=15, fl_inter-)
 		}
-		gfreduce(pre//l_twilight, fl_addmdf-, fl_trim-, fl_bias-, fl_wavtran-, fl_skysub-,\
-				weights=l_weights, fl_extract+, fl_gsappwave+, fl_over-,\
-				reference="e"//l_aflat, trace-, recenter-, fl_vardq+, xoffset=l_xoffset, \
-				rawpath="", fl_inter-)
+		
+		if (l_bkgmask != "" && access(l_bkgmask)) {
+			print("Subtracting background from "//l_twilight//" using ", l_bkgmask)
+			gfscatsub("p"//l_twilight, l_bkgmask, outimage="", prefix="b", xorder="5,9,5",\
+					 yorder="5,7,5", cross=yes)
+		}
 	}
 	
-print ('>>>>> 4')	
+	#### Note that the order is different here (p > b > then e below) than for the flats (p > e > b (like james'))
+	
+	
 # Arc processing
 # --------------
-	
+
+print ('>>>>> Arc processing')	
 	arclis=mktemp("tmparclis")
 	files(l_arc, sort-, > arclis)
 	ii = 0
@@ -241,7 +229,7 @@ print ('>>>>> 4')
 		ii+=1
 		if (!imaccess("e"//img)) {
 			gfreduce(img, fl_addmdf-, fl_trim-, fl_bias-, fl_wavtran-, fl_skysub-, fl_gscrrej-,\
-					 rawpath="", fl_inter=no, trace-, recenter-, ref="e"//l_aflat, fl_over-,\
+					 rawpath="", fl_inter=no, trace-, recenter-, ref="ep"//l_aflat, fl_over-,\
 					 weights=l_weights, xoffset=l_xoffset, fl_extract+, fl_gsappwave+)
             gswavelength("e"//img, fwidth=(1.7*l_fwidth), cradius=(1.2*1.7*l_fwidth),\
              			 nlost=10, fl_inter=l_fl_inter, low_reject=2.5, high_reject=2.5, verbose-)
@@ -253,102 +241,116 @@ print ('>>>>> 4')
     }
     scanfile = ""
     delete(arclis,verify-)
-print ('>>>>> 5')     
+        
      
 # Determine response function
 # ---------------------------
 
+print ('>>>>> Determining response function')
 	if (!imaccess(l_oflat)) {
-		if (l_bkgmask != "") {
-			pre = "b"
-		} else {
-			pre = ""
+
+		if (!imaccess("t"//pre//l_aflat)) {		
+			gftransform(pre//l_aflat, wavtraname=earc[l_iarc], fl_vardq+, w1=l_w1,\
+						w2=l_w2, dw=l_dw, nw=l_nw)
 		}
-		## Works best to run this in pyraf it seems, otherwise multiple sci ext are made?
-		gftransform("e"//pre//l_aflat, wavtraname=earc[l_iarc], fl_vardq+, w1=l_w1,\
-					w2=l_w2, dw=l_dw, nw=l_nw)
+							
 		if (l_twilight != "") {
-			gftransform("e"//pre//l_twilight, wavtraname=earc[l_iarc], fl_vardq+, w1=l_w1,\
-					w2=l_w2, dw=l_dw, nw=l_nw)
+print ("e"//pre//l_twilight)	
+			if (!imaccess("e"//pre//l_twilight)) {
+				gfreduce(pre//l_twilight, fl_addmdf-, fl_trim-, fl_bias-, fl_wavtran-, fl_skysub-,\
+						 weights=l_weights, fl_extract+, fl_gsappwave+, fl_over-, reference="ep"//l_aflat,\
+						 trace-, recenter-, fl_vardq+, xoffset=l_xoffset, rawpath="", fl_inter-)
+			}
+			
+			if (!imaccess("te"//pre//l_twilight)) {		
+				gftransform("e"//pre//l_twilight, wavtraname=earc[l_iarc], fl_vardq+, w1=l_w1,\
+						w2=l_w2, dw=l_dw, nw=l_nw)
+			}
 		}
 
 		if (l_fl_qecorr) {
-			gqecorr("b"//l_aflat, outpref="q", refimages="e"//l_arc)
-			gqecorr("b"//l_twilight, outpref="q", refimages="e"//l_arc)
-			pre = "qb"	
-#			gqecorr(pre//l_aflat, outimage="q"//pre//l_aflat, gap12=l_gap12, gap23=l_gap23, fl_fixpix+)
-#			gqecorr(pre//l_twilight, outimage="q"//pre//l_twilight, gap12=l_gap12, gap23=l_gap23, fl_fixpix+)
+			if (!imaccess("q"//pre//l_aflat)) {
+				gqecorr(pre//l_aflat, outpref="q", refimages="e"//l_arc)
+			}
+			if (!imaccess("q"//pre//l_twilight)) {
+				gqecorr(pre//l_twilight, outpref="q", refimages="e"//l_arc)	
+			}
 		}
+		
 		l_sky = ""
-		
 		if (l_twilight != "") {		
- 			l_sky = pre//l_twilight
-			gfreduce (l_sky, fl_addmdf-, fl_trim-, fl_bias-, fl_wavtran-, fl_skysub-, \
-				  	  fl_over-, fl_gscrrej-, fl_fluxcal-, rawpath="", fl_inter=l_fl_inter, \
-				  	  weights=l_weights, fl_extract+, fl_gsappwave+, fl_vardq+, xoffset=l_xoffset)
+ 			l_sky = "q"//pre//l_twilight
+ 			if (!imaccess("e"//l_sky)) {
+				gfreduce (l_sky, fl_addmdf-, fl_trim-, fl_bias-, fl_wavtran-, fl_skysub-, \
+						  fl_over-, fl_gscrrej-, fl_fluxcal-, rawpath="", fl_inter=l_fl_inter, \
+						  weights=l_weights, fl_extract+, fl_gsappwave+, fl_vardq+, xoffset=l_xoffset)
+			}
 		}
 		
-		## Re-extract the flat with the scattered-light-subtracted image
-		gfreduce ("qb"//l_aflat, fl_addmdf-, fl_trim-, fl_bias-, fl_wavtran-, fl_skysub-, \
-				  fl_over-, fl_gscrrej-, fl_fluxcal-, rawpath="", fl_inter=l_fl_inter, \
-				  weights=l_weights, fl_extract+, fl_gsappwave+, fl_vardq+, xoffset=l_xoffset)
-
-print ('>>>>> 6')
+		if (!imaccess("eq"//pre//l_aflat)) {
+			## Re-extract the flat with the scattered-light-subtracted image
+			gfreduce ("q"//pre//l_aflat, fl_addmdf-, fl_trim-, fl_bias-, fl_wavtran-, fl_skysub-, \
+					  fl_over-, fl_gscrrej-, fl_fluxcal-, rawpath="", fl_inter=l_fl_inter, \
+					  weights=l_weights, fl_extract+, fl_gsappwave+, fl_vardq+, xoffset=l_xoffset)
+		}
+		
 		## Apply fibre throughput correction			
-		gfresponse("eqb"//l_aflat, l_oflat, skyimage="e"//l_sky, order=95,\
+		gfresponse("eq"//pre//l_aflat, l_oflat, skyimage="e"//l_sky, order=95,\
 				   fl_inter=l_fl_inter, fl_fit-) #### removed iorder=750, sorder=5
 		if (gfresponse.status != 0) {
 			goto error
 		}
 	}
 
-print ('>>>>> 7')
+
 # Science processing
 # ------------------
 
-### James' order: gfscatsub, gemcrspec, gemfix, gqecorr, gfreduce (sky+, ref, resp, wav, vardq+, sepslits+, w1, w2, dw, nw,), uncorrupt MDF
+### James' order: gfscatsub, gemcrspec, gemfix, gqecorr, gfreduce, uncorrupt MDF
 
+print ('>>>>> Science processing')
 	gimverify(l_image)
 	l_image = gimverify.outname//".fits"
 	
 	if (l_bkgmask != "") {
-		pre = "eb"
+		pre = "b"
 	} else {
-		pre = "e"
+		pre = ""
 	}
 	
-	#### chagned prefix here, not sure how to make it work better yet
-	if (!imaccess("steqpxb"//l_image)) {
+	if (!imaccess("steqpx"//pre//l_image)) {
 	
 		addbpm(l_image, l_umbpm)
 	
-		if (l_bkgmask != "" && access(l_bkgmask)) {	
+		if (l_bkgmask != "" && access(l_bkgmask)) {		
 			if (!imaccess("b"//l_image)) {
 				print("Subtracting background from "//l_image//" using ", l_bkgmask)
 				gfscatsub(l_image, l_bkgmask, outimage="", prefix="b", xorder="5,9,5",\
-							 yorder="5,7,5", cross=yes)
+						  yorder="5,7,5", cross=yes)
 			}
 		}
-		if (!imaccess("xb"//l_image)) {
-			# although not optimized for IFU, ok with faint data
-			gemcrspec ("b"//l_image, "xb"//l_image, fl_vardq+)
-		}
-		if (!imaccess("qxb"//l_image)) {
-			
-			gemfix("xb"//l_image, "pxb"//l_image, bitmask=8, method="fixpix", fl_inter-)
-			#nmisc.fixpix(l_image//"[sci,2]", l_bpm[2], ninterp=1)
-			#nmisc.fixpix(l_image//"[sci,3]", l_bpm[3], ninterp=1)
 		
-			gqecorr ("pxb"//l_image, refimages=earc[1], fl_vardq+)
+		## Preform CR removal, although gemcrspec is not optimized for IFU, ok with faint data
+		if (!imaccess("x"//pre//l_image)) {
+			gemcrspec (pre//l_image, "x"//pre//l_image, fl_vardq+)
+		}
+		
+		if (!imaccess("px"//pre//l_image)) {
+			gemfix ("xb"//l_image, "pxb"//l_image, bitmask=8, method="fixpix", fl_inter-)
+		}
+		
+		if (!imaccess("qpx"//pre//l_image)) {
+			gqecorr ("px"//pre//l_image, refimages=earc[1], outpref="q", fl_vardq+)
 		}
 
-		gfreduce ("qpxb"//l_image, fl_sky+, fl_flux-, trace-, recenter-, fl_vardq+, fl_inter-,\
-		          reference="e"//l_aflat, response=l_oflat, wavtraname=earc[1], sepslits+,\
-		          w1=l_w1, w2=l_w2, dw=l_dw, nw=l_nw, rawpath="")
-
-        if (gfreduce.status != 0) {
-            goto error
-        }
+		if (!imaccess("steqpx"//pre//l_image)) {
+			gfreduce ("qpx"//pre//l_image, fl_sky+, fl_flux-, trace-, recenter-, fl_vardq+, fl_inter-,\
+					  reference="ep"//l_aflat, response=l_oflat, wavtraname=earc[1], sepslits+,\
+					  w1=l_w1, w2=l_w2, dw=l_dw, nw=l_nw, rawpath="")
+			if (gfreduce.status != 0) {
+            	goto error
+        	}
+		}
     }
 
 goto clean
