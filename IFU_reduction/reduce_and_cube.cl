@@ -99,16 +99,16 @@ nmisc
 #gemlocal   # not required
 gmos
 #task gscrspec=mygmos$gscrspec.cl
-#task specx2w=mygmos$specx2w.cl     # not required
+#task specx2w=mygmos$specx2w.cl             # not required
 #task wrbox=mygmos$wrbox.cl
 #task gspecshift=mygmos$gspecshift.cl
 #task findgaps=mygmos$findgaps.cl
 #task fndblocks=mygmos$fndblocks.cl
 #task qecorr=mygmos$qecorr.cl
 #task ifuproc=mygmos$ifuproc.cl
-#task gfreduce=mygmos$gfreduce.cl        # USE STANDARD
-#task gfextract=mygmos$gfextract.cl     # USE STANDARD
-#task gftransform=mygmos$gftransform.cl     # to run in pyraf, uncomment, to run in iraf comment out
+#task gfreduce=mygmos$gfreduce.cl           # USE STANDARD
+#task gfextract=mygmos$gfextract.cl         # USE STANDARD
+#task gftransform=mygmos$gftransform.cl      # to run in pyraf use nonstandard
 #task gfresponse=mygmos$gfresponse.cl
 #task gfskysub=mygmos$gfskysub.cl
 #task gfbkgsub=mygmos$gfbkgsub.cl
@@ -117,9 +117,9 @@ gmos
 #task gscalibrate=mygmos$gscalibrate.cl
 #task chkblocks=mygmos$chkblocks.cl
 #task gkeywpars=mygmos$gkeywpars.cl
-#task gfshift=mygmos$gfshift.cl
+task gfshift=mygmos$gfshift.cl              # no standard
 #task gfxcor=mygmos$gfxcor.cl
-task mkmbpm=mygmos$mkmbpm.cl
+task mkmbpm=mygmos$mkmbpm.cl                # no standard
 
 task align_cubes=align_cubes.cl
 task make_cube=make_cube.cl
@@ -198,36 +198,36 @@ ifuproc_gqecorr.fwidth=2.
     # --------------------------------------------------------------
         #### gbais needs to be run in pyraf apparently ?? otherwise exslits param error
         ## Biases - combine
-            #gemlist N20051204S 227-231 > bias.lis
-            #gbias @bias.lis gN20051204S0227_bias.fits rawpath=rawdir$ fl_vardq+
-            #gemlist N20051220S 228-232 > bias20.lis
-            #gbias @bias20.lis gN20051220S0228_bias.fits rawpath=rawdir$ fl_vardq+
+#            gemlist N20051204S 227-231 > bias.lis
+#            gbias @bias.lis gN20051204S0227_bias.fits rawpath=rawdir$ fl_vardq+
+#            gemlist N20051220S 228-232 > bias20.lis
+#            gbias @bias20.lis gN20051220S0228_bias.fits rawpath=rawdir$ fl_vardq+
 
         ## Twilight - bias subtract
-            #gemlist N20051203S 239-241 > twi.lis
-            #gfreduce @twi.lis fl_extract- fl_gsappwave- fl_wavtran- fl_skysub- fl_over+ fl_trim+ fl_vardq+ fl_bias+ \
-            #    fl_addmdf+ bias=gN20051204S0227_bias.fits
+#            gemlist N20051203S 239-241 > twi.lis
+#            gfreduce @twi.lis fl_extract- fl_gsappwave- fl_wavtran- fl_skysub- fl_over+ fl_trim+ fl_vardq+ fl_bias+ \
+#                fl_addmdf+ bias=gN20051204S0227_bias.fits
 
-        ## Flux standards - bias subtract
-            #gemlist N20051206S 133,134,135,138 > dec06.lis
-            #gfreduce @dec06.lis fl_extract- fl_gsappwave- fl_wavtran- fl_skysub- fl_over+ fl_trim+ fl_vardq+ fl_bias+ \
-            #    fl_addmdf+ bias=gN20051204S0227_bias.fits
+       ## Flux standards - bias subtract
+#            gemlist N20051206S 133,134,135,138 > dec06.lis
+#            gfreduce @dec06.lis fl_extract- fl_gsappwave- fl_wavtran- fl_skysub- fl_over+ fl_trim+ fl_vardq+ fl_bias+ \
+#                fl_addmdf+ bias=gN20051204S0227_bias.fits
 
         ## GALAXY science images - bias subtract
-            #gemlist N20051205S 5-8 > dec05.lis
-            #gfreduce @dec05.lis fl_extract- fl_gsappwave- fl_wavtran- fl_skysub- fl_over+ fl_trim+ fl_vardq+ fl_bias+ \
-            #    fl_addmdf+ bias=gN20051204S0227_bias.fits
+#            gemlist N20051205S 5-8 > dec05.lis
+#            gfreduce @dec05.lis fl_extract- fl_gsappwave- fl_wavtran- fl_skysub- fl_over+ fl_trim+ fl_vardq+ fl_bias+ \
+#                fl_addmdf+ bias=gN20051204S0227_bias.fits
 
-            #gemlist N20051222S 106-114 > dec22.lis
-            #gfreduce @dec22.lis fl_extract- fl_gsappwave- fl_wavtran- fl_skysub- fl_over+ fl_trim+ fl_vardq+ fl_bias+ \
-            #    fl_addmdf+ bias=gN20051204S0227_bias.fits
+#            gemlist N20051222S 106-114 > dec22.lis
+#            gfreduce @dec22.lis fl_extract- fl_gsappwave- fl_wavtran- fl_skysub- fl_over+ fl_trim+ fl_vardq+ fl_bias+ \
+#                fl_addmdf+ bias=gN20051204S0227_bias.fits
                 # should be using bias 228 according to gwen
 
-            #gemlist N20051223S 119-122 > dec23.lis
-            #gfreduce @dec23.lis fl_extract- fl_gsappwave- fl_wavtran- fl_skysub- fl_over+ fl_trim+ fl_vardq+ fl_bias+ \
-            #    fl_addmdf+ bias=gN20051220S0228_bias.fits
+#            gemlist N20051223S 119-122 > dec23.lis
+#            gfreduce @dec23.lis fl_extract- fl_gsappwave- fl_wavtran- fl_skysub- fl_over+ fl_trim+ fl_vardq+ fl_bias+ \
+#                fl_addmdf+ bias=gN20051220S0228_bias.fits
 
-
+#print ('>>>>> Done pre-processing <<<<<')
 
     # Process the standards, Hiltner600
     # ---------------------------------
@@ -244,9 +244,8 @@ ifuproc_gqecorr.fwidth=2.
         #ifuproc rgN20051206S0134 rgN20051206S0135 rgN20051206S0138 twilight=rgN20051203S0239 fl_inter=no \
         #    bkgmask=s0135_blkreg.dat fl_crspec=no fl_qecorr=yes
 
-        #ifuproc_gqecorr rgN20051206S0134 rgN20051206S0135 rgN20051206S0138 twilight=rgN20051203S0239 fl_inter=no \
-        #    bkgmask=s0135_blkreg.dat fl_crspec=no fl_qecorr=yes
-
+#        ifuproc_gqecorr rgN20051206S0134 rgN20051206S0135 rgN20051206S0138 twilight=rgN20051203S0239 fl_inter=no \
+#            bkgmask=s0135_blkreg.dat fl_crspec=no fl_qecorr=yes
 
         #### not sure if necessary, gwen puts through a twilight? from dec03
         ##ifuproc rgN20051203S0240 rgN20051203S0244 rgN20051203S0245 twilight=rgN20051203S0239 fl_inter- \
@@ -256,14 +255,14 @@ ifuproc_gqecorr.fwidth=2.
         ##    bkgmask=s0135_blkreg.dat fl_crspec- fl_qecorr+
 
         ## Visually confirm proper reconstructed spectra
-            gfdisplay steqxbrgN20051206S0134.fits ver=1 z1=0 z2=1.e8
+#            gfdisplay steqpxbrgN20051206S0134.fits ver=1 z1=0 z2=1.e8
 
-        ## Sum all the spectra
+        ## Combine all the fibres from the object field to get a 1D spectrum
             #### here gwen also does this for: slqtexbrgN20051206S0133.fits outimages="" expr="default" fl_inter-
             #### then combines the two images: gscombine aslqtexbrgN20051206S0133.fits,aslqtexbrgN20051206S0134.fits \
             ##        Hiltner600_20051206.fits logfile="gmos.log" combine="average" scale="mean" sample="4550:4850" fl_vard-
 
-            gfapsum steqxbrgN20051206S0134.fits
+#            gfapsum steqpxbrgN20051206S0134.fits fl_inter-
 
         ## Establish  spectrophotometric  calibration  for GMOS spectra
             ## correction curve should always be made interactively - avoid regions with strong absorption lines by using keystroke
@@ -272,7 +271,7 @@ ifuproc_gqecorr.fwidth=2.
             #### here gwen does this for the combined statdards: gsstandard Hiltner600_20051206.fits fl_inter+ sfile="std" sfunction="sens" \
             ##       starnam="h600" caldir="onedstds$ctionewcal/" observa="Gemini-North" extinct="gmos$calib/mkoextinct.dat"
 
-            gsstandard asteqxbrgN20051206S0134.fits starname=h600 caldir=onedstds$ctionewcal/ extinction=gmos$calib/mkoextinct.dat fl_inter-
+#            gsstandard asteqpxbrgN20051206S0134.fits starname=h600 caldir=onedstds$ctionewcal/ extinction=gmos$calib/mkoextinct.dat fl_inter-
 
 
     # Measure velocity difference between the two output slits using arcs - only done once
@@ -295,7 +294,7 @@ ifuproc_gqecorr.fwidth=2.
         ##0.115
         #### calculate the shift - subtract the difference with gfshit and confirm the new shift ~0
         ##gfshift tergN20051205S0008.fits stergN20051205S0008.fits shift2=-0.115
-        #3gfxcor stergN20051205S0008.fits obs=Gemini-North
+        ##gfxcor stergN20051205S0008.fits obs=Gemini-North
         ##delete slit?.fits
         ##tselect stergN20051205S0008.fits[mdf] slit1.fits "NO <= 750"
         ##tselect stergN20051205S0008.fits[mdf] slit2.fits "NO >= 751"
@@ -313,52 +312,55 @@ ifuproc_gqecorr.fwidth=2.
 
             ## Ifuproc - with one arc only, central wavelength is 478 so flat is 240
             #### here gwen also does this with both arcs ************* is this necessary?
-            ifuproc_gqecorr rgN20051205S0006 rgN20051205S0007 rgN20051205S0008 twilight=rgN20051203S0240 fl_inter- \
-                bkgmask=s0007_blkreg.dat fl_crspec+ fl_qecorr+ fl_skysub-
+#            ifuproc_gqecorr rgN20051205S0006 rgN20051205S0007 rgN20051205S0008 twilight=rgN20051203S0240 fl_inter- \
+#                bkgmask=s0007_blkreg.dat fl_crspec+ fl_qecorr+ fl_skysub-
 
             ## visually inspect reconstructed image
-            gfdisplay qtexbrgN20051205S0006.fits ver=1 z2=1.e8
+#            gfdisplay steqpxbrgN20051205S0006.fits ver=1 z2=1.e8
 
-            ## Correct volocity difference between two output slits
-            gfshift qtexbrgN20051205S0006.fits hqtexbrgN20051205S0006.fits shift2=-0.115
+            ## Correct velocity difference between two output slits
+#            gfshift steqpxbrgN20051205S0006.fits hsteqpxbrgN20051205S0006.fits shift2=-0.115
 
             ## Sky subtraction
             #### gwen uses "expr='XINST>10'" ****** necessary?
-            gfskysub hqtexbrgN20051205S0006.fits fl_inter-
+#            gfskysub hsteqpxbrgN20051205S0006.fits fl_inter-
 
             ## Calibrate and visually inspect
-            gscalibrate shqtexbrgN20051205S0006.fits extinction=gmos$calib/mkoextinct.dat fl_ext+ fl_vardq+
+#            gscalibrate shsteqpxbrgN20051205S0006.fits extinction=gmos$calib/mkoextinct.dat fl_ext+ fl_vardq+
 
-            gfdispl cshqtexbrgN20051205S0006.fits ver=1 z2=500
+#            gfdisplay cshsteqpxbrgN20051205S0006.fits ver=1 z2=500
 
 
         ## Dec 22 - N20051222S0180 shift=-0.1042, N20051222S0112 shift=-0.1082
 
-            ifuproc rgN20051222S0108 rgN20051222S0107 rgN20051222S0109 twilight=rgN20051203S0241 fl_inter- \
-                bkgmask=s0007_blkreg.dat fl_crspec+ fl_qecorr+ fl_skysub-
-            gfdisplay qtexbrgN20051222S0180.fits ver=1 z2=1.e8
-            gfshift qtexbrgN20051222S0180.fits hqtexbrgN20051222S0180.fits shift2=-0.1042
-            gfskysub hqtexbrgN20051222S0180.fits fl_inter-
-            gscalibrate shqtexbrgN20051222S0180.fits extinction=gmos$calib/mkoextinct.dat fl_ext+ fl_vardq+
-            gfdisplay cshqtexbrgN20051222S0180.fits ver=1 z2=500
+#            ifuproc_gqecorr rgN20051222S0108 rgN20051222S0107 rgN20051222S0109 twilight=rgN20051203S0241 fl_inter- \
+#                bkgmask=s0007_blkreg.dat fl_crspec+ fl_qecorr+ fl_skysub-
+#            gfdisplay steqpxbrgN20051222S0108.fits ver=1 z2=1.e8
+#            gfshift steqpxbrgN20051222S0108.fits hsteqpxbrgN20051222S0108.fits shift2=-0.1042
+#            gfskysub hsteqpxbrgN20051222S0108.fits fl_inter-
+#            gscalibrate shsteqpxbrgN20051222S0108.fits extinction=gmos$calib/mkoextinct.dat fl_ext+ fl_vardq+
+#gscalibrate hsteqpxbrgN20051222S0108.fits extinction=gmos$calib/mkoextinct.dat fl_ext+ fl_vardq+
+#            gfdisplay cshsteqpxbrgN20051222S0108.fits ver=1 z2=500
 
-            ifuproc rgN20051222S0112 rgN20051222S0113 rgN20051222S0111 twilight=rgN20051203S0240 fl_inter- \
-                bkgmask=s0007_blkreg.dat fl_crspec+ fl_qecorr+ fl_skysub-
-            gfdisplay qtexbrgN20051222S0112.fits ver=1 z2=1.e8
-            gfshift qtexbrgN20051222S0112.fits hqtexbrgN20051222S0112.fits shift2=-0.1082
-            gfskysub hqtexbrgN20051222S0112.fits fl_inter-
-            gscalibrate shqtexbrgN20051222S0112.fits extinction=gmos$calib/mkoextinct.dat fl_ext+ fl_vardq+
-            gfdisplay cshqtexbrgN20051222S0112.fits ver=1 z2=500
+#            ifuproc_gqecorr rgN20051222S0112 rgN20051222S0113 rgN20051222S0111 twilight=rgN20051203S0240 fl_inter- \
+#                bkgmask=s0007_blkreg.dat fl_crspec+ fl_qecorr+ fl_skysub-
+#            gfdisplay steqpxbrgN20051222S0112.fits ver=1 z2=1.e8
+#            gfshift steqpxbrgN20051222S0112.fits hsteqpxbrgN20051222S0112.fits shift2=-0.1082
+#            gfskysub hsteqpxbrgN20051222S0112.fits fl_inter-
+#            gscalibrate shsteqpxbrgN20051222S0112.fits extinction=gmos$calib/mkoextinct.dat fl_ext+ fl_vardq+
+#gscalibrate hsteqpxbrgN20051222S0112.fits extinction=gmos$calib/mkoextinct.dat fl_ext+ fl_vardq+
+#            gfdisplay cshsteqpxbrgN20051222S0112.fits ver=1 z2=500
 
         ## Dec 23 - N20051223S0121 shift=-0.1047
 
-            ifuproc rgN20051223S0121 rgN20051223S0120 rgN20051223S0122 twilight=rgN20051203S0241 fl_inter- \
-                bkgmask=s0007_blkreg.dat fl_crspec+ fl_qecorr+ fl_skysub-
-            gfdisplay qtexbrgN20051223S0121.fits ver=1 z2=1.e8
-            gfshift qtexbrgN20051223S0121.fits hqtexbrgN20051223S0121.fits shift2=-0.1047
-            gfskysub hqtexbrgN20051223S0121.fits fl_inter-
-            gscalibrate shqtexbrgN20051223S0121.fits extinction=gmos$calib/mkoextinct.dat fl_ext+ fl_vardq+
-            gfdisplay cshqtexbrgN20051223S0121.fits ver=1 z2=500
+#            ifuproc_gqecorr rgN20051223S0121 rgN20051223S0120 rgN20051223S0122 twilight=rgN20051203S0241 fl_inter- \
+#                bkgmask=s0007_blkreg.dat fl_crspec+ fl_qecorr+ fl_skysub-
+#            gfdisplay steqpxbrgN20051223S0121.fits ver=1 z2=1.e8
+#            gfshift steqpxbrgN20051223S0121.fits hsteqpxbrgN20051223S0121.fits shift2=-0.1047
+#            gfskysub hsteqpxbrgN20051223S0121.fits fl_inter-
+#            gscalibrate shsteqpxbrgN20051223S0121.fits extinction=gmos$calib/mkoextinct.dat fl_ext+ fl_vardq+
+#gscalibrate hsteqpxbrgN20051223S0121.fits extinction=gmos$calib/mkoextinct.dat fl_ext+ fl_vardq+
+#            gfdisplay cshsteqpxbrgN20051223S0121.fits ver=1 z2=500
 
 
 ## ---------------------------------
@@ -367,10 +369,19 @@ ifuproc_gqecorr.fwidth=2.
 
 ## This is achieved with the task call 'call_cube.cl' which takes input (original file name, file extension number)
 
-    #make_cube ("N20051205S0006.fits", 006)
-    #make_cube ("N20051222S0108.fits", 108)
-    #make_cube ("N20051222S0112.fits", 112)
-    #make_cube ("N20051223S0121.fits", 122)
+    #make_cube.prefix="shsteqpxbrg"
+#make_cube.prefix="shsteqpxbrg"
+#
+#    make_cube ("N20051205S0006.fits", 006)
+#make_cube.prefix="hsteqpxbrg"
+#    make_cube ("N20051222S0108.fits", 108)
+#    make_cube ("N20051222S0112.fits", 112)
+#    make_cube ("N20051223S0121.fits", 122)
+
+#    gfcube ("cshsteqpxbrgN20051205S0006.fits", fl_atm+, fl_flux+, fl_var+, fl_dq+)
+#    gfcube ("chsteqpxbrgN20051222S0108.fits", fl_atm+, fl_flux+, fl_var+, fl_dq+)
+#    gfcube ("chsteqpxbrgN20051222S0112.fits", fl_atm+, fl_flux+, fl_var+, fl_dq+)
+#    gfcube ("chsteqpxbrgN20051223S0121.fits", fl_atm+, fl_flux+, fl_var+, fl_dq+)
 
 
 ## -------------------------
@@ -382,12 +393,17 @@ ifuproc_gqecorr.fwidth=2.
 ##    sections added in the shift.
 
     ## Make temporary folders to organise output - only if it does not exist already
-    #mkdir tmp_cal/
+#    mkdir tmp_cal
 
-    #align_cubes ("N20051205S0006", "006")
-    #align_cubes ("N20051222S0108", "108")
-    #align_cubes ("N20051222S0112", "112")
-    #align_cubes ("N20051223S0121", "122")
+    #### MUST BE RUN IN IRAF
+
+#    align_cubes.prefix="shsteqpxbrg"        ## Don't include the 'c' here
+#    align_cubes ("N20051205S0006", "006")
+
+    align_cubes.prefix="hsteqpxbrg"         ## 'dc' prefix will be added in where appropriate
+    align_cubes ("N20051222S0108", "108")
+    align_cubes ("N20051222S0112", "112")
+    align_cubes ("N20051223S0121", "122")
 
 ## To make 2D 'maps' fo the galaxy - use scrop to obtain a cube within the desired wavelength range, and then use
 ##    imcombine with 'project=yes' to flatten the cube inta a 2D image.
