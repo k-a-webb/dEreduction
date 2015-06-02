@@ -119,13 +119,7 @@ task gftransform=mygmos$gftransform.cl      # to run in pyraf use nonstandard
 #task gscalibrate=mygmos$gscalibrate.cl
 #task chkblocks=mygmos$chkblocks.cl
 #task gkeywpars=mygmos$gkeywpars.cl
-#task gfxcor=mygmos$gfxcor.cl
-#task ifuproc_gqecorr=mygmos$ifuproc.cl
-
-#task gfextract=mygmos$gfextract_gsigma.cl
-
-task mkmbpm=mygmos$mkmbpm.cl                # no standard
-task gfshift=mygmos$gfshift.cl              # no standard
+#task gfxcor=mygmos$gfxcor.cll
 
 ## James' scripts
 #task gbias=jgmos$gbias.cl
@@ -133,7 +127,7 @@ task gfshift=mygmos$gfshift.cl              # no standard
 #task gfextract=jgmos$gfextract.cl
 #task gffindblocks=jgmos$gffindblocks.cl
 #task gfreduce=jgmos$gfreduce.cl
-#task gfresponse=jgmos$gfresponse.cl       # can't figure out how to use
+#task gfresponse=jgmos$gfresponse.cl        # can't figure out how to use
 #task gfscatsub=jgmos$gfscatsub.cl
 #task gfskysub=jgmos$gfskysub.cl
 #task gftransform=jgmos$gftransform.cl
@@ -147,76 +141,226 @@ task gfshift=mygmos$gfshift.cl              # no standard
 #task gsscatsub=jgmos$gsscatsub.cl
 #task gsstandard=jgmos$gsstandard.cl
 
+#task gfextract=mygmos$gfextract_gsigma.c
+task mkmbpm=mygmos$mkmbpm.cl                # no standard
+task gfshift=mygmos$gfshift.cl              # no standard
 task align_cubes=align_cubes.cl
 task make_cube=make_cube.cl
-#task ifuproc_gqecorr=mygmos$ifuproc_gqecorr.cl
+task ifuproc_gqecorr=mygmos$ifuproc_gqecorr.cl
+task ifuproc_gwen=mygmos$ifuproc_gwen.cl
 
-task $pqecorr="$foreign"                    # execute in pyraf
-#pyexecute('mygmos$pqecorr_iraf.py')        # execute in iraf
+#task $pqecorr="$foreign"                   # execute in iraf
+pyexecute('mygmos$pqecorr_iraf.py')         # execute in pyraf
+
 
 # Set one-off parameters reproducibly:
-gfreduce.rawpath="rawdir$"
-gfreduce.bias="gN20051204S0227_bias.fits"
-gfreduce.bpmfile="gmos$data/chipgaps.dat"
-gfreduce.fl_fluxcal=no
-gfreduce.fl_gscrrej=no
 gfreduce.slits="both"
-
+#gfreduce.exslits="*"
+gfreduce.fl_nodshuffl=no
 gfreduce.fl_inter=no
 gfreduce.fl_vardq=yes
 gfreduce.fl_addmdf=no
 gfreduce.fl_over=no
 gfreduce.fl_trim=no
 gfreduce.fl_bias=no
+#gfreduce.fl_qecorr=no                      # not yet implemented
 gfreduce.fl_gscrrej=no
+gfreduce.fl_gnsskysub=no
+gfreduce.fl_extract=yes
+gfreduce.fl_gsappwave=yes
+gfreduce.fl_wavtran=yes
 gfreduce.fl_skysub=no
 gfreduce.fl_fluxcal=no
-
-#gfreduce.fl_fixgaps=yes
-#gfreduce.grow=1.5
-
 gfreduce.rawpath="rawdir$"
+gfreduce.key_mdf=""
+gfreduce.mdffile="default"
+gfreduce.mdfdir="gmos$data/"
+gfreduce.key_biassec="BIASSEC"
+gfreduce.key_datasec="DATASEC"
+gfreduce.bpmfile="gmos$data/chipgaps.dat"
+gfreduce.low_rej=3
+gfreduce.high_rej=3
+gfreduce.niter=5
+gfreduce.bias="gN20051204S0227_bias.fits"
+gfreduce.reference=""
+#gfreduce.qe_refim=""
+gfreduce.response=""                        # Don't use this; do our own flat fielding
+gfreduce.wavtraname=""
+gfreduce.sfunction=""
+gfreduce.extinction=""
+gfreduce.fl_novlap=yes
+gfreduce.perovlap=10.0                      # 5 gives some contamination here
+gfreduce.nbiascontam="default"
+gfreduce.biasrows="3:64"
+gfreduce.order=1
+gfreduce.low_rej=3.0
+gfreduce.high_rej=3.0
+gfreduce.niter=5
+gfreduce.line=INDEF
+gfreduce.nsum=10
+gfreduce.trace=yes
+gfreduce.recenter=yes
+gfreduce.thresh=200.
+gfreduce.t_order=21
+gfreduce.t_nsum=10
+gfreduce.gratingdb="gmos$data/GMOSgratings.dat"
+gfreduce.filterdb="gmos$data/GMOSfilters.dat"
+gfreduce.xoffset=INDEF
+gfreduce.expr="default"
+gfreduce.observatory="default"
+gfreduce.logfile=""
+gfreduce.verbose=yes
 
-#gfreduce.function="spline3" # default is chebyshev
-#gfreduce.t_order=21
-#gfreduce.weights="varience"
+# Parameter's that James uses
+#gfreduce.function="spline3"                 # defulat: chebyshev
+#gfreduce.order=1                            # defulat: 5
+#gfreduce.weights="none"                     # defulat: variance
+#gfreduce.grow=1.5                           # defulat: 1
+#gfreduce.fl_fixgaps=yes                     # defulat: no
+
+gbias.logfile=""
+gbias.rawpath="rawdir$"
+gbias.fl_over=yes
+gbias.fl_trim=yes
+gbias.key_biassec="BIASSEC"
+gbias.key_datasec="DATASEC"
+gbias.bpm=""
+gbias.sat="default"
+gbias.nbiascontam="default"
+gbias.biasrows="default"
+gbias.fl_inter=yes
+gbias.median=no
+gbias.function="chebyshev"
+gbias.order=1
+gbias.low_reject=2.0                        # overscan
+gbias.high_reject=2.0
+gbias.order=1
+gbias.niter=11
+gbias.combine="average"
+gbias.reject="avsigclip"
+gbias.lthreshold=INDEF
+gbias.hthreshold=INDEF
+gbias.masktype="goodvalue"
+gbias.maskvalue=0.0
+gbias.scale="none"
+gbias.zero="none"
+gbias.weight="none"
+gbias.statsec="[*,*]"
+gbias.mclip=yes
+gbias.lsigma=2.0                            # combine
+gbias.hsigma=2.0
+gbias.fl_vardq=yes
+gbias.verbose=yes
+
+gswavelength.dispaxis=1
+#gswavelength.coordlist="IFU_example_data/cuar.dat"
+gswavelength.section="middle line"
+gswavelength.nsum=1
+gswavelength.ftype="emission"
+gswavelength.fwidth=10.0
+gswavelength.gsigma=0.0
+gswavelength.cradius=10.0
+gswavelength.nlost=10
+gswavelength.minsep=2.5
+gswavelength.refit=yes
+gswavelength.step=1
+gswavelength.trace=yes
+gswavelength.low_rej=2.5
+gswavelength.high_rej=2.5
+gswavelength.fl_addfeat=yes
+gswavelength.aiddebug="s"
+gswavelength.fl_dbwrite="YES"
+gswavelength.fl_overwrite=yes
+
+gfscatsub.outimage=""
+gfscatsub.prefix="b"
+gfscatsub.xorder="5,9,5"                    # try 5,5,9,5,5,5 for new GMOS-N CCDs
+gfscatsub.yorder="5,7,5"                    # try 5,5,9,5,5,5 for new GMOS-N CCDs
+gfscatsub.cross=yes
+
+# Mainly defaults for the record, not set by gfreduce
+gemcrspec.xorder=9
+gemcrspec.yorder=-1
+gemcrspec.sigclip=4.5                       # Sometimes needs changing for higher-contrast data
+gemcrspec.sigfrac=0.32                      # 1.4 sigma is 84%
+gemcrspec.objlim=1.0
+gemcrspec.niter=5
+gemcrspec.fl_vardq=yes
+gemcrspec.logfile="example.log"
+gemcrspec.verbose=yes
+
+gfskysub.outimages=""
+gfskysub.outpref="s"
+gfskysub.expr="default"                     # same as gfreduce default
+gfskysub.combine="average"
+gfskysub.reject="avsigclip"
+gfskysub.scale="none"
+gfskysub.zero="none"
+gfskysub.weight="none"
+gfskysub.lthreshold=INDEF
+gfskysub.hthreshold=INDEF
+gfskysub.lsigma=3.0
+gfskysub.hsigma=3.0
+gfskysub.fl_inter=no
+
+#rvidlines.observatory="gemini-north"       # remember to change throughout for GN!
+rvidlines.nsum=1
+rvidlines.maxfeatures=10
+rvidlines.ftype="emission"
+rvidlines.fwidth=10.
+rvidlines.cradius=10.
+rvidlines.threshold=10.
+rvidlines.minsep=5.
+rvidlines.logfile="rvid.log"
+
+gemfix.grow=1.5
+gemfix.bitmask=65535
+gemfix.axis=1
+gemfix.order=0
+gemfix.low_reject=3.0
+gemfix.high_reject=2.3
+gemfix.niterate=5
 
 gfextract.fl_vardq=yes
 
 ## Use bpms for the appropriate binning, mbpm is created from the others
-ifuproc.mbpm="gn_bpm2x1m.fits"
-ifuproc.bpm1="mygmos$bpms/gn_bpm_ccd1_2x1f.pl"
-ifuproc.bpm2="mygmos$bpms/gn_bpm_ccd2_2x1f.pl"
-ifuproc.bpm3="mygmos$bpms/gn_bpm_ccd3_2x1f.pl"
-ifuproc.weights="none"
-ifuproc.bpmgaps="gmos$data/chipgaps.dat"
-## Width of chip gap and feature width
-## Defaults are for 1x1 binning, this data is 2x1
-ifuproc.gap12=19
-ifuproc.gap23=19
-ifuproc.fwidth=2.
+#ifuproc.mbpm="gn_bpm2x1m.fits"
+#ifuproc.bpm1="mygmos$bpms/gn_bpm_ccd1_2x1f.pl"
+#ifuproc.bpm2="mygmos$bpms/gn_bpm_ccd2_2x1f.pl"
+#ifuproc.bpm3="mygmos$bpms/gn_bpm_ccd3_2x1f.pl"
+#ifuproc.weights="none"
+#ifuproc.bpmgaps="gmos$data/chipgaps.dat"            # Width of chip gap and feature width, defaults are for 1x1 binning, this data is 2x1
+#ifuproc.gap12=19
+#ifuproc.gap23=19
+#ifuproc.fwidth=2.
 
-## Use bpms for the appropriate binning, mbpm is created from the others
 ifuproc_gqecorr.mbpm="gn_bpm2x1m.fits"
 ifuproc_gqecorr.bpm1="mygmos$bpms/gn_bpm_ccd1_2x1f.pl"
 ifuproc_gqecorr.bpm2="mygmos$bpms/gn_bpm_ccd2_2x1f.pl"
 ifuproc_gqecorr.bpm3="mygmos$bpms/gn_bpm_ccd3_2x1f.pl"
 ifuproc_gqecorr.weights="none"
-ifuproc_gqecorr.bpmgaps="gmos$data/chipgaps.dat"
-## Width of chip gap and feature width
-## Defaults are for 1x1 binning, this data is 2x1
+ifuproc_gqecorr.bpmgaps="gmos$data/chipgaps.dat"    # Width of chip gap and feature width, defaults are for 1x1 binning, this data is 2x1
 ifuproc_gqecorr.gap12=19
 ifuproc_gqecorr.gap23=19
 ifuproc_gqecorr.fwidth=2.
 
+ifuproc_gwen.mbpm="gn_bpm2x1m.fits"
+ifuproc_gwen.bpm1="mygmos$bpms/gn_bpm_ccd1_2x1f.pl"
+ifuproc_gwen.bpm2="mygmos$bpms/gn_bpm_ccd2_2x1f.pl"
+ifuproc_gwen.bpm3="mygmos$bpms/gn_bpm_ccd3_2x1f.pl"
+ifuproc_gwen.weights="none"
+ifuproc_gwen.bpmgaps="gmos$data/chipgaps.dat"    # Width of chip gap and feature width, defaults are for 1x1 binning, this data is 2x1
+ifuproc_gwen.gap12=19
+ifuproc_gwen.gap23=19
+ifuproc_gwen.fwidth=2.
+
 
 # Notes:
 # ------
-# ifuproc seems to work best in pyraf, gftransform can make multiple extensions in iraf
+# ifuproc seems to work best in pyraf, the standard gftransform however does not work here as theres an issue with avariable 'scilistout'
 # make sure to change the task definition above depending on environment
 
 
-# ---------------------
 # Preliminary reduction
 # ---------------------
 
@@ -258,7 +402,6 @@ ifuproc_gqecorr.fwidth=2.
 #            gfreduce @dec23.lis fl_extract- fl_gsappwave- fl_wavtran- fl_skysub- fl_over+ fl_trim+ fl_vardq+ fl_bias+ \
 #                fl_addmdf+ bias=gN20051220S0228_bias.fits
 
-#print ('>>>>> Done pre-processing <<<<<')
 
     # Process the standards, Hiltner600
     # ---------------------------------
@@ -286,14 +429,15 @@ ifuproc_gqecorr.fwidth=2.
         ##    bkgmask=s0135_blkreg.dat fl_crspec- fl_qecorr+
 
         ## Visually confirm proper reconstructed spectra
-#            gfdisplay steqpxbrgN20051206S0134.fits ver=1 z1=0 z2=1.e8
+
+#        gfdisplay steqpxbprgN20051206S0134.fits ver=1 z1=0 z2=1.e8
 
         ## Combine all the fibres from the object field to get a 1D spectrum
             #### here gwen also does this for: slqtexbrgN20051206S0133.fits outimages="" expr="default" fl_inter-
             #### then combines the two images: gscombine aslqtexbrgN20051206S0133.fits,aslqtexbrgN20051206S0134.fits \
             ##        Hiltner600_20051206.fits logfile="gmos.log" combine="average" scale="mean" sample="4550:4850" fl_vard-
 
-#            gfapsum steqpxbrgN20051206S0134.fits fl_inter-
+#        gfapsum steqpxbprgN20051206S0134.fits fl_inter-
 
         ## Establish  spectrophotometric  calibration  for GMOS spectra
             ## correction curve should always be made interactively - avoid regions with strong absorption lines by using keystroke
@@ -302,8 +446,10 @@ ifuproc_gqecorr.fwidth=2.
             #### here gwen does this for the combined statdards: gsstandard Hiltner600_20051206.fits fl_inter+ sfile="std" sfunction="sens" \
             ##       starnam="h600" caldir="onedstds$ctionewcal/" observa="Gemini-North" extinct="gmos$calib/mkoextinct.dat"
 
-#            gsstandard asteqpxbrgN20051206S0134.fits starname=h600 caldir=onedstds$ctionewcal/ extinction=gmos$calib/mkoextinct.dat fl_inter-
+#        gsstandard asteqpxbprgN20051206S0134.fits starname=h600 caldir=onedstds$ctionewcal/ extinction=gmos$calib/mkoextinct.dat \
+#            fl_inter- sfunction="sens_stdiraf_new"
 
+#        splot sens_stdiraf_new
 
     # Measure velocity difference between the two output slits using arcs - only done once
     # -------------------------------------------------------------------
@@ -312,11 +458,11 @@ ifuproc_gqecorr.fwidth=2.
         ## We have found small pixel offsets between the two pseudo slits that are not removed by the wavelength calibration.
         ## The reason for this is not understood but here is one workaround using the arc to determine the shift and then
         ## applying it to the science data.
-        ##gftransform ergN20051205S0008.fits wavtraname=ergN20051205S0008
-        ##gfxcor tergN20051205S0008.fits obs=Gemini-North
-        ##tselect tergN20051205S0008.fits[mdf] slit1.fits "NO <= 750"
-        ##tselect tergN20051205S0008.fits[mdf] slit2.fits "NO >= 751"
-        ##tstat slit1.fits,slit2.fits SHIFT lowlim=-1000.0 highlim=1000.
+        #   gftransform ergN20051205S0008.fits wavtraname=ergN20051205S0008
+        #   gfxcor tergN20051205S0008.fits obs=Gemini-North
+        #   tselect tergN20051205S0008.fits[mdf] slit1.fits "NO <= 750"
+        #   tselect tergN20051205S0008.fits[mdf] slit2.fits "NO >= 751"
+        #   tstat slit1.fits,slit2.fits SHIFT lowlim=-1000.0 highlim=1000.
         ## slit1.fits  SHIFT
         ##  749     0.01689319103      0.019838         0.012        -0.023         0.112
         ## slit2.fits  SHIFT
@@ -324,12 +470,12 @@ ifuproc_gqecorr.fwidth=2.
         ##=0.132-0.017
         ##0.115
         #### calculate the shift - subtract the difference with gfshit and confirm the new shift ~0
-        ##gfshift tergN20051205S0008.fits stergN20051205S0008.fits shift2=-0.115
-        ##gfxcor stergN20051205S0008.fits obs=Gemini-North
-        ##delete slit?.fits
-        ##tselect stergN20051205S0008.fits[mdf] slit1.fits "NO <= 750"
-        ##tselect stergN20051205S0008.fits[mdf] slit2.fits "NO >= 751"
-        ##tstat slit1.fits,slit2.fits SHIFT lowlim=-1000.0 highlim=1000.
+        #   gfshift tergN20051205S0008.fits stergN20051205S0008.fits shift2=-0.115
+        #   gfxcor stergN20051205S0008.fits obs=Gemini-North
+        #   delete slit?.fits
+        #   tselect stergN20051205S0008.fits[mdf] slit1.fits "NO <= 750"
+        #   tselect stergN20051205S0008.fits[mdf] slit2.fits "NO >= 751"
+        #   tstat slit1.fits,slit2.fits SHIFT lowlim=-1000.0 highlim=1000.
         ## slit1.fits  SHIFT
         ##  749     0.01689319103      0.019838         0.012        -0.023         0.112
         ## slit2.fits  SHIFT
@@ -343,20 +489,25 @@ ifuproc_gqecorr.fwidth=2.
 
             ## Ifuproc - with one arc only, central wavelength is 478 so flat is 240
             #### here gwen also does this with both arcs ************* is this necessary?
-            ifuproc_gqecorr rgN20051205S0006 rgN20051205S0007 rgN20051205S0008 twilight=rgN20051203S0240 fl_inter- \
-                bkgmask=s0007_blkreg.dat fl_crspec+ fl_qecorr+ fl_skysub-
+
+#            ifuproc_gqecorr rgN20051205S0006 rgN20051205S0007 rgN20051205S0008 twilight=rgN20051203S0240 fl_inter- \
+#                bkgmask=s0007_blkreg.dat fl_crspec+ fl_qecorr+ fl_skysub-
 
             ## visually inspect reconstructed image
-            gfdisplay steqpxbrgN20051205S0006.fits ver=1 z2=1.e8
+
+#            gfdisplay steqpxbprgN20051205S0006.fits ver=1 z1=0 z2=1.e8
 
             ## Correct velocity difference between two output slits
-            gfshift steqpxbrgN20051205S0006.fits hsteqpxbrgN20051205S0006.fits shift2=-0.115
+
+#            gfshift steqpxbprgN20051205S0006.fits hsteqpxbprgN20051205S0006.fits shift2=-0.115
 
             ## Calibrate and visually inspect
-            gscalibrate hsteqpxbrgN20051205S0006.fits extinction=gmos$calib/mkoextinct.dat fl_ext+ fl_vardq+
 
-            gfdisplay chsteqpxbrgN20051205S0006.fits ver=1 z2=500
+            gscalibrate hsteqpxbprgN20051205S0006.fits extinction=gmos$calib/mkoextinct.dat fl_ext+ fl_vardq+ sfunction="sens_stdiraf_new"
+print ('>>>>>>>>>> STOP HERE <<<<<<<<<<')
+            gfdisplay chsteqpxbprgN20051205S0006.fits ver=1 z2=500 z1=0
 
+#### Note here the extrap 'p' to be added in
 
         ## Dec 22 - N20051222S0180 shift=-0.1042, N20051222S0112 shift=-0.1082
 
@@ -384,7 +535,7 @@ ifuproc_gqecorr.fwidth=2.
 #            gfdisplay chsteqpxbrgN20051223S0121.fits ver=1 z2=500
 
 
-## ---------------------------------
+
 ## Reorganise the data into 3D cubes
 ## ---------------------------------
 
