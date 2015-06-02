@@ -87,8 +87,10 @@ set caldir=dd5$calib/
 set rawdir=/net/sbfmaps/Volumes/Science/bmiller/bdisk/bmiller/GN-2005B-DD-5/raw/
 
 set mygmos=/Users/kwebb/iraf/scripts/gmos/
-#set mygmos=/data1/kwebb/gemini/iraf/scripts/gmos/      # oringal file structure, changed for MacOSX path names
+set mypyfu=/Users/kwebb/iraf/extern/pyfu-0.8.1/
+set jgmos=/Users/kwebb/iraf/extern/ifudrgmos/gmos/
 directory.nc=1
+set stdimage=imtgmos
 
 ## Scripts
 ## -------
@@ -96,8 +98,8 @@ rv
 onedspec
 gemini
 nmisc
-#gemlocal   # not required
 gmos
+
 #task gscrspec=mygmos$gscrspec.cl
 #task specx2w=mygmos$specx2w.cl             # not required
 #task wrbox=mygmos$wrbox.cl
@@ -108,7 +110,7 @@ gmos
 #task ifuproc=mygmos$ifuproc.cl
 #task gfreduce=mygmos$gfreduce.cl           # USE STANDARD
 #task gfextract=mygmos$gfextract.cl         # USE STANDARD
-#task gftransform=mygmos$gftransform.cl      # to run in pyraf use nonstandard
+task gftransform=mygmos$gftransform.cl      # to run in pyraf use nonstandard
 #task gfresponse=mygmos$gfresponse.cl
 #task gfskysub=mygmos$gfskysub.cl
 #task gfbkgsub=mygmos$gfbkgsub.cl
@@ -117,16 +119,40 @@ gmos
 #task gscalibrate=mygmos$gscalibrate.cl
 #task chkblocks=mygmos$chkblocks.cl
 #task gkeywpars=mygmos$gkeywpars.cl
-task gfshift=mygmos$gfshift.cl              # no standard
 #task gfxcor=mygmos$gfxcor.cl
+#task ifuproc_gqecorr=mygmos$ifuproc.cl
+
+#task gfextract=mygmos$gfextract_gsigma.cl
+
 task mkmbpm=mygmos$mkmbpm.cl                # no standard
+task gfshift=mygmos$gfshift.cl              # no standard
+
+## James' scripts
+#task gbias=jgmos$gbias.cl
+#task gfapsum=jgmos$gfapsum.cl
+#task gfextract=jgmos$gfextract.cl
+#task gffindblocks=jgmos$gffindblocks.cl
+#task gfreduce=jgmos$gfreduce.cl
+#task gfresponse=jgmos$gfresponse.cl       # can't figure out how to use
+#task gfscatsub=jgmos$gfscatsub.cl
+#task gfskysub=jgmos$gfskysub.cl
+#task gftransform=jgmos$gftransform.cl
+#task gfuntransform=jgmos$gfuntransform.par
+#task gmosaic=jgmos$gmosaic.cl
+#task gprepare=jgmos$gprepare.cl
+#task gqecorr=jgmos$gqecorr.cl
+#task gsappwave=jgmos$gsappwave.cl
+#task gscalibrate=jgmos$gscalibrate.cl
+#task gscrrej=jgmos$gscrrej.cl
+#task gsscatsub=jgmos$gsscatsub.cl
+#task gsstandard=jgmos$gsstandard.cl
 
 task align_cubes=align_cubes.cl
 task make_cube=make_cube.cl
-task ifuproc_gqecorr=mygmos$ifuproc_gqecorr.cl
+#task ifuproc_gqecorr=mygmos$ifuproc_gqecorr.cl
 
-$task $pqecorr="$foreign"   # if executing python script in qecorr from iraf, else use the execute command below
-pyexecute('mygmos$pqecorr_iraf.py')
+task $pqecorr="$foreign"                    # execute in pyraf
+#pyexecute('mygmos$pqecorr_iraf.py')        # execute in iraf
 
 # Set one-off parameters reproducibly:
 gfreduce.rawpath="rawdir$"
@@ -145,12 +171,17 @@ gfreduce.fl_bias=no
 gfreduce.fl_gscrrej=no
 gfreduce.fl_skysub=no
 gfreduce.fl_fluxcal=no
-gfreduce.fl_fixgaps=yes
+
+#gfreduce.fl_fixgaps=yes
+#gfreduce.grow=1.5
+
 gfreduce.rawpath="rawdir$"
-gfreduce.grow=1.5
+
 #gfreduce.function="spline3" # default is chebyshev
 #gfreduce.t_order=21
 #gfreduce.weights="varience"
+
+gfextract.fl_vardq=yes
 
 ## Use bpms for the appropriate binning, mbpm is created from the others
 ifuproc.mbpm="gn_bpm2x1m.fits"
@@ -312,23 +343,19 @@ ifuproc_gqecorr.fwidth=2.
 
             ## Ifuproc - with one arc only, central wavelength is 478 so flat is 240
             #### here gwen also does this with both arcs ************* is this necessary?
-#            ifuproc_gqecorr rgN20051205S0006 rgN20051205S0007 rgN20051205S0008 twilight=rgN20051203S0240 fl_inter- \
-#                bkgmask=s0007_blkreg.dat fl_crspec+ fl_qecorr+ fl_skysub-
+            ifuproc_gqecorr rgN20051205S0006 rgN20051205S0007 rgN20051205S0008 twilight=rgN20051203S0240 fl_inter- \
+                bkgmask=s0007_blkreg.dat fl_crspec+ fl_qecorr+ fl_skysub-
 
             ## visually inspect reconstructed image
-#            gfdisplay steqpxbrgN20051205S0006.fits ver=1 z2=1.e8
+            gfdisplay steqpxbrgN20051205S0006.fits ver=1 z2=1.e8
 
             ## Correct velocity difference between two output slits
-#            gfshift steqpxbrgN20051205S0006.fits hsteqpxbrgN20051205S0006.fits shift2=-0.115
-
-            ## Sky subtraction
-            #### gwen uses "expr='XINST>10'" ****** necessary?
-#            gfskysub hsteqpxbrgN20051205S0006.fits fl_inter-
+            gfshift steqpxbrgN20051205S0006.fits hsteqpxbrgN20051205S0006.fits shift2=-0.115
 
             ## Calibrate and visually inspect
-#            gscalibrate shsteqpxbrgN20051205S0006.fits extinction=gmos$calib/mkoextinct.dat fl_ext+ fl_vardq+
+            gscalibrate hsteqpxbrgN20051205S0006.fits extinction=gmos$calib/mkoextinct.dat fl_ext+ fl_vardq+
 
-#            gfdisplay cshsteqpxbrgN20051205S0006.fits ver=1 z2=500
+            gfdisplay chsteqpxbrgN20051205S0006.fits ver=1 z2=500
 
 
         ## Dec 22 - N20051222S0180 shift=-0.1042, N20051222S0112 shift=-0.1082
@@ -337,19 +364,15 @@ ifuproc_gqecorr.fwidth=2.
 #                bkgmask=s0007_blkreg.dat fl_crspec+ fl_qecorr+ fl_skysub-
 #            gfdisplay steqpxbrgN20051222S0108.fits ver=1 z2=1.e8
 #            gfshift steqpxbrgN20051222S0108.fits hsteqpxbrgN20051222S0108.fits shift2=-0.1042
-#            gfskysub hsteqpxbrgN20051222S0108.fits fl_inter-
-#            gscalibrate shsteqpxbrgN20051222S0108.fits extinction=gmos$calib/mkoextinct.dat fl_ext+ fl_vardq+
-#gscalibrate hsteqpxbrgN20051222S0108.fits extinction=gmos$calib/mkoextinct.dat fl_ext+ fl_vardq+
-#            gfdisplay cshsteqpxbrgN20051222S0108.fits ver=1 z2=500
+#            gscalibrate hsteqpxbrgN20051222S0108.fits extinction=gmos$calib/mkoextinct.dat fl_ext+ fl_vardq+
+#            gfdisplay chsteqpxbrgN20051222S0108.fits ver=1 z2=500
 
 #            ifuproc_gqecorr rgN20051222S0112 rgN20051222S0113 rgN20051222S0111 twilight=rgN20051203S0240 fl_inter- \
 #                bkgmask=s0007_blkreg.dat fl_crspec+ fl_qecorr+ fl_skysub-
 #            gfdisplay steqpxbrgN20051222S0112.fits ver=1 z2=1.e8
 #            gfshift steqpxbrgN20051222S0112.fits hsteqpxbrgN20051222S0112.fits shift2=-0.1082
-#            gfskysub hsteqpxbrgN20051222S0112.fits fl_inter-
-#            gscalibrate shsteqpxbrgN20051222S0112.fits extinction=gmos$calib/mkoextinct.dat fl_ext+ fl_vardq+
-#gscalibrate hsteqpxbrgN20051222S0112.fits extinction=gmos$calib/mkoextinct.dat fl_ext+ fl_vardq+
-#            gfdisplay cshsteqpxbrgN20051222S0112.fits ver=1 z2=500
+#            gscalibrate hsteqpxbrgN20051222S0112.fits extinction=gmos$calib/mkoextinct.dat fl_ext+ fl_vardq+
+#            gfdisplay chsteqpxbrgN20051222S0112.fits ver=1 z2=500
 
         ## Dec 23 - N20051223S0121 shift=-0.1047
 
@@ -357,10 +380,8 @@ ifuproc_gqecorr.fwidth=2.
 #                bkgmask=s0007_blkreg.dat fl_crspec+ fl_qecorr+ fl_skysub-
 #            gfdisplay steqpxbrgN20051223S0121.fits ver=1 z2=1.e8
 #            gfshift steqpxbrgN20051223S0121.fits hsteqpxbrgN20051223S0121.fits shift2=-0.1047
-#            gfskysub hsteqpxbrgN20051223S0121.fits fl_inter-
-#            gscalibrate shsteqpxbrgN20051223S0121.fits extinction=gmos$calib/mkoextinct.dat fl_ext+ fl_vardq+
-#gscalibrate hsteqpxbrgN20051223S0121.fits extinction=gmos$calib/mkoextinct.dat fl_ext+ fl_vardq+
-#            gfdisplay cshsteqpxbrgN20051223S0121.fits ver=1 z2=500
+#            gscalibrate hsteqpxbrgN20051223S0121.fits extinction=gmos$calib/mkoextinct.dat fl_ext+ fl_vardq+
+#            gfdisplay chsteqpxbrgN20051223S0121.fits ver=1 z2=500
 
 
 ## ---------------------------------
@@ -369,41 +390,69 @@ ifuproc_gqecorr.fwidth=2.
 
 ## This is achieved with the task call 'call_cube.cl' which takes input (original file name, file extension number)
 
-    #make_cube.prefix="shsteqpxbrg"
-#make_cube.prefix="shsteqpxbrg"
-#
-#    make_cube ("N20051205S0006.fits", 006)
-#make_cube.prefix="hsteqpxbrg"
+    make_cube.prefix="hsteqpxbrg"
+
+    make_cube ("N20051205S0006.fits", 006)
 #    make_cube ("N20051222S0108.fits", 108)
 #    make_cube ("N20051222S0112.fits", 112)
 #    make_cube ("N20051223S0121.fits", 122)
 
-#    gfcube ("cshsteqpxbrgN20051205S0006.fits", fl_atm+, fl_flux+, fl_var+, fl_dq+)
+    gfcube ("chsteqpxbrgN20051205S0006.fits", fl_atm+, fl_flux+, fl_var+, fl_dq+)
 #    gfcube ("chsteqpxbrgN20051222S0108.fits", fl_atm+, fl_flux+, fl_var+, fl_dq+)
 #    gfcube ("chsteqpxbrgN20051222S0112.fits", fl_atm+, fl_flux+, fl_var+, fl_dq+)
 #    gfcube ("chsteqpxbrgN20051223S0121.fits", fl_atm+, fl_flux+, fl_var+, fl_dq+)
 
 
-## -------------------------
-## Shift and align the cubes
-## -------------------------
+    ## Here I added the pyfalign "correlate" option, which is working better for these particular nebulous regions than
+    ## "centroid" (I also confirmed that they produce results within 0.2-0.3 pix on more compact galaxy nuclei).
+    ## Alignment appears to be within ~1/3 pix, which seems reasonable accounting for noise.
+
+    pyfalign dchsteqpxbrgN20051205S0006,dchsteqpxbrgN20051222S0108,dchsteqpxbrgN20051222S0112,dchsteqpxbrgN20051223S0121 method="correlate"
+    pyfmosaic dchsteqpxbrgN20051205S0006,dchsteqpxbrgN20051222S0108,dchsteqpxbrgN20051222S0112,dchsteqpxbrgN20051223S0121 \
+        dchsteqpxbrgN20051205S0006_add separate- var+
+
+    ## Resample the final cube in log wavelength increments: (it shouldn't be that difficult now to build this step
+    ## directly into pyfmosaic but I haven't done that yet)
+
+    pyflogbin dchsteqpxbrgN20051205S0006_add ldchsteqpxbrgN20051205S0006_add var+
+
+    ## Also make some cubes with sky lines included, to check for deterioration in FWHM after mosaicking:
+    gfcube ("teqpxbrgN20051205S0006.fits", fl_atm+, fl_flux+, fl_var+, fl_dq+)
+    gfcube ("teqpxbrgN20051222S0108.fits", fl_atm+, fl_flux+, fl_var+, fl_dq+)
+    gfcube ("teqpxbrgN20051222S0112.fits", fl_atm+, fl_flux+, fl_var+, fl_dq+)
+    gfcube ("teqpxbrgN20051223S0121.fits", fl_atm+, fl_flux+, fl_var+, fl_dq+)
+
+
+## CHANGE VALUES
+#    # Give them the same offsets from pyfalign as the science cubes (after looking
+#    # at the results from above):
+#    hedit dchsteqpxbrgN20051205S0006[sci] CRVAL1 64.99041999992549 upd+ ver-
+#    hedit dchsteqpxbrgN20051205S0006[sci] CRVAL2 0.04500000992549393 upd+ ver-
+#    hedit dchsteqpxbrgN20051222S0108[sci] CRVAL1 64.99041999992549 upd+ ver-
+#    hedit dchsteqpxbrgN20051222S0108[sci] CRVAL2 0.04500000992549393 upd+ ver-
+#    hedit dchsteqpxbrgN20051222S0112[sci] CRVAL1 65.48042000722705 upd+ ver-
+#    hedit dchsteqpxbrgN20051222S0112[sci] CRVAL2 0.04500000992549393 upd+ ver-
+#    hedit dchsteqpxbrgN20051223S0121[sci] CRVAL1 65.47042000707805 upd+ ver-
+#    hedit dchsteqpxbrgN20051223S0121[sci] CRVAL2 0.04500000992549393 upd+ ver-
+
+    ## Mosaic the object + sky cubes: A quick imexam comparison with the first cube shows minimal if any
+    ## degradation, with FWHM differences within 0.1-0.3 pix in both directions that look consistent with noise.
+
+#    pyfmosaic dteqpxbprgS20120827S0066,dteqpxbprgS20120827S0067,dteqpxbprgS20120827S0068,dteqpxbprgS20120827S0070,dteqpxbprgS20120827S0071,dteqpxbprgS20120827S0072 dteqpxbprgS20120827S0066_add separate-
+
+
+
 
 ## The output of this program is the fully shifted and combines cube - with both integer and decimal shifts.
 ## You may want to consider at this point cropping the final cubes in the spatial plane to remove the blank
 ##    sections added in the shift.
-
     ## Make temporary folders to organise output - only if it does not exist already
 #    mkdir tmp_cal
-
-    #### MUST BE RUN IN IRAF
-
-#    align_cubes.prefix="shsteqpxbrg"        ## Don't include the 'c' here
 #    align_cubes ("N20051205S0006", "006")
-
-    align_cubes.prefix="hsteqpxbrg"         ## 'dc' prefix will be added in where appropriate
-    align_cubes ("N20051222S0108", "108")
-    align_cubes ("N20051222S0112", "112")
-    align_cubes ("N20051223S0121", "122")
+#    align_cubes.prefix="hsteqpxbrg"         ## 'dc' prefix will be added in where appropriate
+#    align_cubes ("N20051222S0108", "108")
+#    align_cubes ("N20051222S0112", "112")
+#    align_cubes ("N20051223S0121", "122")
 
 ## To make 2D 'maps' fo the galaxy - use scrop to obtain a cube within the desired wavelength range, and then use
 ##    imcombine with 'project=yes' to flatten the cube inta a 2D image.

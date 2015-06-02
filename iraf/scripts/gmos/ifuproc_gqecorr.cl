@@ -117,6 +117,13 @@ print ('>>>>> Making bad pixel mask')
 
 # Flat, first processing
 # ----------------------
+print ('>>>>> Flat - first processing')
+
+	if (l_bkgmask != "") {
+		pre = "bp"
+	} else {
+		pre = "p"
+	}
 
 	flatlis=mktemp("tmpflats")
 	files(l_flat,sort-, > flatlis)
@@ -128,39 +135,28 @@ print ('>>>>> Making bad pixel mask')
 	while(fscan(scanfile, l_flat) != EOF) {
 		gimverify(l_flat)
 		l_flat = gimverify.outname//".fits"
-		
 		if (gimverify.status != 0) {
 			print (l_flat//" not found or not a MEF")
 			goto error
 		}
+		
 		if (l_oflat=="") {
-			fflat = l_flat
-			if (l_bkgmask != "") {
-				l_oflat = "teb"//gimverify.outname//"_flat" # i dont think this naming scheme works, should be eqb* eventually
-			} else {
-				l_oflat = "te"//gimverify.outname//"_flat"
-			}	
 			if (l_fl_qecorr) {
-				l_oflat = "q"//l_oflat
-			}
-			if (nflat > 1) {
-				l_aflat = gimverify.outname//"_avg"
+				l_oflat = "eq"//pre//gimverify.outname//"_flat"
 			} else {
-				l_aflat=gimverify.outname
+				l_oflat = "e"//pre//gimverify.outname//"_flat"
 			}
+		}	
+		
+		if (nflat > 1) {
+			l_aflat = gimverify.outname//"_avg"
+		} else {
+			l_aflat=gimverify.outname
 		}
 	}
 	scanfile = ""
 	
-print ('>>>>> Flat - first processing')
-
-	if (l_bkgmask != "") {
-		pre = "bp"
-	} else {
-		pre = "p"
-	}
-	
-	if (!imaccess(pre//l_aflat)) {		#### changed in ifuproc from 'e' to 'eb'
+	if (!imaccess(pre//l_aflat)) {
 		
 		if (nflat > 1) {		
 			gemcombine("@"//flatlis, l_aflat, combine="average", reject="avsigclip",\
@@ -172,6 +168,7 @@ print ('>>>>> Flat - first processing')
 			gemfix(l_aflat, "p"//l_aflat, method="fit1d", bitmask=1, order=15, fl_inter-)
 		}	
 		
+		## Extract the spectra
 		if (!imaccess("ep"//l_aflat)) { 
 			gfreduce("p"//l_aflat, fl_addmdf-, fl_trim-, fl_bias-, fl_wavtran-, fl_skysub-,\
 					 fl_over-, fl_gscrrej-, fl_fluxcal-, rawpath="", weights=l_weights,\
@@ -189,16 +186,16 @@ print ('>>>>> Flat - first processing')
 		## Subtract the scattered light
 		if (l_bkgmask != "" && access(l_bkgmask)) {
 			print("Subtracting scattered light from "//l_aflat//" using ", l_bkgmask)
-			gfscatsub("p"//l_aflat, l_bkgmask, outimage="", prefix="b", xorder="5,9,5",\
+			gfscatsub("p"//l_aflat, l_bkgmask, prefix="b", xorder="5,9,5",\
 					  yorder="5,7,5", cross=yes)
 		}
     }
     
 	
 # Twilight processing - optional, may not have a significant affect if included
-# -------------------
+# -------------------	
+print ('>>>>>> Twilight - first processing')
 	
-print ('>>>>>> Twilight - first processing')	
 	if (l_twilight != "" && !imaccess(pre//l_twilight)) {
 	
 		if (!imaccess("p"//l_twilight)) {
@@ -222,8 +219,8 @@ print ('>>>>>> Twilight - first processing')
 	
 # Arc processing
 # --------------
-
 print ('>>>>> Arc processing')	
+
 	arclis=mktemp("tmparclis")
 	files(l_arc, sort-, > arclis)
 	ii = 0
@@ -236,12 +233,12 @@ print ('>>>>> Arc processing')
 			gfreduce(img, fl_addmdf-, fl_trim-, fl_bias-, fl_wavtran-, fl_skysub-, fl_gscrrej-,\
 					 rawpath="", fl_inter=no, trace-, recenter-, ref="ep"//l_aflat, fl_over-,\
 					 weights=l_weights, xoffset=l_xoffset, fl_extract+, fl_gsappwave+)
-            gswavelength("e"//img, fwidth=(1.7*l_fwidth), cradius=(1.2*1.7*l_fwidth),\
-             			 nlost=10, fl_inter=l_fl_inter, low_reject=2.5, high_reject=2.5, verbose-)
-            if (gswavelength.status != 0) {
-                goto error
-            }
-        }
+		}			 
+		gswavelength("e"//img, fwidth=(1.7*l_fwidth), cradius=(1.2*1.7*l_fwidth),\
+					 nlost=10, fl_inter=l_fl_inter, low_reject=2.5, high_reject=2.5, verbose-)
+		if (gswavelength.status != 0) {
+			goto error
+		}
         earc[ii] = "e"//img
     }
     scanfile = ""
@@ -250,22 +247,27 @@ print ('>>>>> Arc processing')
      
 # Determine response function
 # ---------------------------
-
 print ('>>>>> Determining response function')
+
 	if (!imaccess(l_oflat)) {
 
-#### James here only gftransforms the arc as a self consistency check, he does nothing with the flats/twilights
-		if (!imaccess("te"//pre//l_aflat)) {		
-			gftransform("e"//pre//l_aflat, wavtraname=earc[l_iarc], fl_vardq+, w1=l_w1,\
-						w2=l_w2, dw=l_dw, nw=l_nw)
-		}
-							
-		if (l_twilight != "") {
-			if (!imaccess("te"//pre//l_twilight)) {		
-				gftransform("e"//pre//l_twilight, wavtraname=earc[l_iarc], fl_vardq+, w1=l_w1,\
-						w2=l_w2, dw=l_dw, nw=l_nw)
-			}
-		}
+
+#### James here only gftransforms the arc as a self consistency check, he does nothing with the flats/twilights		
+#		if (!imaccess("te"//pre//l_aflat)) {
+#			if (!imaccess("e"//pre//l_aflat)) {
+#				gfreduce(pre//l_aflat, fl_addmdf-, fl_trim-, fl_bias-, fl_wavtran-, fl_skysub-,\
+#					 fl_over-, fl_gscrrej-, fl_fluxcal-, rawpath="", weights=l_weights,\
+#					 fl_extract+, fl_gsappwave+, fl_vardq+, xoffset=l_xoffset, fl_inter-)#=l_fl_inter)
+#			}			
+#			gftransform("e"//pre//l_aflat, wavtraname=earc[l_iarc], fl_vardq+, w1=l_w1,\
+#						w2=l_w2, dw=l_dw, nw=l_nw)
+#		}							
+#		if (l_twilight != "") {
+#			if (!imaccess("te"//pre//l_twilight)) {		
+#				gftransform("e"//pre//l_twilight, wavtraname=earc[l_iarc], fl_vardq+, w1=l_w1,\
+#						w2=l_w2, dw=l_dw, nw=l_nw)
+#			}
+#		}
 	
 		## Apply correction for differences is QE variation between detectors to flat and twilight
 		if (l_fl_qecorr) {
@@ -316,20 +318,23 @@ print ('>>>>> Science processing')
 	l_image = gimverify.outname//".fits"
 	
 	if (l_bkgmask != "") {
-		pre = "b"
+		pre = "bp"
 	} else {
-		pre = ""
+		pre = "p"
 	}
 	
 	if (!imaccess("steqpx"//pre//l_image)) {
 	
-		addbpm(l_image, l_umbpm)
+		if (!imaccess("p"//l_image)) {
+			addbpm(l_image, l_umbpm)
+			gemfix (l_image, "p"//l_image, method="fit1d", bitmask=1, order=5, fl_inter-) #### check if order is appropriate
+		}
 
 		## Remove scattered light from the scient data
 		if (l_bkgmask != "" && access(l_bkgmask)) {		
-			if (!imaccess("b"//l_image)) {
+			if (!imaccess("bp"//l_image)) {
 				print("Subtracting background from "//l_image//" using ", l_bkgmask)
-				gfscatsub(l_image, l_bkgmask, outimage="", prefix="b", xorder="5,9,5",\
+				gfscatsub("p"//l_image, l_bkgmask, outimage="", prefix="b", xorder="5,9,5",\
 						  yorder="5,7,5", cross=yes)
 			}
 		}
@@ -341,9 +346,9 @@ print ('>>>>> Science processing')
 		
 		## Apply correction for differences in QE variation to science data
 		if (!imaccess("px"//pre//l_image)) {
-			gemfix ("xb"//l_image, "pxb"//l_image, bitmask=8, method="fixpix", fl_inter-)
+			gemfix ("x"//pre//l_image, "px"//pre//l_image, method='fixpix', bitmask=8, fl_inter-)
 		}
-		
+
 		if (!imaccess("qpx"//pre//l_image)) {
 			gqecorr ("px"//pre//l_image, refimages=earc[1], outpref="q", fl_vardq+)
 		}
