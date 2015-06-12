@@ -1,0 +1,242 @@
+
+This guide was written by Kristi Webb, May 2015, as a follow up to a guide written by Gwen Rudie from 2005.
+
+In this guide I will outline the reduction steps used to process Gemini GMOS IFU data of IC 225 taken in
+  2005 from Gemini-Northby Bryan Miller. The observation details can be found in GN-2005B-DD-5.xml and the 
+  raw data files are located in ‘/net/sbfmaps/Volumes/Science/bmiller/bdisk/bmiller/GN-2005B-DD-5/raw/‘.
+I will also cover how the kinematic analysis was preformed both by Gwen with an IDL version of pPXF
+  and how it has been updated to use techniques developed by James Turner in Python and then with the 
+  Python version of pPXF.
+
+The work done by Gwen can be found at ‘/net/sbfmaps/Volumes/Science/bmiller/bdisk/bmiller/GN-2005B-DD-5/gwen’
+  and includes two guides (‘guide.txt’/‘gudie.txt’ and ‘idl_log.txt’) detailing her reduction steps.
+I make an effort to reproduce her results but using the standard IRAF gmos tasks and following the reduction
+  method developed by James Turner as used in his GMOS IFU example reduction script ‘allred.cl’.
+
+
+Preprocessing and cubing
+————————————————————————
+
+  cl>  cl < reduce_and_cube.cl
+
+Gwen does her science reduction and cubing (as outlined in ‘guide.txt’) with three ‘cl’ scripts and a series
+  of IRAF tasks developed by Bryan Miller (which differ slightly from the IRAF standard tasks). The scripts are:
+  ’preliminary_reduction.cl’ which does the preprocessing, ‘gfcube_MEF_script.cl’ to reorganise the data into 3D
+  cubes, and ‘shift_and_combine.cl’ to shift and combine the cubes by interger and decimal shifts. She recommends 
+  cropping the final cubes which contain blank sections. She then uses her version of ‘scrop.cl’ to crop the cube 
+  in the desired wavelength range, and flattens the cube into 2D with imexamine with ‘project=yes’.
+The majority of the preproccesing steps are run by an IRAF task ‘ifuproc.cl’ written by Bryan Miller.  
+More details can be found in her guides (described above), I will highlight the differences between her reduction 
+  and the updated version.
+
+The reduction method I use is similar to that of James, with the inclusion of an updated version of ‘ifuproc.cl’
+  (instead of repeating the same steps for the standard and sciece, the ifuproc task is used).
+The preproccessing script (and for the cubing) is named ‘reduce_and_cube.cl’.
+
+As we wanted to be able to preform the analysis with the standard IRAF tasks (rather than the tasks developed
+  by Bryan) for the purpose of reproducability, it was necessary to rearrange the reduction steps in
+  ‘ifuproc.cl’ as the ’gqecorr.cl’ input cannot be mosaiced. Parameters, such as ‘gsigma’ in Bryan’s gfextract,
+  which were not included in the standard tasks were removed. Extensive testing was preformed to ensure that the 
+  these parameters were not necessary and could be removed without significantly altering the final product.
+  This updated version of ifuproc was named ‘ifuproc_gqecorr.cl’. 
+Gwen’s scripts ‘gfcube_MEF_script.cl’ and ‘shift_and_combine.cl’ were rewritten as the tasks ‘make_cube.cl’ and 
+  ‘align_cubes.cl’ respectively, and are called at the end of the reduction script. 
+
+	- The parameter ‘gsigma’ in gfextract (and thus gfreduce) is a smoothing term for the noise in the region
+	  where the CCDs overlap. This results in a decrease in the noise on the right of the spectrum. This is 
+	  not included in the standard IRAF task, and we believe that it is best to not include it in the updated
+	  reduction, as the noise is not significant to our analysis. (?)
+
+	- The quantum efficiency correction could not be implemented by ‘gfreduce’ as it does in Bryan’s version
+	  (although the parameter fl_qecorr is written into the current task, it is not yet working). Instead
+	  I call ‘gqecorr’ explicitly before ‘gfreduce’ as done by James.
+
+	- Gwen uses a version of ‘gscombine’ to combine the standards used to produce the wavelength calibration
+	  function. It is a version of the iraf standard scombine with slight changes to allow for a selection 
+ 	  based on wavelength rather than pixels. This version is not the same as Bryan’s version, the difference
+	  culminating in a different vertical (magnitude) shift. To properly reproduce Gwen’s results, her version
+	  of the task was used.
+
+	- The wavelength calibration function (sens_{whatever}.fits) as output by gsstandard was produced by 
+	  running the task interactively and ensuring that the data points were not on spectral lines. Although
+	  the function I produced was very similar to that of Gwen’s, it was not the exact same shape. 
+	**** Test to see if this has a significant effect
+
+In order to determine the best reduction method, a comparison was made to find the minimized wavelength
+  shift between the two IFU slits. The various methods tested were: Gwen’s original method as detailed in her
+  script ‘preliminary_reduction.cl’, a reproduction of Gwen’s method using her version of scripts and IRAF tasks,
+  using James’ reduction method with Bryan’s IRAF tasks (which require the original ifuproc), James’ method with
+  the standard IRAF tasks, and James’ method with James’ IRAF tasks (which include an improved method of flat-
+  fielding). The comparison between the methods is shown in ‘wavelength shift.txt’.
+The best method was James’ reduction method with James’ IRAF tasks, so this was used to preform the reduction.
+
+	- The main differences in the reduction is the order of the steps (as can be seen by the differing file
+	  prefixes) as well as preforming the overscan subtraction right away, calculating the VAR and DQ plane
+	  and carrying them through the reduction stages, writing the BPM from the GMOS IFU provided BPM files 
+	  rather than specifying specific regions, and using the updated versions of the IRAF tasks. I also use 
+	  gemfix (with addbpm) rather than nmisc as it seemed to provide better results.
+
+
+The output of Gwen’s method of making the 3D cubes is: ‘IC225_cal_integer.fits’ and ‘IC225_cal_decimal.fits’. 
+  Because her method results in blank sections, she then crops the files: ‘IC225_cal_integer_crop.fits’,
+  ‘IC225_cal_decimal_crop.fits’. And then she uses ‘imcombine.cl’ with ‘project=yes’ to flatten the science and
+  variance extensions: ‘2D_IC225_cal_integer_crop_sci.fits’, ‘2D_IC225_cal_integer_crop_var.fits’, etc.
+
+  $  imcombine IC225_cal_integer_crop.fits[sci] 2D_IC225_cal_integer_crop_sci.fits project=yes
+  $  imcombine IC225_cal_integer_crop.fits[var] 2D_IC225_cal_integer_crop_var.fits project=yes
+
+
+James has written an IRAF package ‘pyfu’ which includes the tasks ‘pyfalign’, ‘pyfmosaic’, and ‘pyflogbin’ 
+  to align, mosaic etc. the 3D data cubes output from ‘gfcube.cl’. I use these along with Gwens of ‘make_cube’ and 
+  ‘align_cubes’ to determine the difference. The mosaic’d output is ‘dcsteqpxbprgN20051205S0006_add.fits’ and
+  the logarithmiclaly binned output is ‘ldcsteqpxbprgN20051205S0006_add.fits’
+**** What is the difference? ********************************************************************************
+I then flatten the science and variance extension of the 3D cube to be processed by the voronoi 2D binning method.
+  
+  $  imcombine dcsteqpxbprgN20051205S0006_add.fits[sci] IC225_2D_james_sci.fits project=yes
+  $  imcombine dcsteqpxbprgN20051205S0006_add.fits[var] IC225_2D_james_var.fits project=yes
+
+**** WHY NOT USE THE OUTPUT OF THE LOGBIN??? ************************************************************
+
+
+
+Binning - Gwen’s method (with IDL)
+—————————————————————————————————————————————  
+
+The first step is to make the input file for the voronoi binning process with ‘make_table.pro’:
+
+  IDL>  .r idl/cappellari/make_table.pro
+  IDL>  make_table
+
+        - In Gwen’s IDL guide she says to use ‘idl/cappellari/voronoi_2d_binning/pre_bin_fits_readin.pro’ but
+          I could not get this to work, so I used the similar, but perhaps less fancy, ‘make_table.pro’
+          which has the file names hardcoded in, and will have to be changed for each use.
+	  I followed the same naming conventions as Gwen specified in the IDL guide.
+
+Now run the binning program ‘v2b_IC225.pro’ which requires ‘voronoi_2d_binning.pro’
+
+	- I’m not sure what version of IDL Gwen had, but I had to manually load ‘strsplit.pro’ (used in 
+	  ‘rdfloat.pro’) from the ‘old’ exelis IDL folder I was given. 
+
+  IDL>  .r /Applications/exelis/idl83/lib/strsplit.pro
+  IDL>  .r idl/cappellari/voronoi_2d_binning/voronoi_2d_binning.pro
+
+	- Again, I had to manually load ‘mean.pro’ from the ‘old’ exelis IDL folder
+
+  IDL>  .r /Applications/exelis/idl83/lib/mean.pro
+
+	- As I do not have Java SE 6 installed and therefore cannot use the IDL interactive display,
+	  I commented out lines 29-31 in ‘v2b_IC225.pro’ to be able to run it.
+
+	- Gwen also suggests that you change the hardcoded parameters for each file (such as input filename,
+	  NUMLINE, and the desired signal to noise)
+
+  IDL>  .r idl/cappellari/voronoi_2d_binning/v2b_IC225.pro
+  IDL>  v2b_IC225
+
+Now to make the binned spectra. Gwen uses a script ‘make_binned_spectra.cl’ to do the commands but it’s a
+  mess of terminal commands, cl, and php. So I’ll just write it out here instead (using my file structure):
+
+  $  chmod 755 gwen_idl/idl_proc/PHP_write_awk.php
+  $  ./gwen_idl/idl_proc/PHP_write_awk.php
+
+	- Now in iraf (not pyraf)
+
+  cl>  cl < gwen_idl/idl_proc/awk_program.cl
+
+	- Make the binned spectra, the for loop is likely why Gwen wrote it as a cl scripts
+
+  cl>  for (i=0; i<=127; i+=1) {
+  >>>>  imcombine(“@gwen_idl/idl_proc/comlis30/imcom_"//i//".lis",("gwen_idl/idl_proc/bin_spec_s_n_30/bin_000"+i)//".fits",combine="sum")
+  >>>>  }
+
+And repeat for the variance plane. Same procedure, with ‘PHP_write_awk_var.php’, ‘awk_program_var.php’
+  and in folder gwen_idl/idl_proc/imcom_var/
+
+
+Binning - James’ method
+———————————————————————
+
+**** To be determined if the methods are equivalant ************************************************************
+
+Thsi is included at the end of ‘reduce_and_cube.cl’ is the rebinning of the 3D cube. 
+  cl> pyflogbin dcsteqpxbprgN20051205S0006_add ldcsteqpxbprgN20051205S0006_add var+
+
+The first step is to create the input file for the voronoi 2D binning which consists of a text file with the x/y
+  coordinates and the corresponding signal to noise. I used the same method as gwen (‘make_table.pro’) with 
+  updated image dimensions.
+As the noise must be positive values in ‘voronoi_2d_binning.py’ make sure to remove any lines where it is <= 0.
+
+**** MAYBE NEED TO CROP IMAGE??? MAYBE WRITE IN SOMETHING TO AUTOMATICALLY IGNORE THESE VALUES??? ********************
+
+  IDL>  .r IFU_reduction/idl_proc/make_table.pro
+  IDL>  make_table
+
+Then run ‘IFU_reduction/idl_proc/voronoi_2D_binning_IC225.py’ which outputs a list of x/y coordinates and their
+  respective bin number in a text file ‘IFU_reduction/idl_proc/v2b_output_sn30.txt’
+
+  $  python voronoi_2D_binning_IC225 
+	- make sure you’re in this idl_proc folder when you run this (just because I was lazy with hardcoding file names)
+
+Before we can put this through pPXF we need to organise the spectra by their bin, which involes making lists of which
+  spectra are in each bin, then combining the spectra which are in the same bin. Gwen does this with her script
+  ‘make_binned_spectra.cl’ which uses awk to produce a file ‘awkprogram.cl’ which youthen run in IRAf. I have rewritten 
+  this in Python, ‘IFU_reduction/idl_proc/bin_spectra.py’.
+Both methods produce folders with the lists, one for the science and one for the variance. I name mine:
+  ‘IFU_reduction/idl_proc/comb_lists_sci_{S/N}’ and ‘IFU_reduction/idl_proc/comb_lists_var_{S/N}’. Gwen does something 
+  similar. The S/N, file names, and path names are hardcoded in (I know, I should make this better), so they will need
+  to be edited manually.
+
+**** FIGURE OUT HOW TO DO THIS IN PYTHON ************************************************************
+
+To combine the specture I would *really* like to know why I cannot figure out how to use imcombine in pyraf, but for 
+  now I’ve written a separate script to run imcombine: ‘IFU_reduction/idl_proc/combine_spectra.cl’
+
+  $  python bin_spectra.py
+  cl>  cl < combine_spectra.cl
+
+**** I seem to have MANY more bins than Gwen, check this. **************************************************
+
+The combined spectra (named however you specified in combine_spectra.cl) will be what you input into pPXF
+
+
+pPXF - Gwen’s method (IDL)
+——————————————————————————
+
+The main file that runs pPXF is ‘idl/cappellari/ppxf/ppxf_IC225_1.pro’ and requires the hardcoded parameters
+  be changed:
+	-  data specific header keywords (eg. CD3_3 instead of CDELT3)
+	-  if a different Lamrange calculation is desired, comment out the LAMRNGE calcultion and replace with your own
+	-  the template spectra and its information (eg. sigma and instrumental resolution)
+		-  modify the parameter sigma = ____/velScale if necessary based on calculations (?)
+	-  the GOODPIXEL ranges (pixel ranges that DO NOT contain emission lines)
+		-  can use splot ‘$.’ (?) option where the ‘$’ changes the image to pixel coordinates
+		-  Gwen has a nice reminder here: “THESE GOODPIXEL RANGES MUST BE FROM THE LOGARITHMICALLY REBINNED DATA”
+	-  the galaxy spectrum
+	-  the start parameter (inital guess) for velocity and sigma ~ [1500., 100.]
+
+
+The template that Gwen uses (bc2003—) is from an early release of pPXF and can be found in idl/cappellari/ppxf/spectra
+  with instructions for its use (rather than what is described in the main example script) are detailed in the file
+  ‘rdssp.pro’ in the same folder. This template is for SEDs for different metallicieties from the Bruzal and Charlot 
+  2003 stellar evolutionary model (http://adsabs.harvard.edu/abs/2003MNRAS.344.1000B). More details can be found here:
+  http://www.bruzual.org/bc03/doc/bc03.pdf
+
+
+
+
+pPXF with Python
+————————————————
+
+I have rewritten an example script in the latest version of the Python pPXF distribution to use the same template
+  spectra as Gwen - BC2003. It has the same functionality as ‘idl/cappellari/ppxf/ppxf_IC225_1.pro’, and can be 
+  found in ‘IFU_reduction/ppxf_IC225_kinematics.py’
+The names of the template files and the 2D image file are hardcoded and will require the file to be edited, as well
+  as with the changes specified above for Gwen’s equivalent script.
+
+
+
+
+
+
+
