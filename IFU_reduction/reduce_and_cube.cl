@@ -2,83 +2,83 @@
 # Edited by Kristi Webb May 2015
 
 ## 2005dec03
-#GN-2005B-DD-5-3    16:20:39    1            239           Twilight               g        B600/478.0  IFU             300            full
+#GN-2005B-DD-5-3    16:20:39    1         239           Twilight    g        B600/478.0  IFU        300            full
 #GN-2005B-DD-5-3    not quite enough counts, redo junk
-#GN-2005B-DD-5-3    16:29:20    2            240           Twilight               g        B600/478.0  IFU             400            full
+#GN-2005B-DD-5-3    16:29:20    2         240           Twilight    g        B600/478.0  IFU        400            full
 #GN-2005B-DD-5-3    35000 cts max ok
-#GN-2005B-DD-5-3    16:38:00    3            241           Twilight               g        B600/482    IFU             120            full
+#GN-2005B-DD-5-3    16:38:00    3         241           Twilight    g        B600/482    IFU        120            full
 
 ## 2005dec04
-#GN-CAL20051204-3  16:56:25    11-15        227-231       Bias         none     mirror     none  0.0            full
+#GN-CAL20051204-3  16:56:25    11-15      227-231       Bias         none     mirror     none  0.0            full
 
 ## 2005dec05
-#GN-2005B-DD-5-2   04:28:42    1            1             IC225        g        mirror      none            10.0           ccd2
-#GN-2005B-DD-5-2   p=27.6 q=-2.01
-#GN-2005B-DD-5-2   04:33:08    2            2             IC225        g        mirror      IFU             60             full
-#GN-2005B-DD-5-2   p=0.875, q=-0.33
-#GN-2005B-DD-5-2   04:39:37    3            3             IC225        g        mirror      IFU             60             full
-#GN-2005B-DD-5-2   centered on the midpoint btw the 2 nuclei
-#GN-2005B-DD-5-1   04:43:50    1-2          4-5           CuAr         g        B600/478.0  IFU             120.0          full
-#GN-2005B-DD-5-1   Junk
-#GN-2005B-DD-5-1   04:52:05    3            6             IC225        g        B600/478.0  IFU             3300.0         full
-#GN-2005B-DD-5-1   ok
-#GN-2005B-DD-5-1   05:49:52    4            7             GCALflat     g        B600/478.0  IFU             40.0           full
-#GN-2005B-DD-5-1   ok
-#GN-2005B-DD-5-1   05:52:12    5            8             CuAr         g        B600/478.0  IFU             120.0          full
-#GN-2005B-DD-5-1   ok
+#GN-2005B-DD-5-2   04:28:42    1          1             IC225        g        mirror      none       10.0           ccd2
+#   p=27.6 q=-2.01
+#GN-2005B-DD-5-2   04:33:08    2          2             IC225        g        mirror      IFU        60             full
+#   p=0.875, q=-0.33
+#GN-2005B-DD-5-2   04:39:37    3          3             IC225        g        mirror      IFU        60             full
+#   centered on the midpoint btw the 2 nuclei
+#GN-2005B-DD-5-1   04:43:50    1-2        4-5           CuAr         g        B600/478.0  IFU        120.0          full
+#   Junk
+#GN-2005B-DD-5-1   04:52:05    3          6             IC225        g        B600/478.0  IFU        3300.0         full
+#   ok
+#GN-2005B-DD-5-1   05:49:52    4          7             GCALflat     g        B600/478.0  IFU        40.0           full
+#   ok
+#GN-2005B-DD-5-1   05:52:12    5          8             CuAr         g        B600/478.0  IFU        120.0          full
+#   ok
 
 ## 2005dec06
-#GN-2005B-DD-5-4            11:51:59    1            124           Hiltner600   g        mirror      none  1              ccd2
+#GN-2005B-DD-5-4   11:51:59    1          124           Hiltner600   g        mirror      none       1              ccd2
 #   testing seeing (unable to guide with guide star, switched to the brighter target for test)
 #   ok
-#GN-2005B-DD-5-4            11:55:34    2-3          125-126       Hiltner600   g        mirror      none  10             ccd2
+#GN-2005B-DD-5-4   11:55:34    2-3        125-126       Hiltner600   g        mirror      none       10             ccd2
 #   ok
 #   starting acquistion (guiding on correct star)
-#GN-2005B-DD-5-4            12:05:49    4            127           Hiltner600   g        mirror      IFU   2              full
+#GN-2005B-DD-5-4   12:05:49    4          127           Hiltner600   g        mirror      IFU        2              full
 #   ok
-#GN-2005B-DD-5-4            12:12:00    5-7          128-130       Hiltner600   g        mirror      IFU   2              full
+#GN-2005B-DD-5-4   12:12:00    5-7        128-130       Hiltner600   g        mirror      IFU        2              full
 #   ok
 #   do not see  lower fiber bundle, but have centered star
-#GN-2005B-DD-5-5            12:21:23    1-2          131-132       Hiltner600   g        B600/478.0  IFU   160.0          full
+#GN-2005B-DD-5-5   12:21:23    1-2        131-132       Hiltner600   g        B600/478.0  IFU        160.0          full
 #   junk, lost guiding
 #   ok, exptime 160
-#GN-2005B-DD-5-5            12:36:39    3            133           Hiltner600   g        B600/478.0  IFU   300            full
+#GN-2005B-DD-5-5   12:36:39    3          133           Hiltner600   g        B600/478.0  IFU        300            full
 #   ok, exptime 300
-#GN-2005B-DD-5-5            12:46:42    4            134           Hiltner600   g        B600/478.0  IFU   400            full
+#GN-2005B-DD-5-5   12:46:42    4          134           Hiltner600   g        B600/478.0  IFU        400            full
 #   ok, exptime 400
-#GN-2005B-DD-5-5            12:56:10    5            135           GCALflat     g        B600/478.0  IFU   40.0           full
+#GN-2005B-DD-5-5   12:56:10    5          135           GCALflat     g        B600/478.0  IFU        40.0           full
 #   ok
-#GN-2005B-DD-5-6            13:23:30    1            136           Hiltner600   g        mirror      none  10             ccd2
+#GN-2005B-DD-5-6   13:23:30    1          136           Hiltner600   g        mirror      none       10             ccd2
 #   ok
-#GN-2005B-DD-5-5            14:37:12    6            138           CuAr         g        B600/478.0  IFU   120.0          full
+#GN-2005B-DD-5-5   14:37:12    6          138           CuAr         g        B600/478.0  IFU        120.0          full
 #   ok
 
 ## 2005dec20
-#GN-CAL20051220-6  16:36:44    11-15        228-232       Bias         none     mirror     none  0.0            full
+#GN-CAL20051220-6  16:36:44    11-15      228-232       Bias         none     mirror      none       0.0            full
 
 ## 2005dec22
-#GN-2005B-DD-5-2   06:42:26    4            103           IC225        g        mirror      none       10.0           ccd2
-#GN-2005B-DD-5-2   06:51:19    5            104           IC225        g        mirror      IFU        60             full
-#GN-2005B-DD-5-2   06:55:33    6            105           IC225        g        mirror      IFU        60             full
-#GN-2005B-DD-5-1   06:59:30    6            106           CuAr         g        B600/482.0  IFU        120.0          full
-#GN-2005B-DD-5-1   07:02:58    7            107           GCALflat     g        B600/482.0  IFU        40.0           full
-#GN-2005B-DD-5-1   07:05:16    8            108           IC225        g        B600/482.0  IFU        3300.0         full
-#GN-2005B-DD-5-1   08:01:54    9            109           CuAr         g        B600/482.0  IFU        120.0          full
-#GN-2005B-DD-5-1   08:05:36    10-11        110-111       CuAr         g        B600/478.0  IFU        120.0          full
-#GN-2005B-DD-5-1   08:12:35    12           112           IC225        g        B600/478.0  IFU        3300.0         full
-#GN-2005B-DD-5-1   09:09:13    13           113           GCALflat     g        B600/478.0  IFU        40.0           full
-#GN-2005B-DD-5-1   09:11:21    14           114           CuAr         g        B600/478.0  IFU        120.0          full
+#GN-2005B-DD-5-2   06:42:26    4          103           IC225        g        mirror      none       10.0           ccd2
+#GN-2005B-DD-5-2   06:51:19    5          104           IC225        g        mirror      IFU        60             full
+#GN-2005B-DD-5-2   06:55:33    6          105           IC225        g        mirror      IFU        60             full
+#GN-2005B-DD-5-1   06:59:30    6          106           CuAr         g        B600/482.0  IFU        120.0          full
+#GN-2005B-DD-5-1   07:02:58    7          107           GCALflat     g        B600/482.0  IFU        40.0           full
+#GN-2005B-DD-5-1   07:05:16    8          108           IC225        g        B600/482.0  IFU        3300.0         full
+#GN-2005B-DD-5-1   08:01:54    9          109           CuAr         g        B600/482.0  IFU        120.0          full
+#GN-2005B-DD-5-1   08:05:36    10-11      110-111       CuAr         g        B600/478.0  IFU        120.0          full
+#GN-2005B-DD-5-1   08:12:35    12         112           IC225        g        B600/478.0  IFU        3300.0         full
+#GN-2005B-DD-5-1   09:09:13    13         113           GCALflat     g        B600/478.0  IFU        40.0           full
+#GN-2005B-DD-5-1   09:11:21    14         114           CuAr         g        B600/478.0  IFU        120.0          full
 
 ## 2005dec23
-#GN-2005B-DD-5-2  06:42:20    7            116           IC225        g        mirror     none  10.0           ccd2
-#GN-2005B-DD-5-2  06:57:01    8            117           IC225        g        mirror     IFU   60             full
-#GN-2005B-DD-5-2  07:02:47    9            118           IC225        g        mirror     IFU   60             full
+#GN-2005B-DD-5-2  06:42:20    7           116           IC225        g        mirror      none       10.0           ccd2
+#GN-2005B-DD-5-2  06:57:01    8           117           IC225        g        mirror      IFU        60             full
+#GN-2005B-DD-5-2  07:02:47    9           118           IC225        g        mirror      IFU        60             full
 
 ##Entries for images 119-122 missing, added manually from headers
-#GN-2005B-DD-5-1   07:07:36    15            119           CuAr         g        B600/482.0  IFU        120.0          full
-#GN-2005B-DD-5-1   07:11:04    16            120           GCALflat     g        B600/482.0  IFU        40.0           full
-#GN-2005B-DD-5-1   07:13:23    17            121           IC225        g        B600/482.0  IFU        3300.0         full
-#GN-2005B-DD-5-1   08:10:01    18            122           CuAr         g        B600/482.0  IFU        120.0          full
+#GN-2005B-DD-5-1   07:07:36    15         119           CuAr         g        B600/482.0  IFU        120.0          full
+#GN-2005B-DD-5-1   07:11:04    16         120           GCALflat     g        B600/482.0  IFU        40.0           full
+#GN-2005B-DD-5-1   07:13:23    17         121           IC225        g        B600/482.0  IFU        3300.0         full
+#GN-2005B-DD-5-1   08:10:01    18         122           CuAr         g        B600/482.0  IFU        120.0          full
 
 ## Aliases
 ## -------
@@ -120,6 +120,8 @@ pyfu
 #task gfdisplay=gmos$gfdisplay.cl
 #task gscalibrate=mygmos$gscalibrate.cl
 #task chkblocks=mygmos$chkblocks.cl
+#task $pqecorr="$foreign"                   # execute in iraf
+#pyexecute('mygmos$pqecorr_iraf.py')         # execute in pyraf
 
 ## James' scripts
 task gbias=jgmos$gbias.cl
@@ -141,7 +143,6 @@ task gscrrej=jgmos$gscrrej.cl
 task gsscatsub=jgmos$gsscatsub.cl
 task gsstandard=jgmos$gsstandard.cl
 
-#task gfextract=mygmos$gfextract_gsigma.c
 task mkmbpm=mygmos$mkmbpm.cl                # no standard
 task gfshift=mygmos$gfshift.cl              # no standard
 task gkeywpars=mygmos$gkeywpars.cl
@@ -149,17 +150,11 @@ task gfxcor=mygmos$gfxcor.cl
 
 #task gscombine=gwengmos$gscombine.cl          # adapted from standard, use this version
 task gscombine=/Users/kwebb/iraf/scripts/gwen/gscombine.cl
-task align_cubes=align_cubes.cl
-task make_cube=make_cube.cl
-
+task gscombine_new=/Users/kwebb/iraf/scripts/gwen/gscombine_new.cl
+task align_cubes=mygmos$align_cubes.cl
+task make_cube=mygmos$make_cube.cl
 task ifuproc_gqecorr=mygmos$ifuproc_gqecorr.cl
-#task ifuproc_gwen=mygmos$ifuproc_gwen.cl
-#task $pqecorr="$foreign"                   # execute in iraf
-#pyexecute('mygmos$pqecorr_iraf.py')         # execute in pyraf
-
-#pyexecute('jpy$pyfalign.par')
-#pyexecute('jpy$pyfmosaic.py')
-#pyexecute('jpy$pyflogbin.py')
+task scrop=mygmos$scrop.cl
 
 # Set one-off parameters reproducibly:
 gfreduce.slits="both"
@@ -311,7 +306,7 @@ gfskysub.lsigma=3.0
 gfskysub.hsigma=3.0
 gfskysub.fl_inter=no
 
-#rvidlines.observatory="gemini-north"       # remember to change throughout for GN!
+#rvidlines.observatory="gemini-north"       # remember to change throughout for GS!
 rvidlines.nsum=1
 rvidlines.maxfeatures=10
 rvidlines.ftype="emission"
@@ -337,7 +332,7 @@ gfextract.fl_vardq=yes
 #ifuproc.bpm2="mygmos$bpms/gn_bpm_ccd2_2x1f.pl"
 #ifuproc.bpm3="mygmos$bpms/gn_bpm_ccd3_2x1f.pl"
 #ifuproc.weights="none"
-#ifuproc.bpmgaps="gmos$data/chipgaps.dat"            # Width of chip gap and feature width, defaults are for 1x1 binning, this data is 2x1
+#ifuproc.bpmgaps="gmos$data/chipgaps.dat"  # Width of chip gap and feature width, defaults 1x1 binning, this data is 2x1
 #ifuproc.gap12=19
 #ifuproc.gap23=19
 #ifuproc.fwidth=2.
@@ -347,7 +342,7 @@ ifuproc_gqecorr.bpm1="mygmos$bpms/gn_bpm_ccd1_2x1f.pl"
 ifuproc_gqecorr.bpm2="mygmos$bpms/gn_bpm_ccd2_2x1f.pl"
 ifuproc_gqecorr.bpm3="mygmos$bpms/gn_bpm_ccd3_2x1f.pl"
 ifuproc_gqecorr.weights="none"
-ifuproc_gqecorr.bpmgaps="gmos$data/chipgaps.dat"    # Width of chip gap and feature width, defaults are for 1x1 binning, this data is 2x1
+ifuproc_gqecorr.bpmgaps="gmos$data/chipgaps.dat"    # Width of chip gap and feature width, this data is 2x1
 ifuproc_gqecorr.gap12=19
 ifuproc_gqecorr.gap23=19
 ifuproc_gqecorr.fwidth=2.
@@ -357,7 +352,7 @@ ifuproc_gqecorr.fwidth=2.
 #ifuproc_gwen.bpm2="mygmos$bpms/gn_bpm_ccd2_2x1f.pl"
 #ifuproc_gwen.bpm3="mygmos$bpms/gn_bpm_ccd3_2x1f.pl"
 #ifuproc_gwen.weights="none"
-#ifuproc_gwen.bpmgaps="gmos$data/chipgaps.dat"    # Width of chip gap and feature width, defaults are for 1x1 binning, this data is 2x1
+#ifuproc_gwen.bpmgaps="gmos$data/chipgaps.dat"    # Width of chip gap and feature width, this data is 2x1
 #ifuproc_gwen.gap12=19
 #ifuproc_gwen.gap23=19
 #ifuproc_gwen.fwidth=2.
@@ -365,8 +360,9 @@ ifuproc_gqecorr.fwidth=2.
 
 # Notes:
 # ------
-# ifuproc seems to work best in pyraf, the standard gftransform however does not work here as theres an issue with avariable 'scilistout'
-# make sure to change the task definition above depending on environment
+# ifuproc works best in pyraf:
+#   the standard gftransform does not work in pyraf as there's an issue with the variable 'scilistout'
+# Make sure to change the task definition above depending on environment
 
 
 # Preliminary reduction
@@ -438,12 +434,12 @@ ifuproc_gqecorr.fwidth=2.
 #            combine="average" scale="mean" sample="4550:4850" fl_vardq-
 
         ## Establish  spectrophotometric  calibration  for GMOS spectra
-            ## correction curve should always be made interactively - avoid regions with strong absorption lines by using keystroke
-            ##       commands to delete and add boxes away from the absorption lines
+            ## correction curve should always be made interactively - avoid regions with strong absorption lines by
+            ##       using keystroke commands to delete and add boxes away from the absorption lines
             ##   a: adds new bandpass, aa: make a box, d: deletes boxes closest to cusuror, q: quit
 
-#        gsstandard hiltner600.fits caldir="onedstds$ctionewcal/" observatory="Gemini-North" fl_inter+ \
-#            extinction="gmos$calib/mkoextinct.dat" sfunction="sens_jamesiraf_new" sfile="std_jamesiraf_new" starname="h600"
+#        gsstandard hiltner600.fits caldir="onedstds$ctionewcal/" observatory="Gemini-North" fl_inter+ starname="h600" \
+#            extinction="gmos$calib/mkoextinct.dat" sfunction="sens_jamesiraf_new" sfile="std_jamesiraf_new"
 
 #        splot sens_jamesiraf_new
 
@@ -451,9 +447,9 @@ ifuproc_gqecorr.fwidth=2.
     # -------------------------------------------------------------------
 
         #### Calculate average shift  - as done by gwen
-        ## We have found small pixel offsets between the two pseudo slits that are not removed by the wavelength calibration.
-        ## The reason for this is not understood but here is one workaround using the arc to determine the shift and then
-        ## applying it to the science data.
+        ## We have found small pixel offsets between the two pseudo slits that are not removed by the wavelength
+        ## calibration. The reason for this is not understood but here is one workaround using the arc to determine the
+        ## shift and then applying it to the science data.
 
         #   gftransform ergN20051205S0008.fits wavtraname=ergN20051205S0008
         #   gfxcor tergN20051205S0008.fits obs=Gemini-North
@@ -489,8 +485,8 @@ ifuproc_gqecorr.fwidth=2.
 
             ## Ifuproc - central wavelength is 478 so flat is 240
 
-#            ifuproc_gqecorr rgN20051205S0006 rgN20051205S0007 rgN20051205S0008,rgN20051205S0005 twilight=rgN20051203S0240 fl_inter- \
-#                bkgmask=s0007_blkreg.dat fl_crspec+ fl_qecorr+ fl_skysub-
+#            ifuproc_gqecorr rgN20051205S0006 rgN20051205S0007 rgN20051205S0008,rgN20051205S0005 \
+#                twilight=rgN20051203S0240 bkgmask=s0007_blkreg.dat fl_crspec+ fl_qecorr+ fl_skysub- fl_inter-
 
             ## visually inspect reconstructed image
 #            gfdisplay steqpxbprgN20051205S0006.fits ver=1 z1=0 z2=1.e8
@@ -508,26 +504,28 @@ ifuproc_gqecorr.fwidth=2.
 #            gfshift steqpxbprgN20051205S0006.fits hsteqpxbprgN20051205S0006.fits shift2=-0.112312670372
 
             ## Calibrate and visually inspect
-#            gscalibrate steqpxbprgN20051205S0006.fits extinction=gmos$calib/mkoextinct.dat fl_ext+ fl_vardq+ sfunction="sens_jamesiraf_new"
+#            gscalibrate steqpxbprgN20051205S0006.fits extinction=gmos$calib/mkoextinct.dat fl_ext+ fl_vardq+ \
+#               sfunction="sens_jamesiraf_new"
 
 #            gfdisplay csteqpxbprgN20051205S0006.fits ver=1 z2=500 z1=0
 
-#### Note here the extrap 'p' to be added in
 
         ## Dec 22 - N20051222S0180 shift=-0.1042, N20051222S0112 shift=-0.1082
 
-#            ifuproc_gqecorr rgN20051222S0108 rgN20051222S0107 rgN20051222S0109,rgN20051222S0114 twilight=rgN20051203S0241 fl_inter- \
-#                bkgmask=s0007_blkreg.dat fl_crspec+ fl_qecorr+ fl_skysub-
+#            ifuproc_gqecorr rgN20051222S0108 rgN20051222S0107 rgN20051222S0109,rgN20051222S0114 \
+#                twilight=rgN20051203S0241 bkgmask=s0007_blkreg.dat fl_crspec+ fl_qecorr+ fl_skysub- fl_inter-
 #            gfdisplay steqpxbprgN20051222S0108.fits ver=1 z2=1.e8
 #            gfshift steqpxbprgN20051222S0108.fits hsteqpxbprgN20051222S0108.fits shift2=-0.1042
-#            gscalibrate steqpxbprgN20051222S0108.fits extinction=gmos$calib/mkoextinct.dat fl_ext+ fl_vardq+ sfunction="sens_jamesiraf_new"
+#            gscalibrate steqpxbprgN20051222S0108.fits extinction=gmos$calib/mkoextinct.dat fl_ext+ fl_vardq+ \
+#               sfunction="sens_jamesiraf_new"
 #            gfdisplay csteqpxbprgN20051222S0108.fits ver=1 z2=500
 
-#            ifuproc_gqecorr rgN20051222S0112 rgN20051222S0113 rgN20051222S0111,,rgN20051222S0114 twilight=rgN20051203S0240 fl_inter- \
-#                bkgmask=s0007_blkreg.dat fl_crspec+ fl_qecorr+ fl_skysub-
+#            ifuproc_gqecorr rgN20051222S0112 rgN20051222S0113 rgN20051222S0111,,rgN20051222S0114 \
+#                twilight=rgN20051203S0240 bkgmask=s0007_blkreg.dat fl_crspec+ fl_qecorr+ fl_skysub- fl_inter-
 #            gfdisplay steqpxbprgN20051222S0112.fits ver=1 z2=1.e8
 #            gfshift steqpxbprgN20051222S0112.fits hsteqpxbprgN20051222S0112.fits shift2=-0.1082
-#            gscalibrate steqpxbprgN20051222S0112.fits extinction=gmos$calib/mkoextinct.dat fl_ext+ fl_vardq+ sfunction="sens_jamesiraf_new"
+#            gscalibrate steqpxbprgN20051222S0112.fits extinction=gmos$calib/mkoextinct.dat fl_ext+ fl_vardq+ \
+#               sfunction="sens_jamesiraf_new"
 #            gfdisplay csteqpxbprgN20051222S0112.fits ver=1 z2=500
 
         ## Dec 23 - N20051223S0121 shift=-0.1047
@@ -536,12 +534,12 @@ ifuproc_gqecorr.fwidth=2.
 #                bkgmask=s0007_blkreg.dat fl_crspec+ fl_qecorr+ fl_skysub-
 #            gfdisplay steqpxbprgN20051223S0121.fits ver=1 z2=1.e8
 #            gfshift steqpxbprgN20051223S0121.fits hsteqpxbprgN20051223S0121.fits shift2=-0.1047
-#            gscalibrate steqpxbprgN20051223S0121.fits extinction=gmos$calib/mkoextinct.dat fl_ext+ fl_vardq+ sfunction="sens_jamesiraf_new"
+#            gscalibrate steqpxbprgN20051223S0121.fits extinction=gmos$calib/mkoextinct.dat fl_ext+ fl_vardq+ \
+#               sfunction="sens_jamesiraf_new"
 #            gfdisplay csteqpxbprgN20051223S0121.fits ver=1 z2=500
 
 
-
-## Reorganise the data into 3D cubes
+## Reorganise the data into 3D cubes - James' method
 ## ---------------------------------
 
 #### SHOULD be using rvidlines to correct for any drifts in the wavelength zero point, since we're using
@@ -551,7 +549,7 @@ ifuproc_gqecorr.fwidth=2.
     ## rvidlines steqpxbprgN20051222S0108.fits[sky] threshold=7.
     ## rvidlines steqpxbprgN20051222S0112.fits[sky] threshold=7.
     ## rvidlines steqpxbprgN20051223S0121.fits[sky] threshold=7.
-#### Then, adjust the data prior to sky subtraction along with the final data to check how well the lines end up being registered.
+#### Then, adjust the data prior to sky subtraction along with the final data to check how well the lines are registered
 #### CHANGE VALUES
     ## hedit teqpxbprgN20051205S0006.fits[sci] CRVAL1 5618.164 upd+ ver-
     ## hedit csteqpxbprgN20051205S0006.fits[sci] CRVAL1 5618.164 upd+ ver-
@@ -574,7 +572,8 @@ ifuproc_gqecorr.fwidth=2.
 #    gfcube ("csteqpxbprgN20051223S0121.fits", fl_atm+, fl_flux+, fl_var+, fl_dq+)
 
     ## # Mosaic the datacubes:
-    pyfalign dcsteqpxbprgN20051205S0006,dcsteqpxbprgN20051222S0108,dcsteqpxbprgN20051222S0112,dcsteqpxbprgN20051223S0121 method="correlate"
+    pyfalign dcsteqpxbprgN20051205S0006,dcsteqpxbprgN20051222S0108,dcsteqpxbprgN20051222S0112,dcsteqpxbprgN20051223S0121 \
+       method="correlate"
     pyfmosaic dcsteqpxbprgN20051205S0006,dcsteqpxbprgN20051222S0108,dcsteqpxbprgN20051222S0112,dcsteqpxbprgN20051223S0121 \
         dcsteqpxbprgN20051205S0006_add separate- var+
 
@@ -603,17 +602,12 @@ ifuproc_gqecorr.fwidth=2.
 
     ## Mosaic the object + sky cubes: A quick imexam comparison with the first cube shows minimal if any
     ## degradation, with FWHM differences within 0.1-0.3 pix in both directions that look consistent with noise.
-#    pyfmosaic dchsteqpxbprgN20051205S0006,dchsteqpxbprgN20051222S0108,dchsteqpxbprgN20051222S0112,dchsteqpxbprgN20051223S0121 \
-#        dchsteqpxbprgN20051205S0006_add separate-
+#    pyfmosaic dcsteqpxbprgN20051205S0006,dcsteqpxbprgN20051222S0108,dcsteqpxbprgN20051222S0112,dcsteqpxbprgN20051223S0121 \
+#        dcsteqpxbprgN20051205S0006_add separate-
 
 
-#### Gwen's scripts
-# -----------------
-
-#    gfcube ("csteqpxbprgN20051205S0006.fits", fl_atm+, fl_flux+, fl_var+, fl_dq+)
-#    gfcube ("csteqpxbprgN20051222S0108.fits", fl_atm+, fl_flux+, fl_var+, fl_dq+)
-#    gfcube ("csteqpxbprgN20051222S0112.fits", fl_atm+, fl_flux+, fl_var+, fl_dq+)
-#    gfcube ("csteqpxbprgN20051223S0121.fits", fl_atm+, fl_flux+, fl_var+, fl_dq+)
+#### Gwen's method for making cubes
+# ---------------------------------
 
     ## This is achieved with the task call 'call_cube.cl' which takes input (original file name, file extension number)
 
@@ -626,13 +620,30 @@ ifuproc_gqecorr.fwidth=2.
 ## The output of this program is the fully shifted and combines cube - with both integer and decimal shifts.
 ## You may want to consider at this point cropping the final cubes in the spatial plane to remove the blank
 ##    sections added in the shift.
-    ## Make temporary folders to organise output - only if it does not exist already
-#    mkdir tmp_cal
+
+#    mkdir tmp_cal       # Make temporary folders to organise output - only if it does not exist already
+
+#    align_cubes.prefix="steqpxbprg"         ## 'mdc' prefix will be added in where appropriate
 #    align_cubes ("N20051205S0006", "006")
-#    align_cubes.prefix="hsteqpxbrg"         ## 'dc' prefix will be added in where appropriate
 #    align_cubes ("N20051222S0108", "108")
 #    align_cubes ("N20051222S0112", "112")
 #    align_cubes ("N20051223S0121", "122")
+
+    ## Combine the data cubes
+#    print("amdcsteqpxbprgN20051205S0006_decimal.fits",>> "calib_cubes_decimal.lis")
+#    print("amdcsteqpxbprgN20051222S0108_decimal.fits",>> "calib_cubes_decimal.lis")
+#    print("amdcsteqpxbprgN20051222S0112_decimal.fits",>> "calib_cubes_decimal.lis")
+#    print("amdcsteqpxbprgN20051223S0121_decimal.fits",>> "calib_cubes_decimal.lis")
+
+#    print("amdcsteqpxbprgN20051205S0006_integer.fits",>> "calib_cubes_integer.lis")
+#    print("amdcsteqpxbprgN20051222S0108_integer.fits",>> "calib_cubes_integer.lis")
+#    print("amdcsteqpxbprgN20051222S0112_integer.fits",>> "calib_cubes_integer.lis")
+#    print("amdcsteqpxbprgN20051223S0121_integer.fits",>> "calib_cubes_integer.lis")
+
+    ## First the decimal shifts
+#    gscombine_new @calib_cubes_decimal.lis IC225_cal_decimal.fits logfile="gmos.log" combine="average" lthresh=-9999 fl_vard+
+    ## The integer shifts
+#    gscombine_new @calib_cubes_integer.lis IC225_cal_integer.fits logfile="gmos.log" combine="average" lthresh=-9999 fl_vard+
 
 ## To make 2D 'maps' fo the galaxy - use scrop to obtain a cube within the desired wavelength range, and then use
 ##    imcombine with 'project=yes' to flatten the cube inta a 2D image.
