@@ -412,36 +412,37 @@ ifuproc_gqecorr.fwidth=2.
 
         ## inputs: image, flat(s), arc(s)
 
-#        ifuproc_gqecorr rgN20051206S0133 rgN20051206S0135 rgN20051206S0138 twilight=rgN20051203S0240 fl_inter=no \
-#            bkgmask=s0135_blkreg.dat fl_crspec=no fl_qecorr=yes
+        ifuproc_gqecorr rgN20051206S0133 rgN20051206S0135 rgN20051206S0138 twilight=rgN20051203S0240 fl_inter=no \
+            bkgmask=s0135_blkreg.dat fl_crspec=no fl_qecorr=yes dw=.91 nw=1301 w1=4186 weights=none fwidth=2.
 
-#        ifuproc_gqecorr rgN20051206S0134 rgN20051206S0135 rgN20051206S0138 twilight=rgN20051203S0239 fl_inter=no \
-#            bkgmask=s0135_blkreg.dat fl_crspec=no fl_qecorr=yes
+        ifuproc_gqecorr rgN20051206S0134 rgN20051206S0135 rgN20051206S0138 twilight=rgN20051203S0239 fl_inter=no \
+            bkgmask=s0135_blkreg.dat fl_crspec=no fl_qecorr=yes dw=.91 nw=1301 w1=4186 weights=none fwidth=2.
 
-        #### not sure if necessary, gwen puts through a twilight? from dec03
+        #### not sure if necessary, gwen puts through a twilight? from dec03, perhaps as a test?
         ##ifuproc rgN20051203S0240 rgN20051203S0244 rgN20051203S0245 twilight=rgN20051203S0239 fl_inter- \
         ##    bkgmask=s0135_blkreg.dat fl_crspec- fl_qecorr+
 
 
         ## Visually confirm proper reconstructed spectra
-
 #        gfdisplay steqpxbprgN20051206S0134.fits ver=1 z1=0 z2=1.e8
 
-#        gfapsum steqpxbprgN20051206S0133.fits fl_inter-
-#        gfapsum steqpxbprgN20051206S0134.fits fl_inter-
+        ## Sum the stellar spectra
 
-#        gscombine asteqpxbprgN20051206S0133.fits,asteqpxbprgN20051206S0134.fits hiltner600.fits logfile="gmos.log" \
-#            combine="average" scale="mean" sample="4550:4850" fl_vardq-
+        gfapsum steqpxbprgN20051206S0133.fits fl_inter-
+        gfapsum steqpxbprgN20051206S0134.fits fl_inter-
+
+        gscombine asteqpxbprgN20051206S0133.fits,asteqpxbprgN20051206S0134.fits hiltner600_wl.fits logfile="gmos.log" \
+            combine="average" scale="mean" sample="4550:4850" fl_vardq-
 
         ## Establish  spectrophotometric  calibration  for GMOS spectra
             ## correction curve should always be made interactively - avoid regions with strong absorption lines by
             ##       using keystroke commands to delete and add boxes away from the absorption lines
             ##   a: adds new bandpass, aa: make a box, d: deletes boxes closest to cusuror, q: quit
 
-#        gsstandard hiltner600.fits caldir="onedstds$ctionewcal/" observatory="Gemini-North" fl_inter+ starname="h600" \
-#            extinction="gmos$calib/mkoextinct.dat" sfunction="sens_jamesiraf_new" sfile="std_jamesiraf_new"
+        gsstandard hiltner600_wl.fits caldir="onedstds$ctionewcal/" observatory="Gemini-North" fl_inter+ starname="h600" \
+            extinction="gmos$calib/mkoextinct.dat" sfunction="sens_jamesiraf_wl" sfile="std_jamesiraf_wl"
 
-#        splot sens_jamesiraf_new
+        splot sens_jamesiraf_wl
 
     # Measure velocity difference between the two output slits using arcs - only done once
     # -------------------------------------------------------------------
@@ -485,14 +486,15 @@ ifuproc_gqecorr.fwidth=2.
 
             ## Ifuproc - central wavelength is 478 so flat is 240
 
-#            ifuproc_gqecorr rgN20051205S0006 rgN20051205S0007 rgN20051205S0008,rgN20051205S0005 \
-#                twilight=rgN20051203S0240 bkgmask=s0007_blkreg.dat fl_crspec+ fl_qecorr+ fl_skysub- fl_inter-
+            ifuproc_gqecorr rgN20051205S0006 rgN20051205S0007 rgN20051205S0008,rgN20051205S0005 \
+                twilight=rgN20051203S0240 bkgmask=s0007_blkreg.dat fl_crspec+ fl_qecorr+ fl_skysub- fl_inter- \
+                fwidth=2. fl_qecorr+ dw=.91 nw=1301 w1=4186
 
             ## visually inspect reconstructed image
 #            gfdisplay steqpxbprgN20051205S0006.fits ver=1 z1=0 z2=1.e8
 
+            ## THESE VALUES ARE OUT OF DATE - they apply to gwen's reduction method, not the one used currently
             ## Correct velocity difference between two output slits
-
             #--> tstat s0008_1.fits,s0008_2.fits SHIFT lowlim=-1000.0 highlim=1000.
             # nrows            mean        stddev        median           min           ma
             # s0008_1.fits  SHIFT
@@ -504,38 +506,40 @@ ifuproc_gqecorr.fwidth=2.
 #            gfshift steqpxbprgN20051205S0006.fits hsteqpxbprgN20051205S0006.fits shift2=-0.112312670372
 
             ## Calibrate and visually inspect
-#            gscalibrate steqpxbprgN20051205S0006.fits extinction=gmos$calib/mkoextinct.dat fl_ext+ fl_vardq+ \
-#               sfunction="sens_jamesiraf_new"
+            gscalibrate steqpxbprgN20051205S0006.fits extinction=gmos$calib/mkoextinct.dat fl_ext+ fl_vardq+ \
+               sfunction="sens_jamesiraf_wl"
 
 #            gfdisplay csteqpxbprgN20051205S0006.fits ver=1 z2=500 z1=0
 
 
         ## Dec 22 - N20051222S0180 shift=-0.1042, N20051222S0112 shift=-0.1082
 
-#            ifuproc_gqecorr rgN20051222S0108 rgN20051222S0107 rgN20051222S0109,rgN20051222S0114 \
-#                twilight=rgN20051203S0241 bkgmask=s0007_blkreg.dat fl_crspec+ fl_qecorr+ fl_skysub- fl_inter-
+            ifuproc_gqecorr rgN20051222S0108 rgN20051222S0107 rgN20051222S0109,rgN20051222S0106 \
+                twilight=rgN20051203S0241 bkgmask=s0007_blkreg.dat fl_crspec+ fl_qecorr+ fl_skysub- fl_inter- \
+                fwidth=2. fl_qecorr+ dw=.91 nw=1301 w1=4186
 #            gfdisplay steqpxbprgN20051222S0108.fits ver=1 z2=1.e8
 #            gfshift steqpxbprgN20051222S0108.fits hsteqpxbprgN20051222S0108.fits shift2=-0.1042
-#            gscalibrate steqpxbprgN20051222S0108.fits extinction=gmos$calib/mkoextinct.dat fl_ext+ fl_vardq+ \
-#               sfunction="sens_jamesiraf_new"
+            gscalibrate steqpxbprgN20051222S0108.fits extinction=gmos$calib/mkoextinct.dat fl_ext+ fl_vardq+ \
+               sfunction="sens_jamesiraf_wl"
 #            gfdisplay csteqpxbprgN20051222S0108.fits ver=1 z2=500
 
-#            ifuproc_gqecorr rgN20051222S0112 rgN20051222S0113 rgN20051222S0111,,rgN20051222S0114 \
-#                twilight=rgN20051203S0240 bkgmask=s0007_blkreg.dat fl_crspec+ fl_qecorr+ fl_skysub- fl_inter-
+            ifuproc_gqecorr rgN20051222S0112 rgN20051222S0113 rgN20051222S0111,,rgN20051222S0114 \
+                twilight=rgN20051203S0240 bkgmask=s0007_blkreg.dat fl_crspec+ fl_qecorr+ fl_skysub- fl_inter- \
+                fwidth=2. fl_qecorr+ dw=.91 nw=1301 w1=4186
 #            gfdisplay steqpxbprgN20051222S0112.fits ver=1 z2=1.e8
 #            gfshift steqpxbprgN20051222S0112.fits hsteqpxbprgN20051222S0112.fits shift2=-0.1082
-#            gscalibrate steqpxbprgN20051222S0112.fits extinction=gmos$calib/mkoextinct.dat fl_ext+ fl_vardq+ \
-#               sfunction="sens_jamesiraf_new"
+            gscalibrate steqpxbprgN20051222S0112.fits extinction=gmos$calib/mkoextinct.dat fl_ext+ fl_vardq+ \
+               sfunction="sens_jamesiraf_wl"
 #            gfdisplay csteqpxbprgN20051222S0112.fits ver=1 z2=500
 
         ## Dec 23 - N20051223S0121 shift=-0.1047
 
-#            ifuproc_gqecorr rgN20051223S0121 rgN20051223S0120 rgN20051223S0122 twilight=rgN20051203S0241 fl_inter- \
-#                bkgmask=s0007_blkreg.dat fl_crspec+ fl_qecorr+ fl_skysub-
+            ifuproc_gqecorr rgN20051223S0121 rgN20051223S0120 rgN20051223S0122 twilight=rgN20051203S0241 fl_inter- \
+                bkgmask=s0007_blkreg.dat fl_crspec+ fl_qecorr+ fl_skysub- fwidth=2. fl_qecorr+ dw=.91 nw=1301 w1=4186
 #            gfdisplay steqpxbprgN20051223S0121.fits ver=1 z2=1.e8
 #            gfshift steqpxbprgN20051223S0121.fits hsteqpxbprgN20051223S0121.fits shift2=-0.1047
-#            gscalibrate steqpxbprgN20051223S0121.fits extinction=gmos$calib/mkoextinct.dat fl_ext+ fl_vardq+ \
-#               sfunction="sens_jamesiraf_new"
+            gscalibrate steqpxbprgN20051223S0121.fits extinction=gmos$calib/mkoextinct.dat fl_ext+ fl_vardq+ \
+               sfunction="sens_jamesiraf_wl"
 #            gfdisplay csteqpxbprgN20051223S0121.fits ver=1 z2=500
 
 
@@ -566,10 +570,10 @@ ifuproc_gqecorr.fwidth=2.
     ## improj teqpxbprgN20051223S0121[sci] t0121_sum projax=2 average-
 
     ## Resample to 3D with (minimal) atmospheric dispersion correction:
-#    gfcube ("csteqpxbprgN20051205S0006.fits", fl_atm+, fl_flux+, fl_var+, fl_dq+)
-#    gfcube ("csteqpxbprgN20051222S0108.fits", fl_atm+, fl_flux+, fl_var+, fl_dq+)
-#    gfcube ("csteqpxbprgN20051222S0112.fits", fl_atm+, fl_flux+, fl_var+, fl_dq+)
-#    gfcube ("csteqpxbprgN20051223S0121.fits", fl_atm+, fl_flux+, fl_var+, fl_dq+)
+    gfcube ("csteqpxbprgN20051205S0006.fits", fl_atm+, fl_flux+, fl_var+, fl_dq+)
+    gfcube ("csteqpxbprgN20051222S0108.fits", fl_atm+, fl_flux+, fl_var+, fl_dq+)
+    gfcube ("csteqpxbprgN20051222S0112.fits", fl_atm+, fl_flux+, fl_var+, fl_dq+)
+    gfcube ("csteqpxbprgN20051223S0121.fits", fl_atm+, fl_flux+, fl_var+, fl_dq+)
 
     ## # Mosaic the datacubes:
     pyfalign dcsteqpxbprgN20051205S0006,dcsteqpxbprgN20051222S0108,dcsteqpxbprgN20051222S0112,dcsteqpxbprgN20051223S0121 \
@@ -611,39 +615,39 @@ ifuproc_gqecorr.fwidth=2.
 
     ## This is achieved with the task call 'call_cube.cl' which takes input (original file name, file extension number)
 
-#    make_cube.prefix="steqpxbprg"
-#    make_cube ("N20051205S0006.fits", 006)
-#    make_cube ("N20051222S0108.fits", 108)
-#    make_cube ("N20051222S0112.fits", 112)
-#    make_cube ("N20051223S0121.fits", 122)
+    make_cube.prefix="steqpxbprg"
+    make_cube ("N20051205S0006.fits", 006)
+    make_cube ("N20051222S0108.fits", 108)
+    make_cube ("N20051222S0112.fits", 112)
+    make_cube ("N20051223S0121.fits", 122)
 
 ## The output of this program is the fully shifted and combines cube - with both integer and decimal shifts.
 ## You may want to consider at this point cropping the final cubes in the spatial plane to remove the blank
 ##    sections added in the shift.
 
-#    mkdir tmp_cal       # Make temporary folders to organise output - only if it does not exist already
+    mkdir tmp_cal       # Make temporary folders to organise output - only if it does not exist already
 
-#    align_cubes.prefix="steqpxbprg"         ## 'mdc' prefix will be added in where appropriate
-#    align_cubes ("N20051205S0006", "006")
-#    align_cubes ("N20051222S0108", "108")
-#    align_cubes ("N20051222S0112", "112")
-#    align_cubes ("N20051223S0121", "122")
+    align_cubes.prefix="steqpxbprg"         ## 'mdc' prefix will be added in where appropriate
+    align_cubes ("N20051205S0006", "006")
+    align_cubes ("N20051222S0108", "108")
+    align_cubes ("N20051222S0112", "112")
+    align_cubes ("N20051223S0121", "122")
 
     ## Combine the data cubes
-#    print("amdcsteqpxbprgN20051205S0006_decimal.fits",>> "calib_cubes_decimal.lis")
-#    print("amdcsteqpxbprgN20051222S0108_decimal.fits",>> "calib_cubes_decimal.lis")
-#    print("amdcsteqpxbprgN20051222S0112_decimal.fits",>> "calib_cubes_decimal.lis")
-#    print("amdcsteqpxbprgN20051223S0121_decimal.fits",>> "calib_cubes_decimal.lis")
+    print("amdcsteqpxbprgN20051205S0006_decimal.fits",>> "calib_cubes_decimal.lis")
+    print("amdcsteqpxbprgN20051222S0108_decimal.fits",>> "calib_cubes_decimal.lis")
+    print("amdcsteqpxbprgN20051222S0112_decimal.fits",>> "calib_cubes_decimal.lis")
+    print("amdcsteqpxbprgN20051223S0121_decimal.fits",>> "calib_cubes_decimal.lis")
 
-#    print("amdcsteqpxbprgN20051205S0006_integer.fits",>> "calib_cubes_integer.lis")
-#    print("amdcsteqpxbprgN20051222S0108_integer.fits",>> "calib_cubes_integer.lis")
-#    print("amdcsteqpxbprgN20051222S0112_integer.fits",>> "calib_cubes_integer.lis")
-#    print("amdcsteqpxbprgN20051223S0121_integer.fits",>> "calib_cubes_integer.lis")
+    print("amdcsteqpxbprgN20051205S0006_integer.fits",>> "calib_cubes_integer.lis")
+    print("amdcsteqpxbprgN20051222S0108_integer.fits",>> "calib_cubes_integer.lis")
+    print("amdcsteqpxbprgN20051222S0112_integer.fits",>> "calib_cubes_integer.lis")
+    print("amdcsteqpxbprgN20051223S0121_integer.fits",>> "calib_cubes_integer.lis")
 
     ## First the decimal shifts
-#    gscombine_new @calib_cubes_decimal.lis IC225_cal_decimal.fits logfile="gmos.log" combine="average" lthresh=-9999 fl_vard+
+    gscombine_new @calib_cubes_decimal.lis IC225_cal_decimal.fits logfile="gmos.log" combine="average" lthresh=-9999 fl_vard+
     ## The integer shifts
-#    gscombine_new @calib_cubes_integer.lis IC225_cal_integer.fits logfile="gmos.log" combine="average" lthresh=-9999 fl_vard+
+    gscombine_new @calib_cubes_integer.lis IC225_cal_integer.fits logfile="gmos.log" combine="average" lthresh=-9999 fl_vard+
 
 ## To make 2D 'maps' fo the galaxy - use scrop to obtain a cube within the desired wavelength range, and then use
 ##    imcombine with 'project=yes' to flatten the cube inta a 2D image.
