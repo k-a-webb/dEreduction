@@ -155,26 +155,26 @@ print ('>>>>> Flat - first processing')
 		}
 	}
 	scanfile = ""
+
+	if (nflat > 1) {		
+		gemcombine("@"//flatlis, l_aflat, combine="average", reject="avsigclip",\
+				   offsets="none", scale="none", zero="none", weight="none")
+	}
 	
+	if (!imaccess("p"//l_aflat)) {
+		addbpm(l_aflat, l_umbpm)
+		gemfix(l_aflat, "p"//l_aflat, method="fit1d", bitmask=1, order=15, fl_inter-)
+	}	
+	
+	## Extract the spectra
+	if (!imaccess("ep"//l_aflat)) { 
+		gfreduce("p"//l_aflat, fl_addmdf-, fl_trim-, fl_bias-, fl_wavtran-, fl_skysub-,\
+				 fl_over-, fl_gscrrej-, fl_fluxcal-, rawpath="", weights=l_weights,\
+				 fl_extract+, fl_gsappwave+, fl_vardq+, xoffset=l_xoffset, fl_inter-)#=l_fl_inter)
+	}
+		
 	if (!imaccess(pre//l_aflat)) {
 		
-		if (nflat > 1) {		
-			gemcombine("@"//flatlis, l_aflat, combine="average", reject="avsigclip",\
-					   offsets="none", scale="none", zero="none", weight="none")
-		}
-		
-		if (!imaccess("p"//l_aflat)) {
-			addbpm(l_aflat, l_umbpm)
-			gemfix(l_aflat, "p"//l_aflat, method="fit1d", bitmask=1, order=15, fl_inter-)
-		}	
-		
-		## Extract the spectra
-		if (!imaccess("ep"//l_aflat)) { 
-			gfreduce("p"//l_aflat, fl_addmdf-, fl_trim-, fl_bias-, fl_wavtran-, fl_skysub-,\
-					 fl_over-, fl_gscrrej-, fl_fluxcal-, rawpath="", weights=l_weights,\
-					 fl_extract+, fl_gsappwave+, fl_vardq+, xoffset=l_xoffset, fl_inter-)#=l_fl_inter)
-		}
-	
 		## Make background mask from extracted flat spectra					 
 		if (l_bkgmask != "" && !access(l_bkgmask)) {
 			gffindblocks("p"//l_aflat, "ep"//l_aflat, l_bkgmask)
@@ -269,38 +269,39 @@ print ('>>>>> Determining response function')
 #			}
 #		}
 	
+	
 		## Apply correction for differences is QE variation between detectors to flat and twilight
 		if (l_fl_qecorr) {
 			if (!imaccess("q"//pre//l_aflat)) {
-				gqecorr(pre//l_aflat, outpref="q", refimages="e"//l_arc)
+				gqecorr(pre//l_aflat, outpref="q", refimages=earc[l_iarc])
 			}
 			if (l_twilight != "") {
 				if (!imaccess("q"//pre//l_twilight)) {
-					gqecorr(pre//l_twilight, outpref="q", refimages="e"//l_arc)	
+					gqecorr(pre//l_twilight, outpref="q", refimages=earc[l_iarc])	
 				}
 			}
+			pre = "q"//pre
 		}
 		
 		l_sky = ""
 		if (l_twilight != "") {		
- 			l_sky = "q"//pre//l_twilight
- 			if (!imaccess("e"//l_sky)) {
-				gfreduce (l_sky, fl_addmdf-, fl_trim-, fl_bias-, fl_wavtran-, fl_skysub-, \
+ 			if (!imaccess("e"//pre//l_twilight)) {
+				gfreduce (pre//l_twilight, fl_addmdf-, fl_trim-, fl_bias-, fl_wavtran-, fl_skysub-, \
 						  fl_over-, fl_gscrrej-, fl_fluxcal-, rawpath="", fl_inter=l_fl_inter, \
 						  weights=l_weights, fl_extract+, fl_gsappwave+, fl_vardq+, xoffset=l_xoffset)
 			}
-			l_sky = "e"//l_sky
+			l_sky = "e"//pre//l_twilight
 		}
 		
 		## Re-extract the flat with the scattered-light-subtracted image
-		if (!imaccess("eq"//pre//l_aflat)) {
-			gfreduce ("q"//pre//l_aflat, fl_addmdf-, fl_trim-, fl_bias-, fl_wavtran-, fl_skysub-, \
+		if (!imaccess("e"//pre//l_aflat)) {
+			gfreduce (pre//l_aflat, fl_addmdf-, fl_trim-, fl_bias-, fl_wavtran-, fl_skysub-, \
 					  fl_over-, fl_gscrrej-, fl_fluxcal-, rawpath="", fl_inter=l_fl_inter, \
 					  weights=l_weights, fl_extract+, fl_gsappwave+, fl_vardq+, xoffset=l_xoffset)
 		}
 		
 		## Apply fibre throughput correction			
-		gfresponse("eq"//pre//l_aflat, l_oflat, skyimage=l_sky, order=95,\
+		gfresponse("e"//pre//l_aflat, l_oflat, skyimage=l_sky, order=95,\
 				   fl_inter=l_fl_inter, fl_fit-) #### removed iorder=750, sorder=5
 		if (gfresponse.status != 0) {
 			goto error
@@ -324,7 +325,6 @@ print ('>>>>> Science processing')
 	}
 	
 	if (!imaccess("steqpx"//pre//l_image)) {
-	
 		if (!imaccess("p"//l_image)) {
 			addbpm(l_image, l_umbpm)
 			gemfix (l_image, "p"//l_image, method="fit1d", bitmask=1, order=5, fl_inter-) #### check if order is appropriate
@@ -350,14 +350,15 @@ print ('>>>>> Science processing')
 		}
 
 		if (!imaccess("qpx"//pre//l_image)) {
-			gqecorr ("px"//pre//l_image, refimages=earc[1], outpref="q", fl_vardq+)
+		
+			gqecorr ("px"//pre//l_image, refimages=earc[l_iarc], outpref="q", fl_vardq+)
 		}
 
 		## Flat field, wavelength calibrate & sky subtract each science dataset
 		if (!imaccess("steqpx"//pre//l_image)) {
 			gfreduce ("qpx"//pre//l_image, fl_sky+, fl_flux-, trace-, recenter-, fl_vardq+, fl_inter-,\
-					  reference="ep"//l_aflat, response=l_oflat, wavtraname=earc[1], sepslits+,\
-					  w1=l_w1, w2=l_w2, dw=l_dw, nw=l_nw, rawpath="")
+					  reference="ep"//l_aflat, response=l_oflat, wavtraname=earc[1], \
+					  w1=l_w1, w2=l_w2, dw=l_dw, nw=l_nw, rawpath="") #, sepslits+)
 			if (gfreduce.status != 0) {
             	goto error
         	}
