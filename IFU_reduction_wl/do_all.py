@@ -57,6 +57,8 @@ FILE_SCI = 'imcomb_sci_{}.lis'
 FILE_VAR = 'imcomb_var_{}.lis'
 BIN_SCI = 'bin_sci_{}.fits'
 BIN_VAR = 'bin_var_{}.fits'
+FLUX_SCI = 'flux_sci_{}.fits'
+FLUX_VAR = 'flux_var_{}.fits'
 IN_FILE_PREFIX = 'bin_sci_*'
 PPXF_PROC_PATH = 'ppxf_output'
 OUT_VEL_SIGMA = os.path.join(DIR_PATH, PROC_PATH, PPXF_PROC_PATH, 'vel_sigma_output_sn30.txt')
@@ -182,11 +184,13 @@ def combine_spectra():
 
     v2b_output = pd.read_table(V2B_FILE, sep=r"\s*", engine='python', names=["x", "y", "bin"])  # , skiprows=1)
 
-    for i in range(12, 13):  # , np.amax(v2b_output['bin'].values) + 1):
+    for i in range(np.amax(v2b_output['bin'].values) + 1):
         file_sci_i = FILE_SCI.format(i)
         file_var_i = FILE_VAR.format(i)
         bin_sci_i = BIN_SCI.format(i)
         bin_var_i = BIN_VAR.format(i)
+        flux_sci_i = FLUX_SCI.format(i)
+        flux_var_i = FLUX_VAR.format(i)
 
         assert os.path.exists(os.path.join(DIR_SCI, file_sci_i)), "File {}/{} does not exist".format(DIR_SCI,
                                                                                                      file_sci_i)
@@ -199,10 +203,14 @@ def combine_spectra():
         try:
             iraf.imcombine("@{}/{}".format(DIR_SCI, file_sci_i), "{}/{}".format(DIR_SCI_COMB, bin_sci_i), combine="sum")
             iraf.imcombine("@{}/{}".format(DIR_VAR, file_var_i), "{}/{}".format(DIR_VAR_COMB, bin_var_i), combine="sum")
+
+            iraf.imcombine("@{}/{}".format(DIR_SCI, file_sci_i), "{}/{}".format(DIR_SCI_COMB, flux_sci_i), combine="average")
+            iraf.imcombine("@{}/{}".format(DIR_VAR, file_var_i), "{}/{}".format(DIR_VAR_COMB, flux_var_i), combine="average")
         except Exception, e:
             print (e)
-            print('>>>>> WARNING: DOING MATH MYSELF <<<<<')
-            avoid_imexam_err(i, spaxel_list)
+            if e.message.__contains__("floating"):
+                print('>>>>> WARNING: DOING MATH MYSELF <<<<<')
+                avoid_imexam_err(i, spaxel_list)
 
 
 def avoid_imexam_err(i, spaxel_list):
@@ -213,6 +221,8 @@ def avoid_imexam_err(i, spaxel_list):
 
     bin_sci_i = BIN_SCI.format(i)
     bin_var_i = BIN_VAR.format(i)
+    flux_sci_i = FLUX_SCI.format(i)
+    flux_var_i = FLUX_VAR.format(i)
 
     # IMAGE_CUBE[int(line["x"].values[j - 1]) + 1, int(line["y"].values[j - 1]) + 1, *]
 
@@ -224,12 +234,12 @@ def avoid_imexam_err(i, spaxel_list):
         # 2    VAR         ImageHDU        68   (76, 49, 1300)   float32
         image_cube_sci = image_cube_hdu[1].data
         image_cube_var = image_cube_hdu[2].data
-
-    # image_cube_sci_zero = np.zeros(image_cube_sci.shape)
-    # image_cube_var_zero = np.zeros(image_cube_var.shape)
+        cube_header = hdu[0].header
 
     imcomb_sci = []
     imcomb_var = []
+    imcomb_sci_flux = []
+    imcomb_var_flux = []
 
     print(image_cube_sci.shape)
     print(len(spaxel_list))
@@ -238,13 +248,24 @@ def avoid_imexam_err(i, spaxel_list):
     for k in range(image_cube_sci.shape[0]):
         sum_sci = 0
         sum_var = 0
+        avg_sci = []
+        avg_var = []
         for j in range(len(spaxel_list)):
             sum_sci += image_cube_sci[k, spaxel_list["x"].values[j - 1] + 1, spaxel_list["y"].values[j - 1] + 1]
             sum_var += image_cube_var[k, spaxel_list["x"].values[j - 1] + 1, spaxel_list["y"].values[j - 1] + 1]
+            avg_sci.append(image_cube_sci[k, spaxel_list["x"].values[j - 1] + 1, spaxel_list["y"].values[j - 1] + 1])
+            avg_var.append(image_cube_var[k, spaxel_list["x"].values[j - 1] + 1, spaxel_list["y"].values[j - 1] + 1])
         imcomb_sci.append(sum_sci)
         imcomb_var.append(sum_var)
+        imcomb_sci_flux.append(np.array(avg_sci).mean())
+        imcomb_var_flux.append(np.array(avg_var).mean())
 
     image_cube_sci_hdu = fits.PrimaryHDU()
+    image_cube_sci_hdu.header['CD3_3'] = cube_header['CD3_3']
+    image_cube_sci_hdu.header['CRVAL3'] = cube_header['CRVAL3']
+    image_cube_sci_hdu.header['CRPIX3'] = cube_header['CRPIX3']
+
+
     image_cube_sci_hdu.data = imcomb_sci
     image_cube_sci_hdu.writeto("{}/{}".format(DIR_SCI_COMB, bin_sci_i), clobber=True)
 
@@ -252,57 +273,13 @@ def avoid_imexam_err(i, spaxel_list):
     image_cube_var_hdu.data = imcomb_var
     image_cube_var_hdu.writeto("{}/{}".format(DIR_VAR_COMB, bin_var_i), clobber=True)
 
+    image_cube_sci_flux_hdu = fits.PrimaryHDU()
+    image_cube_sci_flux_hdu.data = imcomb_sci_flux
+    image_cube_sci_flux_hdu.writeto("{}/{}".format(DIR_SCI_COMB, flux_sci_i), clobber=True)
 
-def avoid_imexam_err2(i, spaxel_list):
-    """
-    In order to avoid a 'floating point error' in imexamine if you attempt to add too many files at once I split the
-    group into four parts, then add the four parts at the end.
-    """
-
-    import pyraf.iraf as iraf
-
-    file_sci_i = FILE_SCI.format(i)
-    file_var_i = FILE_VAR.format(i)
-    bin_sci_i = BIN_SCI.format(i)
-    bin_var_i = BIN_VAR.format(i)
-
-    spaxels = np.genfromtxt("{}/{}".format(DIR_SCI, file_sci_i), dtype='str')
-    spaxels_var = np.genfromtxt("{}/{}".format(DIR_VAR, file_var_i), dtype='str')
-
-    spaxels_files = []
-    spaxels_var_files = []
-
-    for j in range(0, NUM_SMALL_FITS):
-        (spaxels[j:(j + 1) * len(spaxel_list) / 4]).tofile(
-            "{}/tmp_{}".format(DIR_SCI, FILE_SCI.format('{}_{}'.format(i, j + 1))), sep='\n')
-        (spaxels_var[j:(j + 1) * len(spaxel_list) / 4]).tofile(
-            "{}/tmp_{}".format(DIR_VAR, FILE_VAR.format('{}_{}'.format(i, j + 1))), sep='\n')
-
-        spaxels_files.append("{}/tmp_{}[0]".format(DIR_SCI_COMB, BIN_SCI.format('{}_{}'.format(i, j + 1))))
-        spaxels_var_files.append("{}/tmp_{}[0]".format(DIR_VAR_COMB, BIN_VAR.format('{}_{}'.format(i, j + 1))))
-
-    (np.array(spaxels_files)).tofile("{}/tmp_{}".format(DIR_SCI, FILE_SCI.format('{}_list'.format(i))), sep='\n')
-    (np.array(spaxels_var_files)).tofile("{}/tmp_{}".format(DIR_VAR, FILE_VAR.format('{}_list'.format(i))), sep='\n')
-
-    for j in range(0, NUM_SMALL_FITS):
-        iraf.imcombine("@{}/tmp_{}".format(DIR_SCI, FILE_SCI.format('{}_{}'.format(i, j + 1))),
-                       "{}/tmp_{}".format(DIR_SCI_COMB, BIN_SCI.format('{}_{}'.format(i, j + 1))), combine="sum")
-        iraf.imcombine("@{}/tmp_{}".format(DIR_VAR, FILE_VAR.format('{}_{}'.format(i, j + 1))),
-                       "{}/tmp_{}".format(DIR_VAR_COMB, BIN_VAR.format('{}_{}'.format(i, j + 1))), combine="sum")
-
-    iraf.imcombine("@{}/tmp_{}".format(DIR_SCI, FILE_SCI.format('{}_list'.format(i))),
-                   "{}/{}".format(DIR_SCI_COMB, bin_sci_i), combine="sum")
-    iraf.imcombine("@{}/tmp_{}".format(DIR_VAR, FILE_VAR.format('{}_list'.format(i))),
-                   "{}/{}".format(DIR_VAR_COMB, bin_var_i), combine="sum")
-
-    for tmpfile in glob.glob('{}/tmp*'.format(DIR_SCI)):
-        os.remove(tmpfile)
-    for tmpfile in glob.glob('{}/tmp*'.format(DIR_VAR)):
-        os.remove(tmpfile)
-    for tmpfile in glob.glob('{}/tmp*'.format(DIR_SCI_COMB)):
-        os.remove(tmpfile)
-    for tmpfile in glob.glob('{}/tmp*'.format(DIR_VAR_COMB)):
-        os.remove(tmpfile)
+    image_cube_var_flux_hdu = fits.PrimaryHDU()
+    image_cube_var_flux_hdu.data = imcomb_var_flux
+    image_cube_var_flux_hdu.writeto("{}/{}".format(DIR_VAR_COMB, flux_var_i), clobber=True)
 
 
 def ppxf_kinematics():
@@ -531,11 +508,11 @@ if __name__ == '__main__':
     if not os.path.exists(os.path.join(DIR_SCI, BIN_VAR.format(1))):
         print('>>>>> Combining spectra')
         combine_spectra()
-    '''
+
     if not os.path.exists(OUT_VEL_SIGMA):
         print('>>>>> pPXF')
         ppxf_kinematics()
-    '''
+
     print('>>>>> Done')
 
 """ At S/N 30 with James' reduction and cubing method
