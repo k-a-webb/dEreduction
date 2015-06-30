@@ -13,62 +13,78 @@ from scipy import ndimage
 from ppxf import ppxf
 import ppxf_util as util
 import glob
+from matplotlib import pyplot as plt
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+from matplotlib.ticker import MaxNLocator
+from sauron_colormap import sauron
+from cap_plot_velfield import plot_velfield
 
 """
 This script covers the necessary steps to preform the pPXF kinematic analysis of a given 3D image cube.
 In order the steps are:
     - make_table: compile coordinates of signal and noise measurements for the binning
     - voronoi_binning: preform voronoi 2d binning to acheive desired signal to noise
-    - bin_spectra: organise pixel values within their respective bins
+    # - bin_spectra: organise pixel values within their respective bins
+    # no longer necessary as not using imcombine anymore
     - combine_spectra: combine spectra of the same bin into fits files
     - ppxf_kinematics: preform pPXF on the binned spectra
+    - make_overplot_data: copy the desired spectral range and read mean flux values to be used for plotting
+        - continuum: 4370-4870 A
+        - OIII: 4980-5035 A (4959-5700)
+        - H_beta: 4883-4887 A
+        - H_gamma: 4360-4362 A
+    - plot_velfield_setup: access arrays to input into cap_plot_velfield()
 
 The next steps would be to make the necessary overplot data with make_overplot_data.cl and plot the results
 """
 
 # These are the files to change based on desired use
 DIR_PATH = '/Users/kwebb/IFU_reduction_wl'
+PROC_PATH = 'ppxf_proc'  # all output of this script will be in this folder
 IMAGE_CUBE = os.path.join(DIR_PATH, 'dcsteqpxbprgN20051205S0006_add.fits')
 SCI_EXT = os.path.join(DIR_PATH, 'IC225_2D_james_sci.fits')
 VAR_EXT = os.path.join(DIR_PATH, 'IC225_2D_james_var.fits')
 TARGET_SN = 30
-VEL_INIT = 1500
-SIG_INIT = 100.
-XAXIS_HEADER = 'NAXIS1'
-YAXIS_HEADER = 'NAXIS2'
-XDIM_HEADER = 'CD1_1'
-YDIM_HEADER = 'CD2_2'
-LAM_RANGE = [4186, 5369]
-TEMPLATE_PATH = '/Users/kwebb/idl/cappellari/ppxf/spectra/'
-TEMPLATE_FITS = 'Mun1.30z*.fits'  # Make sure to change sigma in pPXF if change template
+SCROP_WAVE_RANGE = [4370, 4870]
+CONT_FLUX_SCI = 'cont_flux_{}.fits'  # naming convention of continuum wavelength range combined sci spectra from flux*
+FLUX_FILE = os.path.join(DIR_PATH, PROC_PATH, 'binned_cont_flux_{}.txt'.format(TARGET_SN))  # make overplot output
+
+# Voronoi binning parameters
+VEL_INIT = 1500  # initial guess for velocity
+SIG_INIT = 100.  # inital guess of sigma distribution
+LAM_RANGE = [4186, 5369]  # wavelength range for logarithmic rebinning
+TEMPLATE_PATH = '/Users/kwebb/idl/cappellari/ppxf/spectra/'  # location of template files
+# template from http://archives.pd.astro.it/2500-10500/
+# adsabs paper: http://adsabs.harvard.edu/abs/2005A%26A...442.1127M
+TEMPLATE_FITS = 'Mun1.30z*.fits'  # ****** Make sure to change sigma in pPXF if change template ******
+TEMPLATE_RESOLUTION = 2.  # FWHM of the template spectra
 
 # These variables define the chosen file structure I use to organise the output
-PROC_PATH = 'ppxf_proc'
-if not os.path.exists(os.path.join(DIR_PATH, PROC_PATH)):
-    os.mkdir(os.path.join(DIR_PATH, PROC_PATH))
-XYSN_FILE = os.path.join(DIR_PATH, PROC_PATH, 'x_y_signal_noise.txt')
-V2B_FILE = os.path.join(DIR_PATH, PROC_PATH, 'v2b_output_sn30.txt')
-V2B_XY_FILE = os.path.join(DIR_PATH, PROC_PATH, 'v2b_output_sn30_xy.txt')
-DIR_SCI = os.path.join(DIR_PATH, PROC_PATH, 'comb_lists_sci_{}'.format(TARGET_SN))
-DIR_VAR = os.path.join(DIR_PATH, PROC_PATH, 'comb_lists_var_{}'.format(TARGET_SN))
-DIR_SCI_COMB = os.path.join(DIR_PATH, PROC_PATH, 'comb_fits_sci_{}'.format(TARGET_SN))
-DIR_VAR_COMB = os.path.join(DIR_PATH, PROC_PATH, 'comb_fits_var_{}'.format(TARGET_SN))
-FILE_SCI = 'imcomb_sci_{}.lis'
-FILE_VAR = 'imcomb_var_{}.lis'
-BIN_SCI = 'bin_sci_{}.fits'
-BIN_VAR = 'bin_var_{}.fits'
-FLUX_SCI = 'flux_sci_{}.fits'
-FLUX_VAR = 'flux_var_{}.fits'
-IN_FILE_PREFIX = 'bin_sci_*'
-PPXF_PROC_PATH = 'ppxf_output'
-OUT_VEL_SIGMA = os.path.join(DIR_PATH, PROC_PATH, PPXF_PROC_PATH, 'vel_sigma_output_sn30.txt')
-OUT_VEL = os.path.join(DIR_PATH, PROC_PATH, PPXF_PROC_PATH, 'vel_output_sn30.txt')
-OUT_BESTFIT_FITS = os.path.join(DIR_PATH, PROC_PATH, PPXF_PROC_PATH, 'ppxf_bestfit_sn30.fits')
-OUT_ERROR_FITS = os.path.join(DIR_PATH, PROC_PATH, PPXF_PROC_PATH, 'ppxf_error_sn30.fits')
-DIR_SPEC = os.path.join(DIR_PATH, PROC_PATH, 'bin_spec_sn30')
+XYSN_FILE = os.path.join(DIR_PATH, PROC_PATH, 'x_y_signal_noise.txt')  # output of make_table
+V2B_FILE = os.path.join(DIR_PATH, PROC_PATH, 'v2b_output_sn{}.txt'.format(TARGET_SN))  # output of voronoi binning
+V2B_XY_FILE = os.path.join(DIR_PATH, PROC_PATH, 'v2b_output_xy_sn{}.txt'.format(TARGET_SN))  # output of voronoi binning
 
-MIN_BINS = 23
-NUM_SMALL_FITS = 6
+DIR_SCI_COMB = os.path.join(DIR_PATH, PROC_PATH, 'comb_fits_sci_{}'.format(TARGET_SN))  # folder with combined spectra
+DIR_VAR_COMB = os.path.join(DIR_PATH, PROC_PATH, 'comb_fits_var_{}'.format(TARGET_SN))  # folder with combined var spec
+BIN_SCI = 'bin_sci_{}.fits'  # naming convention of combined (sum) sci spectra
+IN_FILE_PREFIX = 'bin_sci_*'  # glob prefix for input into pPXF
+BIN_VAR = 'bin_var_{}.fits'  # naming convention of combined (sum) var spectra
+FLUX_SCI = 'flux_sci_{}.fits'  # naming convention of combined (average) sci spectra
+FLUX_VAR = 'flux_var_{}.fits'  # naming convention of combined (average) var spectra
+
+PPXF_PROC_PATH = 'ppxf_output_{}'.format(TARGET_SN)
+PPXF_FILE = os.path.join(DIR_PATH, PROC_PATH, 'ppxf_output_sn{}.txt'.format(TARGET_SN))
+PPXF_BESTFIT = os.path.join(DIR_PATH, PROC_PATH, PPXF_PROC_PATH, 'ppxf_bestfit_{}.fits')
+
+# Various header names
+XAXIS_HEADER = 'NAXIS1'  # number of pixels in the x dimension
+YAXIS_HEADER = 'NAXIS2'  # number of pixels in the y dimension
+CUBE_MATRIX_ELEM_HEADER = 'CD3_3'  # wcs matrix element in dimension 3 3 (ie wavelength dimension)
+IMCOMB_MATRIX_ELEM_HEADER = 'CD1_1'  # wcs matrix element in dimension 1 1 (because new array is 1D)
+CUBE_REF_PIX_HEADER = 'CRPIX3'  # reference pixel of wavelength dimension
+IMCOMB_REF_PIX_HEADER = 'CRPIX1'  # header given to wavelength reference pixel in combined 1D array
+CUBE_RA_REF_PIX_HEADER = 'CRVAL3'  # RA at reference pixel of wavelength dimension
+IMCOMB_RA_REF_PIX_HEADER = 'CRVAL1'  # header given to RA of wavelength reference pixel in combined 1D array
 
 
 def make_table():
@@ -83,15 +99,11 @@ def make_table():
         sci_data = sci_hdu[0].data
         sci_xaxis = sci_hdu[0].header[XAXIS_HEADER]
         sci_yaxis = sci_hdu[0].header[YAXIS_HEADER]
-        sci_xdim = sci_hdu[0].header[XDIM_HEADER]
-        sci_ydim = sci_hdu[0].header[XDIM_HEADER]
 
     with fits.open(VAR_EXT) as var_hdu:
         var_data = var_hdu[0].data
         var_xaxis = var_hdu[0].header[XAXIS_HEADER]
         var_yaxis = var_hdu[0].header[YAXIS_HEADER]
-        var_xdim = var_hdu[0].header[XDIM_HEADER]
-        var_ydim = var_hdu[0].header[XDIM_HEADER]
 
     assert sci_xaxis == var_xaxis, 'Sci and var planes have diffent x dimensions'
     assert sci_yaxis == var_yaxis, 'Sci and var planes have diffent y dimensions'
@@ -99,8 +111,6 @@ def make_table():
     with open(XYSN_FILE, 'w') as outfile:
         for i in range(sci_yaxis - 1):
             for j in range(sci_xaxis - 1):
-                # noise = np.sqrt(var_data[i, j] * var_xdim * var_ydim)
-                # outfile.write('   {}   {}   {}   {}\n'.format(i, j, sci_data[i, j] * sci_xdim * sci_ydim, noise))
                 noise = np.sqrt(var_data[i, j])
                 outfile.write('   {}   {}   {}   {}\n'.format(i, j, sci_data[i, j], noise))
 
@@ -109,7 +119,23 @@ def voronoi_binning():
     """
     Follows example script provided from Michele Cappellari for voronoi 2d binning
     INPUT: XYSN_FILE (x_y_signal_noise.txt)
-    OUTPUT: V2B_FILE (v2b_output_sn30.txt), V2B_XY_FILE (v2b_output_sn30_xy.txt)
+    OUTPUT: V2B_FILE (v2b_output_sn30.txt), V2B_XY_FILE (v2b_output_xy_sn30.txt)
+
+    Output variables of voronoi_2d_binning (copied straight from the description in the script):
+        BINNUMBER: Vector (same size as X) containing the bin number assigned to each input pixel. The index goes from
+            zero to Nbins-1. This vector alone is enough to make *any* subsequent computation on the binned data.
+            Everything else is optional!
+        XBIN: Vector (size Nbins) of the X coordinates of the bin generators. These generators uniquely define the
+            Voronoi tessellation.
+        YBIN: Vector (size Nbins) of Y coordinates of the bin generators.
+        XBAR: Vector (size Nbins) of X coordinates of the bins luminosity weighted centroids. Useful for plotting
+            interpolated data.
+        YBAR: Vector (size Nbins) of Y coordinates of the bins luminosity weighted centroids.
+        SN: Vector (size Nbins) with the final SN of each bin.
+        NPIXELS: Vector (size Nbins) with the number of pixels of each bin.
+        SCALE: Vector (size Nbins) with the scale length of the Weighted Voronoi Tessellation, when the /WVT keyword is
+            set. In that case SCALE is *needed* together with the coordinates XBIN and YBIN of the generators, to
+            compute the tessellation (but one can also simply use the BINNUMBER vector).
     """
 
     x, y, signal, noise = np.loadtxt(XYSN_FILE, unpack=True)  # , skiprows=3)
@@ -127,15 +153,15 @@ def voronoi_binning():
     # by this procedure. binNum uniquely specifies the bins and for this reason it is the only
     # number required for any subsequent calculation on the bins.
 
-    # assert np.amax(np.transpose(binNum)) > MIN_BINS, 'Too few bins ({}) of expected at least {}'.format(np.amax(
-    # np.transpose(binNum)), MIN_BINS)
-
-    np.savetxt(V2B_FILE, np.column_stack([x, y, binNum]), fmt=b'%10.6f %10.6f %8i')
-    np.savetxt(V2B_XY_FILE, np.column_stack([xBar, yBar, xNode, yNode]), fmt=b'%10.6f %10.6f %10.6f %10.6f')
+    np.savetxt(V2B_FILE, np.column_stack([x, y, binNum]), header='x  y  binNum', fmt=b'%10.6f %10.6f %8i')
+    np.savetxt(V2B_XY_FILE, np.column_stack([xBar, yBar, xNode, yNode]), header='xBar  yBar  xNode   yNode',
+               fmt=b'%10.6f %10.6f %10.6f %10.6f')
 
 
 def bin_spectra():
     """
+    THIS STEP IS NO LONGER NECESSARY AS I NO LONGER USE IMCOMBINE
+
     Organise the spectra according to the voronoi binning output into list of pixels with the same bin
     INPUT: V2B_FILE (v2b_output_sn30.txt)
     OUTPUT: DIR_SCI (comb_lists_sci_{S/N}/imcomb_sci_{S/N}.lis), DIR_VAR (comb_lists_var_{S/N}/imcomb_var_{S/N}.lis)
@@ -146,7 +172,7 @@ def bin_spectra():
     if not os.path.exists(DIR_VAR):
         os.mkdir(DIR_VAR)
 
-    v2b_output = pd.read_table(V2B_FILE, sep=r"\s*", engine='python', names=["x", "y", "bin"])  # , skiprows=1)
+    v2b_output = pd.read_table(V2B_FILE, sep=r"\s*", engine='python', skiprows=1, names=["x", "y", "bin"])
     print('Highest bin number: ', np.amax(v2b_output['bin'].values))
 
     for i in range(np.amax(v2b_output['bin'].values) + 1):
@@ -171,58 +197,54 @@ def bin_spectra():
 def combine_spectra():
     """
     Combine each pixel of the same bin (according to the lists output by bin_spectra) into a single fits file
-    INPUT: DIR_SCI (comb_lists_sci_{S/N}/imcomb_sci_{S/N}.lis), DIR_VAR (comb_lists_var_{S/N}/imcomb_var_{S/N}.lis)
+    INPUT: V2B_FILE (v2b_output_sn30.txt)
     OUTPUT: DIR_SCI_COMB (comb_fits_sci_{S/N}/bin_sci_{S/N}.fits), DIR_VAR_COMB (comb_fis_var_{S/N}/bin_var_{S/N}.fits)
     """
 
+    # make output folders if they don't exist already
     if not os.path.exists(DIR_SCI_COMB):
         os.mkdir(DIR_SCI_COMB)
     if not os.path.exists(DIR_VAR_COMB):
         os.mkdir(DIR_VAR_COMB)
 
-    import pyraf.iraf as iraf
+    # read in the output of the voronoi binning
+    v2b_output = pd.read_table(V2B_FILE, sep=r"\s*", engine='python', skiprows=1, names=["x", "y", "bin"])
 
-    v2b_output = pd.read_table(V2B_FILE, sep=r"\s*", engine='python', names=["x", "y", "bin"])  # , skiprows=1)
-
+    # for each bin, combine the spectra of the same bin
     for i in range(np.amax(v2b_output['bin'].values) + 1):
-        file_sci_i = FILE_SCI.format(i)
-        file_var_i = FILE_VAR.format(i)
-        bin_sci_i = BIN_SCI.format(i)
-        bin_var_i = BIN_VAR.format(i)
-        flux_sci_i = FLUX_SCI.format(i)
-        flux_var_i = FLUX_VAR.format(i)
+        bin_sci_i = os.path.join(DIR_SCI_COMB, BIN_SCI.format(i))
+        bin_var_i = os.path.join(DIR_VAR_COMB, BIN_VAR.format(i))
+        flux_sci_i = os.path.join(DIR_SCI_COMB, FLUX_SCI.format(i))
+        flux_var_i = os.path.join(DIR_VAR_COMB, FLUX_VAR.format(i))
 
-        assert os.path.exists(os.path.join(DIR_SCI, file_sci_i)), "File {}/{} does not exist".format(DIR_SCI,
-                                                                                                     file_sci_i)
-        assert os.path.exists(os.path.join(DIR_VAR, file_var_i)), "File {}/{} does not exist".format(DIR_VAR,
-                                                                                                     file_var_i)
         # Check to see how many pixels are in this bin
         spaxel_list = v2b_output.query('bin == {}'.format(i))
-        print('\nNumber of pixels in bin {}: {}'.format(i, len(spaxel_list)))
+        print('Number of pixels in bin {}: {}'.format(i, len(spaxel_list)))
 
-        try:
-            iraf.imcombine("@{}/{}".format(DIR_SCI, file_sci_i), "{}/{}".format(DIR_SCI_COMB, bin_sci_i), combine="sum")
-            iraf.imcombine("@{}/{}".format(DIR_VAR, file_var_i), "{}/{}".format(DIR_VAR_COMB, bin_var_i), combine="sum")
+        '''
+        file_sci_i = os.path.join(DIR_SCI, FILE_SCI.format(i))
+        file_var_i = os.path.join(DIR_VAR, FILE_VAR.format(i))
+        assert os.path.exists(file_sci_i), "File {} does not exist".format(file_sci_i)
+        assert os.path.exists(file_var_i), "File {} does not exist".format(file_var_i)
 
-            iraf.imcombine("@{}/{}".format(DIR_SCI, file_sci_i), "{}/{}".format(DIR_SCI_COMB, flux_sci_i), combine="average")
-            iraf.imcombine("@{}/{}".format(DIR_VAR, file_var_i), "{}/{}".format(DIR_VAR_COMB, flux_var_i), combine="average")
-        except Exception, e:
-            print (e)
-            if e.message.__contains__("floating"):
-                print('>>>>> WARNING: DOING MATH MYSELF <<<<<')
-                avoid_imexam_err(i, spaxel_list)
+        import pyraf.iraf as iraf
+        iraf.imcombine("@{}".format(file_sci_i), "{}".format(bin_sci_i), combine="sum")
+        iraf.imcombine("@{}".format(file_var_i), "{}".format(bin_var_i), combine="sum")
+        iraf.imcombine("@{}".format(file_sci_i), "{}".format(flux_sci_i), combine="average")
+        iraf.imcombine("@{}".format(file_var_i), "{}".format(flux_var_i), combine="average")
+        '''
+
+        imcombine(bin_sci_i, bin_var_i, spaxel_list, 'sum')
+        imcombine(flux_sci_i, flux_var_i, spaxel_list, 'average')
 
 
-def avoid_imexam_err(i, spaxel_list):
+def imcombine(outsci, outvar, spaxel_list, combine_method):
     """
     In order to avoid a 'floating point error' in imexamine I'm going to try and combine the fits sections as
-    numpy arrays
+    numpy arrays instead and manually copy the header values. Only works for combine='average'|'sum' at the moment
     """
 
-    bin_sci_i = BIN_SCI.format(i)
-    bin_var_i = BIN_VAR.format(i)
-    flux_sci_i = FLUX_SCI.format(i)
-    flux_var_i = FLUX_VAR.format(i)
+    assert combine_method is 'sum' or 'average', 'Combine is not "sum" or "average"'
 
     # IMAGE_CUBE[int(line["x"].values[j - 1]) + 1, int(line["y"].values[j - 1]) + 1, *]
 
@@ -234,60 +256,47 @@ def avoid_imexam_err(i, spaxel_list):
         # 2    VAR         ImageHDU        68   (76, 49, 1300)   float32
         image_cube_sci = image_cube_hdu[1].data
         image_cube_var = image_cube_hdu[2].data
-        cube_header = hdu[0].header
+        cube_header = image_cube_hdu['SCI'].header
 
     imcomb_sci = []
     imcomb_var = []
-    imcomb_sci_flux = []
-    imcomb_var_flux = []
-
-    print(image_cube_sci.shape)
-    print(len(spaxel_list))
 
     # image_cube_sci.shape = (1300, 49, 76) ie (z,y,x)
     for k in range(image_cube_sci.shape[0]):
-        sum_sci = 0
-        sum_var = 0
-        avg_sci = []
-        avg_var = []
+        pix_sci = []
+        pix_var = []
         for j in range(len(spaxel_list)):
-            sum_sci += image_cube_sci[k, spaxel_list["x"].values[j - 1] + 1, spaxel_list["y"].values[j - 1] + 1]
-            sum_var += image_cube_var[k, spaxel_list["x"].values[j - 1] + 1, spaxel_list["y"].values[j - 1] + 1]
-            avg_sci.append(image_cube_sci[k, spaxel_list["x"].values[j - 1] + 1, spaxel_list["y"].values[j - 1] + 1])
-            avg_var.append(image_cube_var[k, spaxel_list["x"].values[j - 1] + 1, spaxel_list["y"].values[j - 1] + 1])
-        imcomb_sci.append(sum_sci)
-        imcomb_var.append(sum_var)
-        imcomb_sci_flux.append(np.array(avg_sci).mean())
-        imcomb_var_flux.append(np.array(avg_var).mean())
+            pix_sci.append(image_cube_sci[k, spaxel_list["x"].values[j - 1] + 1, spaxel_list["y"].values[j - 1] + 1])
+            pix_var.append(image_cube_var[k, spaxel_list["x"].values[j - 1] + 1, spaxel_list["y"].values[j - 1] + 1])
 
-    image_cube_sci_hdu = fits.PrimaryHDU()
-    image_cube_sci_hdu.header['CD3_3'] = cube_header['CD3_3']
-    image_cube_sci_hdu.header['CRVAL3'] = cube_header['CRVAL3']
-    image_cube_sci_hdu.header['CRPIX3'] = cube_header['CRPIX3']
+        if combine_method == 'sum':
+            imcomb_sci.append(np.array(pix_sci).sum())
+            imcomb_var.append(np.array(pix_var).sum())
+        elif combine_method == 'average':
+            imcomb_sci.append(np.array(pix_sci).mean())
+            imcomb_var.append(np.array(pix_var).mean())
+
+    write_imcomb_fits(imcomb_sci, outsci, cube_header)
+    write_imcomb_fits(imcomb_var, outvar, cube_header)
 
 
-    image_cube_sci_hdu.data = imcomb_sci
-    image_cube_sci_hdu.writeto("{}/{}".format(DIR_SCI_COMB, bin_sci_i), clobber=True)
-
-    image_cube_var_hdu = fits.PrimaryHDU()
-    image_cube_var_hdu.data = imcomb_var
-    image_cube_var_hdu.writeto("{}/{}".format(DIR_VAR_COMB, bin_var_i), clobber=True)
-
-    image_cube_sci_flux_hdu = fits.PrimaryHDU()
-    image_cube_sci_flux_hdu.data = imcomb_sci_flux
-    image_cube_sci_flux_hdu.writeto("{}/{}".format(DIR_SCI_COMB, flux_sci_i), clobber=True)
-
-    image_cube_var_flux_hdu = fits.PrimaryHDU()
-    image_cube_var_flux_hdu.data = imcomb_var_flux
-    image_cube_var_flux_hdu.writeto("{}/{}".format(DIR_VAR_COMB, flux_var_i), clobber=True)
+def write_imcomb_fits(outdata, outfile, cube_header):
+    """
+    Write the combined spectra to a fits file with headers from the wavelength dimension of the 3D cube
+    """
+    outfile_hdu = fits.PrimaryHDU()
+    outfile_hdu.header['CD1_1'] = cube_header['CD3_3']
+    outfile_hdu.header['CRPIX1'] = cube_header['CRPIX3']
+    outfile_hdu.header['CRVAL1'] = cube_header['CRVAL3']
+    outfile_hdu.data = outdata
+    outfile_hdu.writeto(outfile, clobber=True)
 
 
 def ppxf_kinematics():
     """
     Follow the pPXF usage example by Michile Cappellari
     INPUT: DIR_SCI_COMB (comb_fits_sci_{S/N}/bin_sci_{S/N}.fits), TEMPLATE_* (spectra/Mun1.30z*.fits)
-    OUTPUT: OUT_VEL_SIGMA (vel_sigma_output_sn30.txt), OUT_VEL (vel_output_sn30.txt),
-            OUT_BESTFIT_FITS (ppxf_bestfit_sn30.fits), OUT_ERROR_FITS(ppxf_error_sn30.fits)
+    OUTPUT: PPXF_FILE (ppxf_output_sn30.txt), OUT_BESTFIT_FITS (ppxf_fits/ppxf_bestfit_sn30.fits)
     """
 
     # Read a galaxy spectrum and define the wavelength range
@@ -330,6 +339,7 @@ def ppxf_kinematics():
     # FWHM_tem = 1.8 # Vazdekis spectra have a resolution FWHM of 1.8A.
 
     Mun = glob.glob(TEMPLATE_PATH + TEMPLATE_FITS)
+    FWHM_tem = TEMPLATE_RESOLUTION
 
     # Extract the wavelength range and logarithmically rebin one spectrum to the same velocity scale of the SAURON
     # galaxy spectrum, to determine the size needed for the array which will contain the template spectra.
@@ -365,17 +375,16 @@ def ppxf_kinematics():
     # Thus: The quadratic difference is sigma = sqrt(75^2 - 56.8^2) = 49.0 km/s
     # ---------------------------------------------------------------------------------
 
-    # FWHM_dif = np.sqrt(FWHM_gal ** 2 - FWHM_tem ** 2)
-    # sigma = FWHM_dif / 2.355 / h2['CDELT1']  # Sigma difference in pixels
-    sigma = 49.
+    FWHM_dif = np.sqrt(FWHM_gal ** 2 - FWHM_tem ** 2)
+    sigma = FWHM_dif / 2.355 / h2['CDELT1']  # Sigma difference in pixels
 
     # Logarithmically rebin the whole Mun library of spectra, and store each template as a column in the array TEMPLATES,
 
     # for j in range(len(vazdekis)):
     # hdu = fits.open(vazdekis[j])
-    #        ssp = hdu[0].data
-    #        ssp = ndimage.gaussian_filter1d(ssp, sigma)
-    #        sspNew, logLam2, velscale = util.log_rebin(lamRange2, ssp, velscale=velscale)
+    # ssp = hdu[0].data
+    # ssp = ndimage.gaussian_filter1d(ssp, sigma)
+    # sspNew, logLam2, velscale = util.log_rebin(lamRange2, ssp, velscale=velscale)
     #        templates[:, j] = sspNew / np.median(sspNew)  # Normalizes templates
 
     for j in range(len(Mun)):
@@ -393,6 +402,12 @@ def ppxf_kinematics():
 
     vel_list = []
     sig_list = []
+    h3_list = []
+    h4_list = []
+    dV_list = []
+    dsigma_list = []
+    dh3_list = []
+    dh4_list = []
 
     for j in range(len(in_file)):
         print('>>>>> {}  {}'.format(j, in_file[j]))
@@ -442,25 +457,23 @@ def ppxf_kinematics():
         #   print, 'Best-fitting redshift z:', (z + 1)*(1 + sol[0]/c) - 1
 
         # Gwen obtains the velocity and sigma information from the SOL parameter
-        # Because MOMENTS=2 the SOL parameter contains [velocity, sigma]
         vel_list.append(pp.sol[0])
         sig_list.append(pp.sol[1])
+        h3_list.append(pp.sol[2])
+        h4_list.append(pp.sol[3])
+        dV_list.append((pp.error * np.sqrt(pp.chi2))[0])
+        dsigma_list.append((pp.error * np.sqrt(pp.chi2))[1])
+        dh3_list.append((pp.error * np.sqrt(pp.chi2))[2])
+        dh4_list.append((pp.error * np.sqrt(pp.chi2))[3])
 
-    if not os.path.exists(os.path.join(DIR_PATH, PROC_PATH, PPXF_PROC_PATH)):
-        os.mkdir(os.path.join(DIR_PATH, PROC_PATH, PPXF_PROC_PATH))
+        hdu_best = fits.PrimaryHDU()
+        hdu_best.data = pp.bestfit
+        hdu_best.writeto(PPXF_BESTFIT.format(j), clobber=True)
 
-    np.savetxt(OUT_VEL_SIGMA, np.column_stack([range(len(vel_list)), vel_list, sig_list]), fmt=b'%8i   %10.6f   %10.6f',
-               header='   index   velocity   sigma')
-    np.savetxt(OUT_VEL, np.column_stack([vel_list]), fmt=b'%10.6f')
-
-    hdu_best = fits.PrimaryHDU()
-    hdu_best.data = pp.bestfit
-    hdu_best.writeto(OUT_BESTFIT_FITS)
-
-    hdu_error = fits.PrimaryHDU()
-    hdu_error.data = pp.error
-    hdu_error.writeto(OUT_ERROR_FITS)
-    # ---------------------------------------------------------------------------------------------
+    np.savetxt(PPXF_FILE,
+               np.column_stack([vel_list, sig_list, h3_list, h4_list, dV_list, dsigma_list, dh3_list, dh4_list]),
+               fmt=b'%10.6f  %10.6f  %10.6f  %10.6f  %10.6f  %10.6f  %10.6f  %10.6f',
+               header='velocity  sigma  h3  h4  dV  dsigma  dh3  dh4')
 
 
 def make_overplot_data():
@@ -468,50 +481,86 @@ def make_overplot_data():
     NOT YET WORKING, REFER TO make_overplot_data.cl FOR A WORKING COPY
     """
 
-    if not os.path.exists(DIR_SPEC):
-        os.mkdir(DIR_SPEC)
+    from pyraf import iraf
 
-    import pyraf.iraf as iraf
+    iraf.noao()
+    iraf.onedspec()
 
-    files_in_dir = glob.glob(os.path.join(DIR_SCI, '*.lis'))
-    num_files = len(files_in_dir)
+    files_in_dir = glob.glob(os.path.join(DIR_SCI_COMB, FLUX_SCI.format('*')))
+    assert len(files_in_dir) > 0, 'No files match {}'.format(os.path.join(DIR_SCI_COMB, FLUX_SCI.format('*')))
+
+    mean_flux = []
 
     for i in range(len(files_in_dir)):
-        file_sci_i = FILE_SCI.format(i)
-        flux_sci_i = 'flux_{}.lis'.format(i)
-        cont_flux_sci_i = 'cont_flux_{}.fits'.format(i)
 
-        iraf.imcombine("@{}/{}".format(DIR_SCI, file_sci_i), "{}/{}".format(DIR_SPEC, flux_sci_i), combine="average")
-        iraf.scopy("{}/{}".format(DIR_SPEC, flux_sci_i), "{}/{}".format(DIR_SPEC, cont_flux_sci_i), w1=4370, w2=4870)
-    '''
-    iraf.imstat(
-        idl_proc / bin_spec_sn30 / cont_flux_ *.fits, fields = "mean", format = no > idl_proc / bin_spec_sn30 / binned_cont_flux.lis
-    '''
+        cont_flux_sci_i = os.path.join(DIR_SCI_COMB, CONT_FLUX_SCI.format(i))
+
+        if not os.path.exists(cont_flux_sci_i):
+            iraf.scopy(files_in_dir[i], cont_flux_sci_i, w1=SCROP_WAVE_RANGE[0], w2=SCROP_WAVE_RANGE[1])
+        cont_flux_data = fits.getdata(cont_flux_sci_i, 0)
+        assert cont_flux_data.ndim != 0, "Scrop'd array is empty"
+        mean_flux.append(cont_flux_data.mean())
+
+    np.array(mean_flux).tofile(FLUX_FILE, sep='\n')
+
+
+def plot_velfield_setup():
+    """
+    Plot velfield as done in Gwen's plot_ppxf_30.pro
+    """
+
+    xbar, ybar, xnode, ynode = np.loadtxt(V2B_XY_FILE, unpack=True, skiprows=1)
+    vel, sig, h3, h4, dvel, dsig, dh3, dh4 = np.loadtxt(PPXF_FILE, unpack=True)
+    flux = np.loadtxt(FLUX_FILE, unpack=True)
+
+    assert len(xbar) == len(ybar), 'Xbar is not the same length as Ybar'
+    assert len(xbar) == len(vel), 'Xbar is not the same length as vel'
+    assert len(xbar) == len(flux), 'Xbar is not the same length as flux'
+
+    plt.clf()
+    plt.title('Velocity')
+    plot_velfield(xbar, ybar, vel, flux=flux, colorbar=True, label='km/s')
+    plt.show()
 
 
 if __name__ == '__main__':
     """
-    Follow the steps necessary to prepare input to pPXF, then run pPXF
+    Follow the steps described above
     """
+
+    if not os.path.exists(os.path.join(DIR_PATH, PROC_PATH)):
+        os.mkdir(os.path.join(DIR_PATH, PROC_PATH))
 
     if not os.path.exists(XYSN_FILE):
         print('>>>>> Making table')
         make_table()
+
     if not os.path.exists(V2B_FILE):
         print('>>>>> Voronoi binning')
         t = clock()
         voronoi_binning()
         print('Elapsed time: %.2f seconds' % (clock() - t))
-    if not os.path.exists(os.path.join(DIR_SCI, FILE_VAR.format(1))):
-        print('>>>>> Binning spectra')
-        bin_spectra()
-    if not os.path.exists(os.path.join(DIR_SCI, BIN_VAR.format(1))):
+
+    # if not os.path.exists(os.path.join(DIR_SCI, FILE_VAR.format(1))):
+    # print('>>>>> Binning spectra')
+    #     bin_spectra()
+
+    if not os.path.exists(os.path.join(DIR_VAR_COMB, BIN_VAR.format('1'))):
         print('>>>>> Combining spectra')
         combine_spectra()
 
-    if not os.path.exists(OUT_VEL_SIGMA):
+    if not os.path.exists(PPXF_FILE):
         print('>>>>> pPXF')
+        if not os.path.exists(os.path.join(DIR_PATH, PROC_PATH, PPXF_PROC_PATH)):
+            os.mkdir(os.path.join(DIR_PATH, PROC_PATH, PPXF_PROC_PATH))
         ppxf_kinematics()
+
+    if not os.path.exists(FLUX_FILE):
+        print('>>>>> overplot data')
+        make_overplot_data()
+
+    print('>>>>> Plotting vel field')
+    plot_velfield_setup()
 
     print('>>>>> Done')
 
