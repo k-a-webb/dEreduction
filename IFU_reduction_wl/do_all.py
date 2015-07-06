@@ -9,7 +9,7 @@ from voronoi_2d_binning import voronoi_2d_binning
 import glob
 import pandas as pd
 import os
-from scipy import ndimage
+from scipy import ndimage, signal
 from ppxf import ppxf
 import ppxf_util as util
 import glob
@@ -72,8 +72,8 @@ Template spectra for fxcor (bin with high SN)
 
 DIR_PATH = '/Users/kwebb/IFU_reduction_wl'  # Working directory (where the 3D cube is)
 IMAGE_CUBE = os.path.join(DIR_PATH, 'dcsteqpxbprgN20051205S0006_add.fits')
-TARGET_SN = 15  # REMEMBER TO CHANGE TEMPLATE SPECTRA FOR EACH S/N
-FXCOR_TEMPLATE_SPECTRA = 41
+TARGET_SN = 30  # REMEMBER TO CHANGE TEMPLATE SPECTRA FOR EACH S/N
+FXCOR_TEMPLATE_SPECTRA = 3
 
 # To create 2D flattened science and variance images of specific spectral range
 SCROP_RANGE = [4360, 4362]  # wavelength range to scrop the image cube to which will be flattened
@@ -82,7 +82,7 @@ CUBE_SCROPD = os.path.join(SCROP_PATH, 'IC225_3D_{}_{}.fits'.format(SCROP_RANGE[
 SCI_EXT_SCROPD = os.path.join(SCROP_PATH, 'IC225_2D_sci_{}_{}.fits'.format(SCROP_RANGE[0], SCROP_RANGE[1]))
 VAR_EXT_SCROPD = os.path.join(SCROP_PATH, 'IC225_2D_var_{}_{}.fits'.format(SCROP_RANGE[0], SCROP_RANGE[1]))
 
-PROC_PATH = os.path.join(DIR_PATH, 'ppxf_proc_{}'.format(TARGET_SN))
+PROC_PATH = os.path.join(DIR_PATH, 'doall_proc_{}'.format(TARGET_SN))
 
 # To create combined (averaged) spectra to determine mean flux of a specific wavelength range to plot
 FLUX_SCOPY_RANGE = [4370, 4870]  # REMEMBER TO CHANGE NAMES BELOW *************
@@ -120,6 +120,12 @@ FXCOR_PATH = os.path.join(PROC_PATH, 'fxcor_proc')
 FXCOR_BIN_LIST = os.path.join(FXCOR_PATH, 'bin_sci_sn{}_list.lis'.format(TARGET_SN))
 FXCOR_TEMPLATE = os.path.join(FXCOR_PATH, BIN_SCI.format(FXCOR_TEMPLATE_SPECTRA))
 FXCOR_FILE = os.path.join(FXCOR_PATH, 'fxcor_bin_sci_sn{}'.format(TARGET_SN))
+
+# Organize output of rvsao
+RVSAO_PATH = os.path.join(PROC_PATH, 'rvsao_proc')
+RVSAO_BIN_LIST = os.path.join(RVSAO_PATH, 'bin_sci_sn{}_list.lis'.format(TARGET_SN))
+RVSAO_TEMPLATE = os.path.join(RVSAO_PATH, BIN_SCI.format(FXCOR_TEMPLATE_SPECTRA))
+RVSAO_FILE = os.path.join(RVSAO_PATH, 'xcsao_bin_sci_sn{}.txt'.format(TARGET_SN))
 
 # pPXF parameters
 VEL_INIT = 1500  # initial guess for velocity
@@ -355,7 +361,7 @@ def write_imcomb_fits(outdata, outfile, cube_header):
 
 
 def ppxf_kinematics(bin_sci, ppxf_file, ppxf_bestfit, template_fits, template_resolution, lam_range=[4186, 5369],
-                    vel_init=1500., sig_init=100.):
+                    vel_init=1500., sig_init=100., bias=0):
     """
     Follow the pPXF usage example by Michile Cappellari
     INPUT: DIR_SCI_COMB (comb_fits_sci_{S/N}/bin_sci_{S/N}.fits), TEMPLATE_* (spectra/Mun1.30z*.fits)
@@ -363,7 +369,7 @@ def ppxf_kinematics(bin_sci, ppxf_file, ppxf_bestfit, template_fits, template_re
     """
 
     if os.path.exists(ppxf_file):
-        print ('File {} already exists'.format(ppxf_file))
+        print('File {} already exists'.format(ppxf_file))
         return
 
     assert os.path.exists(bin_sci.format(0)), 'Binned spectrum not found: {}'.format(bin_sci)
@@ -475,6 +481,11 @@ def ppxf_kinematics(bin_sci, ppxf_file, ppxf_bestfit, template_fits, template_re
     dV_list = []
     dsigma_list = []
 
+    h3_list = []
+    h4_list = []
+    dh3_list = []
+    dh4_list = []
+
     for j in range(len(in_file)):
         print('>>>>> {}  {}'.format(j, in_file[j]))
 
@@ -494,7 +505,7 @@ def ppxf_kinematics(bin_sci, ppxf_file, ppxf_bestfit, template_fits, template_re
         c = 299792.458
         dv = (logLam2[0] - logLam1[0]) * c  # km/s
 
-        #   vel = 1500.  # Initial estimate of the galaxy velocity in km/s
+        # vel = 1500.  # Initial estimate of the galaxy velocity in km/s
         z = np.exp(vel_init / c) - 1  # Relation between velocity and redshift in pPXF
 
         goodPixels = util.determine_goodpixels(logLam1, lamRange2, z)
@@ -506,8 +517,8 @@ def ppxf_kinematics(bin_sci, ppxf_file, ppxf_bestfit, template_fits, template_re
         start = [vel_init, sig_init]  # (km/s), starting guess for [V,sigma]
         t = clock()
 
-        pp = ppxf(templates, galaxy, noise, velscale, start, goodpixels=goodPixels, plot=True, moments=2,
-                  degree=4, vsyst=dv)
+        pp = ppxf(templates, galaxy, noise, velscale, start, goodpixels=goodPixels, plot=True, moments=4,
+                  degree=4, vsyst=dv, bias=bias)
 
         print("Formal errors:")
         print("     dV    dsigma   dh3      dh4")
@@ -519,7 +530,7 @@ def ppxf_kinematics(bin_sci, ppxf_file, ppxf_bestfit, template_fits, template_re
         # "z = 1.23..." near the beginning of this procedure, the best-fitting redshift is now given by the following
         # commented line (equation 2 of Cappellari et al. 2009, ApJ, 704, L34;
         # http://adsabs.harvard.edu/abs/2009ApJ...704L..34C)
-        #   print, 'Best-fitting redshift z:', (z + 1)*(1 + sol[0]/c) - 1
+        # print, 'Best-fitting redshift z:', (z + 1)*(1 + sol[0]/c) - 1
 
         # Gwen obtains the velocity and sigma information from the SOL parameter
         # moments = 4 so sol = [vel, sig, h3, h4]
@@ -528,12 +539,24 @@ def ppxf_kinematics(bin_sci, ppxf_file, ppxf_bestfit, template_fits, template_re
         dV_list.append((pp.error * np.sqrt(pp.chi2))[0])
         dsigma_list.append((pp.error * np.sqrt(pp.chi2))[1])
 
+        h3_list.append(pp.sol[2])
+        h4_list.append(pp.sol[3])
+        dh3_list.append((pp.error * np.sqrt(pp.chi2))[2])
+        dh4_list.append((pp.error * np.sqrt(pp.chi2))[3])
+
         hdu_best = fits.PrimaryHDU()
         hdu_best.data = pp.bestfit
         hdu_best.writeto(ppxf_bestfit.format(j), clobber=True)
 
-    np.savetxt(ppxf_file, np.column_stack([vel_list, sig_list, dV_list, dsigma_list]),
-               fmt=b'%10.6f  %10.6f  %10.6f  %10.6f', header='velocity    sigma         dV          dsigma')
+    if bias == 0:
+        ppxf_file = ppxf_file.strip('.txt') + '_bias0.txt'
+
+    np.savetxt(ppxf_file,
+               np.column_stack([vel_list, sig_list, h3_list, h4_list, dV_list, dsigma_list, dh3_list, dh4_list]),
+               fmt=b'%10.6f  %10.6f  %10.6f  %10.6f  %10.6f  %10.6f  %10.6f  %10.6f',
+               header='velocity    sigma       h3           h4         dV          dsigma       dh3         dh4')
+
+    return vel_list
 
 
 def scopy_flux(flux_sci, flux_scopy_fits, flux_scopy_range, flux_scopy_file):
@@ -544,7 +567,7 @@ def scopy_flux(flux_sci, flux_scopy_fits, flux_scopy_range, flux_scopy_file):
     """
 
     if os.path.exists(flux_scopy_file):
-        print ('File {} already exists'.format(flux_scopy_file))
+        print('File {} already exists'.format(flux_scopy_file))
         return
 
     files_in_dir = glob.glob(flux_sci.format('*'))
@@ -580,8 +603,8 @@ def fxcor_bins(bin_sci, fxcor_bin_list, fxcor_template, fxcor_file):
     OUTPUT: FXCOR_BIN_LIST, FXCOR_FILE(s)
     """
 
-    if os.path.exists(fxcor_file+'.txt'):
-        print ('File {} already exists'.format(fxcor_file+'.txt'))
+    if os.path.exists(fxcor_file + '.txt'):
+        print('File {} already exists'.format(fxcor_file + '.txt'))
         return
 
     assert os.path.exists(fxcor_template), 'Template spectra {} does not exist'.format(fxcor_template)
@@ -599,9 +622,10 @@ def fxcor_bins(bin_sci, fxcor_bin_list, fxcor_template, fxcor_file):
         iraf.fxcor('@{}'.format(fxcor_bin_list), fxcor_template, output=fxcor_file, continuum="both",
                    osample="4500-5100", rsample="4500-5100", interactive="no")
     except StopIteration:
-        os.remove(fxcor_file+'*')
+        os.remove(fxcor_file + '*')
 
-    assert os.path.exists(fxcor_file+'.txt'), 'Error in iraf.fxcor: File {} was not created'.format(fxcor_file+'.txt')
+    assert os.path.exists(fxcor_file + '.txt'), 'Error in iraf.fxcor: File {} was not created'.format(
+        fxcor_file + '.txt')
 
 
 def plot_ppxf_velfield(v2b_xy_file, ppxf_file, flux_scopy_file):
@@ -616,7 +640,7 @@ def plot_ppxf_velfield(v2b_xy_file, ppxf_file, flux_scopy_file):
     assert os.path.exists(flux_scopy_file), 'File {} does not exist'.format(flux_scopy_file)
 
     xbar, ybar, xnode, ynode = np.loadtxt(v2b_xy_file, unpack=True, skiprows=1)
-    vel, sig, dvel, dsig = np.loadtxt(ppxf_file, unpack=True)
+    vel, sig, h3, h4, dvel, dsig, dh3, dh4 = np.loadtxt(ppxf_file, unpack=True)
     flux = np.loadtxt(flux_scopy_file, unpack=True)
 
     assert len(xbar) == len(ybar), 'Xbar is not the same length as Ybar'
@@ -659,6 +683,200 @@ def plot_fxcor_velfield(v2b_xy_file, fxcor_file, flux_scopy_file):
     plt.show()
 
 
+def plot_velfield(vel, v2b_xy_file, flux_scopy_file):
+    assert os.path.exists(v2b_xy_file), 'File {} does not exist'.format(v2b_xy_file)
+    assert os.path.exists(flux_scopy_file), 'File {} does not exist'.format(flux_scopy_file)
+
+    xbar, ybar, xnode, ynode = np.loadtxt(v2b_xy_file, unpack=True, skiprows=1)
+    flux = np.loadtxt(flux_scopy_file, unpack=True)
+
+    assert len(xbar) == len(ybar), 'Xbar is not the same length as Ybar'
+    assert len(xbar) == len(vel), 'Xbar is not the same length as vel'
+    assert len(xbar) == len(flux), 'Xbar is not the same length as flux'
+
+    plt.clf()
+    plt.title('Velocity')
+    plot_velfield(xbar, ybar, vel, flux=flux, colorbar=True, label='km/s')
+    plt.show()
+
+
+def ppxf_simulation(ppxf_bestfit, lam_range, target_sn, spaxel=20):
+    """
+    2. Perform a fit of your kinematics *without* penalty (PPXF keyword BIAS=0).
+       The solution will be noisy and may be affected by spurious solutions,
+       however this step will allow you to check the expected mean ranges in
+       the Gauss-Hermite parameters [h3,h4] for the galaxy under study;
+
+        see ppxf_output_sn30_bias0.txt
+        mean(h3), std(h3), max(h3) = -0.2555, 0.09090, 0.007468
+         # ignoring endpoints, max(h3[1:-1]) = -0.01376
+        mean(h4), std(h4), max(h4) = -0.07712, 0.1423, 0.136607
+         # ignoring endpoints, max(h4[1,-1]) = 0.13594
+        max(dvel), min(dvel), max(dvel)-np.min(dvel) = 119.2918, 4.08643, 115.20544
+        mean(vel) = 1543.0359
+        max(sig), min(sig) = 180.3, 36.23
+
+
+
+    3. Perform a Monte Carlo simulation of your spectra, following e.g. the
+       included ppxf_simulation_example.pro routine. Adopt as S/N in the simulation
+       the chosen value (S/N)_min and as input [h3,h4] the maximum representative
+       values measured in the non-penalized pPXF fit of the previous step;
+
+    4. Choose as penalty (BIAS) the *largest* value such that, for sigma > 3*velScale,
+       the mean difference between the output [h3,h4] and the input [h3,h4]
+       is well within the rms scatter of the simulated values
+       (see e.g. Fig.2 of Emsellem et al. 2004, MNRAS, 352, 721).
+    """
+
+    # dir = 'spectra/'
+    # file = dir + 'Rbi1.30z+0.00t12.59.fits'
+    #    hdu = pyfits.open(file)
+    #    ssp = hdu[0].data
+    #    h = hdu[0].header
+
+    bestfit_file = ppxf_bestfit.format(spaxel)
+    assert os.path.exists(bestfit_file), 'Best fit spectra not found: {}'.format(bestfit_file)
+    hdu = fits.open(bestfit_file)
+    ssp = hdu[0].data
+    h = hdu[0].header
+
+    #   lamRange = h['CRVAL1'] + np.array([0., h['CDELT1'] * (h['NAXIS1'] - 1)])
+    #   star, logLam, velscale = util.log_rebin(lamRange, ssp)
+
+    star, logLam, velscale = util.log_rebin(lam_range, ssp)
+
+    # The finite sampling of the observed spectrum is modeled in detail:
+    # the galaxy spectrum is obtained by oversampling the actual observed spectrum
+    # to a high resolution. This represent the true spectrum, which is later resampled
+    # to lower resolution to simulate the observations on the CCD. Similarly, the
+    # convolution with a well-sampled LOSVD is done on the high-resolution spectrum,
+    # and later resampled to the observed resolution before fitting with PPXF.
+
+    factor = 10  # Oversampling integer factor for an accurate convolution
+    starNew = ndimage.interpolation.zoom(star, factor,
+                                         order=1)  # This is the underlying spectrum, known at high resolution
+    star = rebin(starNew, factor)  # Make sure that the observed spectrum is the integral over the pixels
+
+    #   vel = 0.3  # velocity in *pixels* [=V(km/s)/velScale]
+    #   h3 = 0.1  # Adopted G-H parameters of the LOSVD
+    #   h4 = -0.1
+    #   sn = 60.  # Adopted S/N of the Monte Carlo simulation
+
+    print('bestfit {} : velscale = {}'.format(spaxel, velscale))
+    # bestfit 0 : velscale = 51.53155507
+    # max(sig), min(sig) = 180.3, 36.23 [km/s] =  3.51551545809, 0.706306062378 [pix]
+    # 1543./51.5 = 29.961
+    # Taking
+
+    vel = 2.35
+    h3 = -0.003146  # -0.01376
+    h4 = 0.000112583  # 0.13594
+    sn = target_sn
+    m = 300  # Number of realizations of the simulation
+    #   sigmaV = np.linspace(0.8, 4, m)  # Range of sigma in *pixels* [=sigma(km/s)/velScale]
+    # numpy.linspace(start, stop, num=50) Return evenly spaced numbers over a specified interval.
+    sigmaV = np.linspace(0.706, 3.052, m)
+
+    result = np.zeros((m, 4))  # This will store the results
+    t = clock()
+    np.random.seed(123)  # for reproducible results
+
+    for j in range(m):
+        sigma = sigmaV[j]
+        dx = int(abs(vel) + 4.0 * sigma)  # Sample the Gaussian and GH at least to vel+4*sigma
+        x = np.linspace(-dx, dx, 2 * dx * factor + 1)  # Evaluate the Gaussian using steps of 1/factor pixels.
+        w = (x - vel) / sigma
+        w2 = w ** 2
+        gauss = np.exp(-0.5 * w2) / (np.sqrt(2. * np.pi) * sigma * factor)  # Normalized total(gauss)=1
+        h3poly = w * (2. * w2 - 3.) / np.sqrt(3.)  # H3(y)
+        h4poly = (w2 * (4. * w2 - 12.) + 3.) / np.sqrt(24.)  # H4(y)
+        losvd = gauss * (1. + h3 * h3poly + h4 * h4poly)
+
+        galaxy = signal.fftconvolve(starNew, losvd, mode="same")  # Convolve the oversampled spectrum
+        galaxy = rebin(galaxy, factor)  # Integrate spectrum into original spectral pixels
+        noise = galaxy / sn  # 1sigma error spectrum
+        galaxy = np.random.normal(galaxy, noise)  # Add noise to the galaxy spectrum
+        start = np.array(
+            [vel + np.random.random(), sigma * np.random.uniform(0.85, 1.15)]) * velscale  # Convert to km/s
+
+        print(j, m)
+
+        pp = ppxf(star, galaxy, noise, velscale, start, goodpixels=np.arange(dx, galaxy.size - dx),
+                  plot=False, moments=4, bias=0.6)
+        result[j, :] = pp.sol
+
+    print('Calculation time: %.2f s' % (clock() - t))
+
+    plt.clf()
+    plt.subplot(221)
+    plt.plot(sigmaV * velscale, result[:, 0] - vel * velscale, '+k')
+    plt.plot(sigmaV * velscale, sigmaV * velscale * 0, '-r')
+    plt.ylim(-40, 40)
+    plt.xlabel('$\sigma_{in}\ (km\ s^{-1})$')
+    plt.ylabel('$V - V_{in}\ (km\ s^{-1}$)')
+
+    plt.subplot(222)
+    plt.plot(sigmaV * velscale, result[:, 1] - sigmaV * velscale, '+k')
+    plt.plot(sigmaV * velscale, sigmaV * velscale * 0, '-r')
+    plt.ylim(-40, 40)
+    plt.xlabel('$\sigma_{in}\ (km\ s^{-1})$')
+    plt.ylabel('$\sigma - \sigma_{in}\ (km\ s^{-1}$)')
+
+    plt.subplot(223)
+    plt.plot(sigmaV * velscale, result[:, 2], '+k')
+    plt.plot(sigmaV * velscale, sigmaV * velscale * 0 + h3, '-r')
+    plt.ylim(-0.2 + h3, 0.2 + h3)
+    plt.xlabel('$\sigma_{in}\ (km\ s^{-1})$')
+    plt.ylabel('$h_3$')
+
+    plt.subplot(224)
+    plt.plot(sigmaV * velscale, result[:, 3], '+k')
+    plt.plot(sigmaV * velscale, sigmaV * velscale * 0 + h4, '-r')
+    plt.ylim(-0.2 + h4, 0.2 + h4)
+    plt.xlabel('$\sigma_{in}\ (km\ s^{-1})$')
+    plt.ylabel('$h_4$')
+
+    plt.tight_layout()
+    plt.show()
+
+
+def rebin(x, factor):
+    """
+    Rebin a one-dimensional vector by averaging
+    in groups of "factor" adjacent values
+
+    """
+    return np.mean(x.reshape(-1, factor), axis=1)
+
+
+def xcsao_bins(bin_sci, rvsao_bin_list, rvsao_template, rvsao_file):
+    """
+
+    """
+
+    if os.path.exists(rvsao_file + '.txt'):
+        print('File {} already exists'.format(rvsao_file + '.txt'))
+        return
+
+    assert os.path.exists(rvsao_template), 'Template spectra {} does not exist'.format(fxcor_template)
+
+    if not os.path.exists(rvsao_bin_list):
+        bin_files = glob.glob(bin_sci.format('*'))
+        assert len(bin_files) > 0, 'Input files {} do not exist'.format(bin_sci.format('*'))
+        np.array(bin_files).tofile(rvsao_bin_list, sep='\n')
+
+    from pyraf import iraf
+
+    iraf.rvsao()
+
+    try:
+        iraf.xcsao('@{}'.format(rvsao_bin_list), templates=rvsao_template, report_mode=2, logfiles=rvsao_file,
+                   displot='no')
+    except Exception, e:
+        print('Error: {}'.format(e))
+
+
 if __name__ == '__main__':
     """
     See detailed information at the top of the script
@@ -672,6 +890,8 @@ if __name__ == '__main__':
         os.makedirs(FXCOR_PATH)
     if not os.path.exists(PPXF_PATH):
         os.mkdir(PPXF_PATH)
+    if not os.path.exists(RVSAO_PATH):
+        os.mkdir(RVSAO_PATH)
     '''
     # To flatten 3D cube to 2D in specific wavelengths (Don't use these flattend cubes otherwise)
     print('>>>>> Flattening 3D cube')
@@ -683,19 +903,33 @@ if __name__ == '__main__':
     make_table(IMAGE_CUBE, SCI_EXT, VAR_EXT, XYSN_FILE)
     voronoi_binning(XYSN_FILE, V2B_FILE, V2B_XY_FILE)
     combine_spectra(V2B_FILE, IMAGE_CUBE, BIN_SCI, FLUX_SCI, BIN_VAR, FLUX_VAR)
-    '''
-    ppxf_kinematics(BIN_SCI, PPXF_FILE, PPXF_BESTFIT, TEMPLATE_FITS, TEMPLATE_RESOLUTION, LAM_RANGE, VEL_INIT, SIG_INIT)
 
-    # Plot pPXF results
-    scopy_flux(FLUX_SCI, FLUX_SCOPY_FITS, FLUX_SCOPY_RANGE, FLUX_SCOPY_FILE)
-    plot_ppxf_velfield(V2B_XY_FILE, PPXF_FILE, FLUX_SCOPY_FILE)
-    '''
-    # Run fxcor and plot results
+    # ppxf_kinematics(BIN_SCI, PPXF_FILE, PPXF_BESTFIT, TEMPLATE_FITS, TEMPLATE_RESOLUTION, LAM_RANGE, VEL_INIT, SIG_INIT, 0)
+    # ppxf_simulation(PPXF_BESTFIT, LAM_RANGE, TARGET_SN)
+    # chosen bias = 0.6
+    ppxf_vel = ppxf_kinematics(BIN_SCI, PPXF_FILE, PPXF_BESTFIT, TEMPLATE_FITS, TEMPLATE_RESOLUTION, LAM_RANGE, VEL_INIT, SIG_INIT, 0.6)
+
+    # Run rv fxcor
     fxcor_bins(BIN_SCI, FXCOR_BIN_LIST, FXCOR_TEMPLATE, FXCOR_FILE)
+
+    # Run rvsao xcsao
+    xcsao_bins(BIN_SCI, RVSAO_BIN_LIST, RVSAO_TEMPLATE, RVSAO_FILE)
+
+    # Calculate average flux
     scopy_flux(FLUX_SCI, FLUX_SCOPY_FITS, FLUX_SCOPY_RANGE, FLUX_SCOPY_FILE)
-    plot_fxcor_velfield(V2B_XY_FILE, FXCOR_FILE, FLUX_SCOPY_FILE)
+
+    # Plot results
+    if not ppxf_vel:
+        ppxf_vel, ppxf_sig, ppxf_h3, ppxf_h4, ppxf_dvel, ppxf_dsig, ppxf_dh3, ppxf_dh4 = np.loadtxt(ppxf_file, unpack=True)
+    plot_velfield(ppxf_vel, V2B_XY_FILE, FLUX_SCOPY_FILE)
     '''
 
+    fxcor_vel = pd.read_table('{}.txt'.format(FXCOR_FILE), sep=r"\s*", engine='python', skiprows=16, usecols=[10],
+                              names=["vrel"], squeeze=True).values
+    plot_velfield(fxcor_vel, V2B_XY_FILE, FLUX_SCOPY_FILE)
+
+    bin_name, bin_path, xcsao_r, xcsao_vel, xcsao_dvel, xcsao_hght, xcsao_wdth = np.loadtxt(RVSAO_FILE, unpack=True)
+    plot_velfield(xcsao_vel, V2B_XY_FILE, FLUX_SCOPY_FILE)
 
 """
 EXAMPLES OF THE SCRIPT OUTPUT
