@@ -60,10 +60,10 @@ To plot the pPXF output:
             plot_fxcor_velfield(V2B_XY_FILE, FXCOR_FILE, FLUX_FILE)
 
 
-Template spectra for fxcor (bin with high SN)
+Template spectra for fxcor/rvsoa (bin with high SN)
     SN 15 - spectra 41 has SN=22.3
     SN 30 - spectra 3 has SN=45.8
-
+    SN 20 - spectra 22 has SN=30.4537 (using spectra 3 here gives a weird values at bin 30)
 
 """
 
@@ -72,22 +72,16 @@ Template spectra for fxcor (bin with high SN)
 
 DIR_PATH = '/Users/kwebb/IFU_reduction_wl'  # Working directory (where the 3D cube is)
 IMAGE_CUBE = os.path.join(DIR_PATH, 'dcsteqpxbprgN20051205S0006_add.fits')
-TARGET_SN = 30  # REMEMBER TO CHANGE TEMPLATE SPECTRA FOR EACH S/N
-FXCOR_TEMPLATE_SPECTRA = 3
+TARGET_SN = 20  # REMEMBER TO CHANGE TEMPLATE SPECTRA FOR EACH S/N
+FXCOR_TEMPLATE_SPECTRA = 22
 
 # To create 2D flattened science and variance images of specific spectral range
+# This is only necessary for visual comparison of the intensity of regions for a given spectral range
 SCROP_RANGE = [4360, 4362]  # wavelength range to scrop the image cube to which will be flattened
 SCROP_PATH = os.path.join(DIR_PATH, 'scrop_proc')  # contains the output of all the scrop-type methods
 CUBE_SCROPD = os.path.join(SCROP_PATH, 'IC225_3D_{}_{}.fits'.format(SCROP_RANGE[0], SCROP_RANGE[1]))
 SCI_EXT_SCROPD = os.path.join(SCROP_PATH, 'IC225_2D_sci_{}_{}.fits'.format(SCROP_RANGE[0], SCROP_RANGE[1]))
 VAR_EXT_SCROPD = os.path.join(SCROP_PATH, 'IC225_2D_var_{}_{}.fits'.format(SCROP_RANGE[0], SCROP_RANGE[1]))
-
-PROC_PATH = os.path.join(DIR_PATH, 'doall_proc_{}'.format(TARGET_SN))
-
-# To create combined (averaged) spectra to determine mean flux of a specific wavelength range to plot
-FLUX_SCOPY_RANGE = [4370, 4870]  # REMEMBER TO CHANGE NAMES BELOW *************
-FLUX_SCOPY_FITS_SUFFIX = 'cont_flux_{}.fits'  # continuum wavelength range combined sci spectra from flux*
-FLUX_SCOPY_FILE = os.path.join(PROC_PATH, 'binned_cont_flux_{}.txt'.format(TARGET_SN))
 
 # These variables define the chosen file structure I use to organise the output
 # -----------------------------------------------------------------------------
@@ -95,6 +89,8 @@ FLUX_SCOPY_FILE = os.path.join(PROC_PATH, 'binned_cont_flux_{}.txt'.format(TARGE
 # Flattened 3D cubes images
 SCI_EXT = os.path.join(DIR_PATH, 'IC225_2D_sci.fits')
 VAR_EXT = os.path.join(DIR_PATH, 'IC225_2D_var.fits')
+
+PROC_PATH = os.path.join(DIR_PATH, 'doall_proc_{}'.format(TARGET_SN))
 
 # Organise output of Voronoi binning
 XYSN_FILE = os.path.join(PROC_PATH, 'x_y_signal_noise.txt')  # output of make_table
@@ -108,7 +104,6 @@ BIN_SCI = os.path.join(DIR_SCI_COMB, 'bin_sci_{}.fits')  # naming convention of 
 BIN_VAR = os.path.join(DIR_VAR_COMB, 'bin_var_{}.fits')  # naming convention of combined (sum) var spectra
 FLUX_SCI = os.path.join(DIR_SCI_COMB, 'flux_sci_{}.fits')  # naming convention of combined (average) sci spectra
 FLUX_VAR = os.path.join(DIR_VAR_COMB, 'flux_var_{}.fits')  # naming convention of combined (average) var spectra
-FLUX_SCOPY_FITS = os.path.join(DIR_SCI_COMB, FLUX_SCOPY_FITS_SUFFIX)
 
 # Organise output of pPXF
 PPXF_PATH = os.path.join(PROC_PATH, 'ppxf_proc')
@@ -119,13 +114,14 @@ PPXF_BESTFIT = os.path.join(PPXF_PATH, 'ppxf_bestfit_{}.fits')
 FXCOR_PATH = os.path.join(PROC_PATH, 'fxcor_proc')
 FXCOR_BIN_LIST = os.path.join(FXCOR_PATH, 'bin_sci_sn{}_list.lis'.format(TARGET_SN))
 FXCOR_TEMPLATE = os.path.join(FXCOR_PATH, BIN_SCI.format(FXCOR_TEMPLATE_SPECTRA))
-FXCOR_FILE = os.path.join(FXCOR_PATH, 'fxcor_bin_sci_sn{}'.format(TARGET_SN))
+FXCOR_FILE = os.path.join(FXCOR_PATH, 'fxcor_bin_sci_sn{}_tmpl{}'.format(TARGET_SN, FXCOR_TEMPLATE_SPECTRA))
 
 # Organize output of rvsao
 RVSAO_PATH = os.path.join(PROC_PATH, 'rvsao_proc')
 RVSAO_BIN_LIST = os.path.join(RVSAO_PATH, 'bin_sci_sn{}_list.lis'.format(TARGET_SN))
 RVSAO_TEMPLATE = os.path.join(RVSAO_PATH, BIN_SCI.format(FXCOR_TEMPLATE_SPECTRA))
-RVSAO_FILE = os.path.join(RVSAO_PATH, 'xcsao_bin_sci_sn{}.txt'.format(TARGET_SN))
+RVSAO_FILE = os.path.join(RVSAO_PATH, 'xcsao_bin_sci_sn{}_tmpl{}.txt'.format(TARGET_SN, FXCOR_TEMPLATE_SPECTRA))
+SYSTEMATIC_VEL = 1320
 
 # pPXF parameters
 VEL_INIT = 1500  # initial guess for velocity
@@ -135,6 +131,14 @@ LAM_RANGE = [4186, 5369]  # wavelength range for logarithmic rebinning (full wav
 # adsabs paper: http://adsabs.harvard.edu/abs/2005A%26A...442.1127M
 TEMPLATE_FITS = '/Users/kwebb/idl/cappellari/ppxf/spectra/Mun1.30z*.fits'
 TEMPLATE_RESOLUTION = 2.  # FWHM of the template spectra
+
+# To create combined (averaged) spectra to determine mean flux of a specific wavelength range to plot
+# YOU DO NOT NEED TO CROP THE SPECTRA HERE, it is just a good idea to check that you measure the same velocity for
+#   any given spectral range
+FLUX_SCOPY_RANGE = [4186, 5369]  # [4370, 4870]  # REMEMBER TO CHANGE NAMES BELOW *************
+FLUX_SCOPY_FITS_SUFFIX = 'flux_{}.fits' #  'cont_flux_{}.fits'  # continuum wavelength range combined sci spectra from flux*
+FLUX_SCOPY_FILE = os.path.join(PROC_PATH, 'binned_flux_{}.txt'.format(TARGET_SN))
+FLUX_SCOPY_FITS = os.path.join(DIR_SCI_COMB, FLUX_SCOPY_FITS_SUFFIX)
 
 
 def scrop_cube(image_cube, scrop_range, cube_scropd):
@@ -148,6 +152,10 @@ def scrop_cube(image_cube, scrop_range, cube_scropd):
     INPUT: IMAGE_CUBE (dcsteqpxbprgN20051205S0006_add.fits), SCROP_RANGE ([4360, 4362])
     OUTPUT: CUBE_SCOPYD
     """
+
+    if os.path.exists(cube_scropd):
+        print('File {} already exists'.format(cube_scropd))
+        return
 
     with fits.open(image_cube) as cube_hdu:
         # cube_hdu.info()
@@ -192,6 +200,14 @@ def imcombine_flatten(cube, sci_ext, var_ext):
     INPUT: CUBE (scrop_proc/IC225_3D_{}_{}.fits)
     OUTPUT: SCI_EXT (scrop_proc/IC225_2D_sci_{}_{}.fits), VAR_EXT (scrop_proc/IC225_2D_var_{}_{}.fits)
     """
+
+    if os.path.exists(sci_ext):
+        print('File {} already exists'.format(sci_ext))
+        return
+    if os.path.exists(var_ext):
+        print('File {} already exists'.format(var_ext))
+        return
+
     from pyraf import iraf
 
     iraf.imcombine('{}[sci]'.format(cube), sci_ext, project="yes")
@@ -205,6 +221,10 @@ def make_table(image_cube, sci_ext, var_ext, xysn_file):
     INPUT: SCI_EXT (IC225_2D_sci.fits), VAR_EXT (IC225_2D_var.fits)
     OUTPUT: XYSN_FILE (x_y_signal_noise.txt)
     """
+
+    if os.path.exists(xysn_file):
+        print('File {} already exists'.format(xysn_file))
+        return
 
     if not os.path.exists(sci_ext):
         imcombine_flatten(image_cube, sci_ext, var_ext)
@@ -255,6 +275,10 @@ def voronoi_binning(xysn_file, v2b_file, v2b_xy_file):
             compute the tessellation (but one can also simply use the BINNUMBER vector).
     """
 
+    if os.path.exists(v2b_file):
+        print('File {} already exists'.format(v2b_file))
+        return
+
     x, y, signal, noise = np.loadtxt(xysn_file, unpack=True)  # , skiprows=3)
 
     ''' CHECK VALIDITY OF THIS '''
@@ -282,11 +306,9 @@ def combine_spectra(v2b_file, image_cube, bin_sci, flux_sci, bin_var, flux_var):
     OUTPUT: DIR_SCI_COMB (comb_fits_sci_{S/N}/bin_sci_{S/N}.fits), DIR_VAR_COMB (comb_fis_var_{S/N}/bin_var_{S/N}.fits)
     """
 
-    # make output folders if they don't exist already
-    if not os.path.exists(dir_sci_comb):
-        os.mkdir(dir_sci_comb)
-    if not os.path.exists(dir_var_comb):
-        os.mkdir(dir_var_comb)
+    if os.path.exists(bin_sci.format(1)):
+        print('Binned spectra already exist')
+        return
 
     # read in the output of the voronoi binning
     v2b_output = pd.read_table(v2b_file, sep=r"\s*", engine='python', skiprows=1, names=["x", "y", "bin"])
@@ -361,7 +383,7 @@ def write_imcomb_fits(outdata, outfile, cube_header):
 
 
 def ppxf_kinematics(bin_sci, ppxf_file, ppxf_bestfit, template_fits, template_resolution, lam_range=[4186, 5369],
-                    vel_init=1500., sig_init=100., bias=0):
+                    vel_init=1500., sig_init=100., bias=0.):
     """
     Follow the pPXF usage example by Michile Cappellari
     INPUT: DIR_SCI_COMB (comb_fits_sci_{S/N}/bin_sci_{S/N}.fits), TEMPLATE_* (spectra/Mun1.30z*.fits)
@@ -620,7 +642,9 @@ def fxcor_bins(bin_sci, fxcor_bin_list, fxcor_template, fxcor_file):
 
     try:
         iraf.fxcor('@{}'.format(fxcor_bin_list), fxcor_template, output=fxcor_file, continuum="both",
-                   osample="4500-5100", rsample="4500-5100", interactive="no")
+                   osample="4500-5100", rsample="4500-5100", interactive="no", order=1, high_rej=2, low_rej=2,
+                   rebin="smallest", imupdate="no", pixcorr="no", filter="both", f_type="welch", cuton=20, cutoff=1000,
+                   fullon=30, fulloff=800, ra="RA", dec="DEC", ut="UTSTART", epoch="EQUINOX", verbose="nolog")
     except StopIteration:
         os.remove(fxcor_file + '*')
 
@@ -628,62 +652,7 @@ def fxcor_bins(bin_sci, fxcor_bin_list, fxcor_template, fxcor_file):
         fxcor_file + '.txt')
 
 
-def plot_ppxf_velfield(v2b_xy_file, ppxf_file, flux_scopy_file):
-    """
-    Plot velfield as done in Gwen's plot_ppxf_30.pro
-    INPUT: V2B_XY_FILE, PPXF_FILE, FLUX_FILE
-    OUTPUT:
-    """
-
-    assert os.path.exists(v2b_xy_file), 'File {} does not exist'.format(v2b_xy_file)
-    assert os.path.exists(ppxf_file), 'File {} does not exist'.format(ppxf_file)
-    assert os.path.exists(flux_scopy_file), 'File {} does not exist'.format(flux_scopy_file)
-
-    xbar, ybar, xnode, ynode = np.loadtxt(v2b_xy_file, unpack=True, skiprows=1)
-    vel, sig, h3, h4, dvel, dsig, dh3, dh4 = np.loadtxt(ppxf_file, unpack=True)
-    flux = np.loadtxt(flux_scopy_file, unpack=True)
-
-    assert len(xbar) == len(ybar), 'Xbar is not the same length as Ybar'
-    assert len(xbar) == len(vel), 'Xbar is not the same length as vel'
-    assert len(xbar) == len(flux), 'Xbar is not the same length as flux'
-
-    plt.clf()
-    plt.title('Velocity')
-    plot_velfield(xbar, ybar, vel, flux=flux, colorbar=True, label='km/s')
-    plt.show()
-
-
-def plot_fxcor_velfield(v2b_xy_file, fxcor_file, flux_scopy_file):
-    """
-    As Gwen does in her idl guide, use the VREL information from fxcor with the flux information from the scrop'd and
-    imcombined (flux averaged) continuum information to create a plot
-    INPUT: V2B_XY_FILE, FXCOR_FILE, FLUX_FILE
-    OUTPUT:
-    """
-
-    assert os.path.exists(v2b_xy_file), 'File {} does not exist'.format(v2b_xy_file)
-    assert os.path.exists('{}.txt'.format(fxcor_file)), 'File {}.txt does not exist'.format(fxcor_file)
-    assert os.path.exists(flux_scopy_file), 'File {} does not exist'.format(flux_scopy_file)
-
-    xbar, ybar, xnode, ynode = np.loadtxt(v2b_xy_file, unpack=True, skiprows=1)
-    flux = np.loadtxt(flux_scopy_file, unpack=True)
-
-    # This file contains both strings and integers with inconsistent delimators - so use pandas instead of numpy
-    fxcor_table = pd.read_table('{}.txt'.format(fxcor_file), sep=r"\s*", engine='python', skiprows=16,
-                                names=["img", "ref", "hjd", "ap", "codes", "shift", "hght", "fwhm", "tdr",
-                                       "vobs", "vrel", "vhelio", "verr"])
-
-    assert len(xbar) == len(ybar), 'Xbar is not the same length as Ybar'
-    assert len(xbar) == len(fxcor_table.vrel.values), 'Xbar is not the same length as vel'
-    assert len(xbar) == len(flux), 'Xbar is not the same length as flux'
-
-    plt.clf()
-    plt.title('Velocity')
-    plot_velfield(xbar, ybar, fxcor_table.vrel.values, flux=flux, colorbar=True, label='km/s')
-    plt.show()
-
-
-def plot_velfield(vel, v2b_xy_file, flux_scopy_file):
+def plot_velfield_setup(vel, v2b_xy_file, flux_scopy_file):
     assert os.path.exists(v2b_xy_file), 'File {} does not exist'.format(v2b_xy_file)
     assert os.path.exists(flux_scopy_file), 'File {} does not exist'.format(flux_scopy_file)
 
@@ -731,7 +700,7 @@ def ppxf_simulation(ppxf_bestfit, lam_range, target_sn, spaxel=20):
 
     # dir = 'spectra/'
     # file = dir + 'Rbi1.30z+0.00t12.59.fits'
-    #    hdu = pyfits.open(file)
+    # hdu = pyfits.open(file)
     #    ssp = hdu[0].data
     #    h = hdu[0].header
 
@@ -850,14 +819,16 @@ def rebin(x, factor):
     return np.mean(x.reshape(-1, factor), axis=1)
 
 
-def xcsao_bins(bin_sci, rvsao_bin_list, rvsao_template, rvsao_file):
+def xcsao_bins(bin_sci, rvsao_bin_list, rvsao_template, rvsao_file, systematic_vel):
     """
 
     """
 
-    if os.path.exists(rvsao_file + '.txt'):
-        print('File {} already exists'.format(rvsao_file + '.txt'))
+    if os.path.exists(rvsao_file):
+        print('File {} already exists'.format(rvsao_file))
         return
+
+
 
     assert os.path.exists(rvsao_template), 'Template spectra {} does not exist'.format(fxcor_template)
 
@@ -872,7 +843,9 @@ def xcsao_bins(bin_sci, rvsao_bin_list, rvsao_template, rvsao_file):
 
     try:
         iraf.xcsao('@{}'.format(rvsao_bin_list), templates=rvsao_template, report_mode=2, logfiles=rvsao_file,
-                   displot='no')
+                   displot='no', st_lambda=LAM_RANGE[0], end_lambda=LAM_RANGE[1], s_emchop="yes", low_bin=10,
+                   top_low=20, top_nrun=800, nrun=1000, zeropad="yes", vel_init="guess", czguess=systematic_vel,
+                   nzpass=1, curmode="no", pkmode=2)
     except Exception, e:
         print('Error: {}'.format(e))
 
@@ -892,6 +865,11 @@ if __name__ == '__main__':
         os.mkdir(PPXF_PATH)
     if not os.path.exists(RVSAO_PATH):
         os.mkdir(RVSAO_PATH)
+    if not os.path.exists(DIR_SCI_COMB):
+        os.mkdir(DIR_SCI_COMB)
+    if not os.path.exists(DIR_VAR_COMB):
+        os.mkdir(DIR_VAR_COMB)
+
     '''
     # To flatten 3D cube to 2D in specific wavelengths (Don't use these flattend cubes otherwise)
     print('>>>>> Flattening 3D cube')
@@ -899,7 +877,6 @@ if __name__ == '__main__':
     imcombine_flatten(CUBE_SCROPD, SCI_EXT_SCROPD, VAR_EXT_SCROPD)
 
     # Run pPXF
-    print('>>>>> pPXF')
     make_table(IMAGE_CUBE, SCI_EXT, VAR_EXT, XYSN_FILE)
     voronoi_binning(XYSN_FILE, V2B_FILE, V2B_XY_FILE)
     combine_spectra(V2B_FILE, IMAGE_CUBE, BIN_SCI, FLUX_SCI, BIN_VAR, FLUX_VAR)
@@ -907,29 +884,29 @@ if __name__ == '__main__':
     # ppxf_kinematics(BIN_SCI, PPXF_FILE, PPXF_BESTFIT, TEMPLATE_FITS, TEMPLATE_RESOLUTION, LAM_RANGE, VEL_INIT, SIG_INIT, 0)
     # ppxf_simulation(PPXF_BESTFIT, LAM_RANGE, TARGET_SN)
     # chosen bias = 0.6
-    ppxf_vel = ppxf_kinematics(BIN_SCI, PPXF_FILE, PPXF_BESTFIT, TEMPLATE_FITS, TEMPLATE_RESOLUTION, LAM_RANGE, VEL_INIT, SIG_INIT, 0.6)
-
+    ppxf_vel = ppxf_kinematics(BIN_SCI, PPXF_FILE, PPXF_BESTFIT, TEMPLATE_FITS, TEMPLATE_RESOLUTION, LAM_RANGE,
+                               VEL_INIT, SIG_INIT, bias=0.6)
+    '''
     # Run rv fxcor
     fxcor_bins(BIN_SCI, FXCOR_BIN_LIST, FXCOR_TEMPLATE, FXCOR_FILE)
 
     # Run rvsao xcsao
-    xcsao_bins(BIN_SCI, RVSAO_BIN_LIST, RVSAO_TEMPLATE, RVSAO_FILE)
-
+    xcsao_bins(BIN_SCI, RVSAO_BIN_LIST, RVSAO_TEMPLATE, RVSAO_FILE, SYSTEMATIC_VEL)
+    '''
     # Calculate average flux
     scopy_flux(FLUX_SCI, FLUX_SCOPY_FITS, FLUX_SCOPY_RANGE, FLUX_SCOPY_FILE)
 
     # Plot results
     if not ppxf_vel:
-        ppxf_vel, ppxf_sig, ppxf_h3, ppxf_h4, ppxf_dvel, ppxf_dsig, ppxf_dh3, ppxf_dh4 = np.loadtxt(ppxf_file, unpack=True)
-    plot_velfield(ppxf_vel, V2B_XY_FILE, FLUX_SCOPY_FILE)
+        ppxf_vel, ppxf_sig, h3, h4, ppxf_dvel, ppxf_dsig, dh3, dh4 = np.loadtxt(PPXF_FILE, unpack=True)
+    plot_velfield_setup(ppxf_vel, V2B_XY_FILE, FLUX_SCOPY_FILE)
     '''
-
     fxcor_vel = pd.read_table('{}.txt'.format(FXCOR_FILE), sep=r"\s*", engine='python', skiprows=16, usecols=[10],
                               names=["vrel"], squeeze=True).values
-    plot_velfield(fxcor_vel, V2B_XY_FILE, FLUX_SCOPY_FILE)
+    plot_velfield_setup(fxcor_vel, V2B_XY_FILE, FLUX_SCOPY_FILE)
 
-    bin_name, bin_path, xcsao_r, xcsao_vel, xcsao_dvel, xcsao_hght, xcsao_wdth = np.loadtxt(RVSAO_FILE, unpack=True)
-    plot_velfield(xcsao_vel, V2B_XY_FILE, FLUX_SCOPY_FILE)
+    xcsao_vel = pd.read_table(RVSAO_FILE, sep=r"\s*", engine='python', usecols=[3], names=["vrel"], squeeze=True).values
+    plot_velfield_setup(xcsao_vel, V2B_XY_FILE, FLUX_SCOPY_FILE)
 
 """
 EXAMPLES OF THE SCRIPT OUTPUT
@@ -1019,11 +996,6 @@ ppxf_output_sn30.txt
 1546.774034   50.347287   -0.030425    0.004431    9.008727   45.028757    0.094371    0.477264
 1559.821945   32.639841   -0.013985   -0.016247  126.604720  145.538259    2.047092    1.750520
 
-# velocity    sigma         dV          dsigma
-1554.439141   56.676687    5.236479    9.258367
-1544.836367   50.063572    5.726569   11.107794
-1559.689719   28.646979    9.785119   20.773189
-
 
 binned_cont_flux_30.txt
 -----------------------
@@ -1034,5 +1006,15 @@ binned_cont_flux_30.txt
 0.0340581573546
 0.212753847241
 0.151029586792
+
+
+xcsao_bin_sci_sn30.txt
+----------------------
+bin_sci_0.fits   /Users/kwebb/IFU  77.21    -1.718    1.460 0.966 151.753
+bin_sci_1.fits   /Users/kwebb/IFU  76.20    -3.727    1.463 0.970 150.110
+bin_sci_10.fits  /Users/kwebb/IFU  43.02     5.536    2.440 0.943 143.557
+bin_sci_11.fits  /Users/kwebb/IFU  38.89     6.026    2.695 0.939 143.641
+bin_sci_12.fits  /Users/kwebb/IFU  33.66    12.732    3.091 0.927 142.409
+bin_sci_13.fits  /Users/kwebb/IFU  44.80     2.267    2.340 0.946 142.572
 
 """
