@@ -73,7 +73,7 @@ Template spectra for fxcor/rvsoa (bin with high SN)
 DIR_PATH = '/Users/kwebb/IFU_reduction_wl'  # Working directory (where the 3D cube is)
 IMAGE_CUBE = os.path.join(DIR_PATH, 'dcsteqpxbprgN20051205S0006_add.fits')
 TARGET_SN = 20  # REMEMBER TO CHANGE TEMPLATE SPECTRA FOR EACH S/N
-FXCOR_TEMPLATE_SPECTRA = 22
+FXCOR_TEMPLATE_SPECTRA = 30
 
 # To create 2D flattened science and variance images of specific spectral range
 # This is only necessary for visual comparison of the intensity of regions for a given spectral range
@@ -347,6 +347,7 @@ def imcombine(image_cube, outsci, outvar, spaxel_list, combine_method):
         image_cube_sci = image_cube_hdu[1].data
         image_cube_var = image_cube_hdu[2].data
         cube_header = image_cube_hdu['SCI'].header
+        cube_header_0 = image_cube_hdu[0].header
 
     imcomb_sci = []
     imcomb_var = []
@@ -366,18 +367,21 @@ def imcombine(image_cube, outsci, outvar, spaxel_list, combine_method):
             imcomb_sci.append(np.array(pix_sci).mean())
             imcomb_var.append(np.array(pix_var).mean())
 
-    write_imcomb_fits(imcomb_sci, outsci, cube_header)
-    write_imcomb_fits(imcomb_var, outvar, cube_header)
+    write_imcomb_fits(imcomb_sci, outsci, cube_header, cube_header_0)
+    write_imcomb_fits(imcomb_var, outvar, cube_header, cube_header_0)
 
 
-def write_imcomb_fits(outdata, outfile, cube_header):
+def write_imcomb_fits(outdata, outfile, cube_header, cube_header_0):
     """
     Write the combined spectra to a fits file with headers from the wavelength dimension of the 3D cube
     """
     outfile_hdu = fits.PrimaryHDU()
+    outfile_hdu.header['OBSERVAT'] = cube_header_0['OBSERVAT']
     outfile_hdu.header['CD1_1'] = cube_header['CD3_3']
     outfile_hdu.header['CRPIX1'] = cube_header['CRPIX3']
     outfile_hdu.header['CRVAL1'] = cube_header['CRVAL3']
+    ## Header values readable by rvsao
+    outfile_hdu.header['DEC--TAN'] ='LAMBDA'
     outfile_hdu.data = outdata
     outfile_hdu.writeto(outfile, clobber=True)
 
@@ -828,8 +832,6 @@ def xcsao_bins(bin_sci, rvsao_bin_list, rvsao_template, rvsao_file, systematic_v
         print('File {} already exists'.format(rvsao_file))
         return
 
-
-
     assert os.path.exists(rvsao_template), 'Template spectra {} does not exist'.format(fxcor_template)
 
     if not os.path.exists(rvsao_bin_list):
@@ -843,9 +845,8 @@ def xcsao_bins(bin_sci, rvsao_bin_list, rvsao_template, rvsao_file, systematic_v
 
     try:
         iraf.xcsao('@{}'.format(rvsao_bin_list), templates=rvsao_template, report_mode=2, logfiles=rvsao_file,
-                   displot='no', st_lambda=LAM_RANGE[0], end_lambda=LAM_RANGE[1], s_emchop="yes", low_bin=10,
-                   top_low=20, top_nrun=800, nrun=1000, zeropad="yes", vel_init="guess", czguess=systematic_vel,
-                   nzpass=1, curmode="no", pkmode=2)
+                   displot='yes', s_emchop="yes", low_bin=10, top_low=20, top_nrun=800, nrun=1000, zeropad="yes",
+                   nzpass=1, curmode="no", pkmode=2) # vel_init="guess", czguess=systematic_vel, 
     except Exception, e:
         print('Error: {}'.format(e))
 
@@ -879,17 +880,18 @@ if __name__ == '__main__':
     # Run pPXF
     make_table(IMAGE_CUBE, SCI_EXT, VAR_EXT, XYSN_FILE)
     voronoi_binning(XYSN_FILE, V2B_FILE, V2B_XY_FILE)
+    '''
     combine_spectra(V2B_FILE, IMAGE_CUBE, BIN_SCI, FLUX_SCI, BIN_VAR, FLUX_VAR)
-
+    '''
     # ppxf_kinematics(BIN_SCI, PPXF_FILE, PPXF_BESTFIT, TEMPLATE_FITS, TEMPLATE_RESOLUTION, LAM_RANGE, VEL_INIT, SIG_INIT, 0)
     # ppxf_simulation(PPXF_BESTFIT, LAM_RANGE, TARGET_SN)
     # chosen bias = 0.6
     ppxf_vel = ppxf_kinematics(BIN_SCI, PPXF_FILE, PPXF_BESTFIT, TEMPLATE_FITS, TEMPLATE_RESOLUTION, LAM_RANGE,
                                VEL_INIT, SIG_INIT, bias=0.6)
-    '''
+
     # Run rv fxcor
     fxcor_bins(BIN_SCI, FXCOR_BIN_LIST, FXCOR_TEMPLATE, FXCOR_FILE)
-
+    '''
     # Run rvsao xcsao
     xcsao_bins(BIN_SCI, RVSAO_BIN_LIST, RVSAO_TEMPLATE, RVSAO_FILE, SYSTEMATIC_VEL)
     '''
@@ -900,11 +902,11 @@ if __name__ == '__main__':
     if not ppxf_vel:
         ppxf_vel, ppxf_sig, h3, h4, ppxf_dvel, ppxf_dsig, dh3, dh4 = np.loadtxt(PPXF_FILE, unpack=True)
     plot_velfield_setup(ppxf_vel, V2B_XY_FILE, FLUX_SCOPY_FILE)
-    '''
+
     fxcor_vel = pd.read_table('{}.txt'.format(FXCOR_FILE), sep=r"\s*", engine='python', skiprows=16, usecols=[10],
                               names=["vrel"], squeeze=True).values
     plot_velfield_setup(fxcor_vel, V2B_XY_FILE, FLUX_SCOPY_FILE)
-
+    '''
     xcsao_vel = pd.read_table(RVSAO_FILE, sep=r"\s*", engine='python', usecols=[3], names=["vrel"], squeeze=True).values
     plot_velfield_setup(xcsao_vel, V2B_XY_FILE, FLUX_SCOPY_FILE)
 
