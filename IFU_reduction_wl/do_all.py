@@ -124,19 +124,22 @@ RVSAO_FILE = os.path.join(RVSAO_PATH, 'xcsao_bin_sci_sn{}_tmpl{}.txt'.format(TAR
 SYSTEMATIC_VEL = 1320
 
 # pPXF parameters
-VEL_INIT = 1500  # initial guess for velocity
+VEL_INIT = 1500.  # initial guess for velocity
 SIG_INIT = 100.  # inital guess of sigma distribution
 LAM_RANGE = [4186, 5369]  # wavelength range for logarithmic rebinning (full wavelength range observed [4186:5369])
 # template from http://archives.pd.astro.it/2500-10500/
-# adsabs paper: http://adsabs.harvard.edu/abs/2005A%26A...442.1127M
+# adsabs paper: http://adsabs.harvard.edu/abs/2005A%26A...442.1127
+# SYNTHE synthetic library of stellar spectra covering the wavelength region from 2500 A to 1.05 micrometers at a
+# spectral resolution of sigma=6.4 km/s, R=20,000. The same caveats and advantages apply to this synthetic library as
+# to the previous one. From Munari et al. (2005)
 TEMPLATE_FITS = '/Users/kwebb/idl/cappellari/ppxf/spectra/Mun1.30z*.fits'
-TEMPLATE_RESOLUTION = 2.  # FWHM of the template spectra
+TEMPLATE_RESOLUTION = 6.4  # FWHM of the template spectra *** ADAPT CALCULATION OF SIGMA ACCORDING TO UNITS ***
 
 # To create combined (averaged) spectra to determine mean flux of a specific wavelength range to plot
 # YOU DO NOT NEED TO CROP THE SPECTRA HERE, it is just a good idea to check that you measure the same velocity for
-#   any given spectral range
-FLUX_SCOPY_RANGE = [4186, 5369]  # [4370, 4870]  # REMEMBER TO CHANGE NAMES BELOW *************
-FLUX_SCOPY_FITS_SUFFIX = 'flux_{}.fits' #  'cont_flux_{}.fits'  # continuum wavelength range combined sci spectra from flux*
+# any given spectral range
+FLUX_SCOPY_RANGE = [4186, 5369]  # [4370, 4870]
+FLUX_SCOPY_FITS_SUFFIX = 'flux_{}.fits'  # wavelength range combined sci spectra from flux*
 FLUX_SCOPY_FILE = os.path.join(PROC_PATH, 'binned_flux_{}.txt'.format(TARGET_SN))
 FLUX_SCOPY_FITS = os.path.join(DIR_SCI_COMB, FLUX_SCOPY_FITS_SUFFIX)
 
@@ -381,7 +384,7 @@ def write_imcomb_fits(outdata, outfile, cube_header, cube_header_0):
     outfile_hdu.header['CRPIX1'] = cube_header['CRPIX3']
     outfile_hdu.header['CRVAL1'] = cube_header['CRVAL3']
     ## Header values readable by rvsao
-    outfile_hdu.header['DEC--TAN'] ='LAMBDA'
+    outfile_hdu.header['DEC--TAN'] = 'LAMBDA'
     outfile_hdu.data = outdata
     outfile_hdu.writeto(outfile, clobber=True)
 
@@ -401,15 +404,20 @@ def ppxf_kinematics(bin_sci, ppxf_file, ppxf_bestfit, template_fits, template_re
     assert os.path.exists(bin_sci.format(0)), 'Binned spectrum not found: {}'.format(bin_sci)
 
     # Read a galaxy spectrum and define the wavelength range
-    in_file = glob.glob(bin_sci.format('*'))
+    galaxy_spectra_files = glob.glob(bin_sci.format('*'))
 
-    hdu = fits.open(in_file[0])
-    gal_lin = hdu[0].data
-    h1 = hdu[0].header
+    #    hdu = fits.open(in_file[0])
+    #    gal_lin = hdu[0].data
+    #    h1 = hdu[0].header
 
-    # lamRange1 = h1['CRVAL1'] + np.array([0.,h1['CDELT1']*(h1['NAXIS1']-1)])
-    # FWHM_gal = 4.2 # SAURON has an instrumental resolution FWHM of 4.2A.
+    with fits.open(galaxy_spectra_files[0]) as gal_hdu:
+        gal_lin = gal_hdu[0].data
+        h1 = gal_hdu[0].header
 
+    #   lamRange1 = h1['CRVAL1'] + np.array([0.,h1['CDELT1']*(h1['NAXIS1']-1)])
+    #   FWHM_gal = 4.2 # SAURON has an instrumental resolution FWHM of 4.2A.
+
+    # lamRange1 is now variable lam_range (because I was lazy and didnt put headers into the binned spectra)
     FWHM_gal = 2.3  # GMOS IFU has an instrumental resolution FWHM of 2.3 A
 
     # If the galaxy is at a significant redshift (z > 0.03), one would need to apply a large velocity shift in PPXF to
@@ -424,9 +432,9 @@ def ppxf_kinematics(bin_sci, ppxf_file, ppxf_bestfit, template_fits, template_re
     # lamRange1 = lamRange1/(1+z) # Compute approximate restframe wavelength range
     # FWHM_gal = FWHM_gal/(1+z)   # Adjust resolution in Angstrom
 
-    # galaxy, logLam1, velscale = util.log_rebin(lamRange1, gal_lin)
-    # galaxy = galaxy/np.median(galaxy) # Normalize spectrum to avoid numerical issues
-    # noise = galaxy*0 + 0.0049           # Assume constant noise per pixel here
+    #   galaxy, logLam1, velscale = util.log_rebin(lamRange1, gal_lin)
+    #   galaxy = galaxy/np.median(galaxy) # Normalize spectrum to avoid numerical issues
+    #   noise = galaxy*0 + 0.0049           # Assume constant noise per pixel here
 
     galaxy, logLam1, velscale = util.log_rebin(lam_range, gal_lin)
     galaxy = galaxy / np.median(galaxy)  # Normalize spectrum to avoid numerical issues
@@ -435,33 +443,32 @@ def ppxf_kinematics(bin_sci, ppxf_file, ppxf_bestfit, template_fits, template_re
     # of the library is included for this example with permission. See http://purl.org/cappellari/software
     # for suggestions of more up-to-date stellar libraries.
 
-    # vazdekis = glob.glob(dir + 'Rbi1.30z*.fits')
-    # vazdekis.sort()
-    # FWHM_tem = 1.8 # Vazdekis spectra have a resolution FWHM of 1.8A.
+    #   vazdekis = glob.glob(dir + 'Rbi1.30z*.fits')
+    #   vazdekis.sort()
+    #   FWHM_tem = 1.8 # Vazdekis spectra have a resolution FWHM of 1.8A.
 
-    Mun = glob.glob(template_fits)
-    assert len(Mun) > 0, 'Template spectra not found: {}'.format(template_fits)
-    FWHM_tem = template_resolution
+    template_spectra = glob.glob(template_fits)
+    assert len(template_spectra) > 0, 'Template spectra not found: {}'.format(template_fits)
 
     # Extract the wavelength range and logarithmically rebin one spectrum to the same velocity scale of the SAURON
     # galaxy spectrum, to determine the size needed for the array which will contain the template spectra.
 
-    # hdu = fits.open(vazdekis[0])
-    # ssp = hdu[0].data
-    # h2 = hdu[0].header
-    # lamRange2 = h2['CRVAL1'] + np.array([0.,h2['CDELT1']*(h2['NAXIS1']-1)])
-    # sspNew, logLam2, velscale = util.log_rebin(lamRange2, ssp, velscale=velscale)
-    # templates = np.empty((sspNew.size,len(vazdekis)))
+    #   hdu = fits.open(vazdekis[0])
+    #   ssp = hdu[0].data
+    #   h2 = hdu[0].header
+    #   lamRange2 = h2['CRVAL1'] + np.array([0.,h2['CDELT1']*(h2['NAXIS1']-1)])
+    #   sspNew, logLam2, velscale = util.log_rebin(lamRange2, ssp, velscale=velscale)
+    #   templates = np.empty((sspNew.size,len(vazdekis)))
 
-    hdu = fits.open(Mun[0])
-    ssp = hdu[0].data
-    h2 = hdu[0].header
+    with fits.open(template_spectra[0]) as temp_hdu:
+        ssp = temp_hdu[0].data
+        h2 = temp_hdu[0].header
     lamRange2 = h2['CRVAL1'] + np.array([0., h2['CDELT1'] * (h2['NAXIS1'] - 1)])
-    sspNew, logLam2, velscale2 = util.log_rebin(lamRange2, ssp)
-    templates = np.empty((sspNew.size, len(Mun)))
+    sspNew, logLam2, velscale = util.log_rebin(lamRange2, ssp, velscale=velscale)
+    templates = np.empty((sspNew.size, len(template_spectra)))
 
     # Convolve the whole Vazdekis library of spectral templates with the quadratic difference between the SAURON and the
-    # Vazdekis instrumental resolution. Logarithmically rebin and store each template as a column in the array TEMPLATES.
+    # Vazdekis instrumental resolution. Logarithmically rebin and store each template as a column in the array TEMPLATES
 
     # Quadratic sigma difference in pixels Vazdekis --> SAURON
     # The formula below is rigorously valid if the shapes of the instrumental spectral profiles are well approximated
@@ -477,23 +484,26 @@ def ppxf_kinematics(bin_sci, ppxf_file, ppxf_bestfit, template_fits, template_re
     # Thus: The quadratic difference is sigma = sqrt(75^2 - 56.8^2) = 49.0 km/s
     # ---------------------------------------------------------------------------------
 
-    FWHM_dif = np.sqrt(FWHM_gal ** 2 - FWHM_tem ** 2)
-    sigma = FWHM_dif / 2.355 / h2['CDELT1']  # Sigma difference in pixels
+    # IF TEMPLATE RESOLUTION IN KM/S CONVERT TO ANGSTROMS
+    template_resolution = template_resolution * 2.35 * 5100 / 3e5  # = 0.259 A for Mun spec with 6.5 km/s resolution
+    FWHM_dif = np.sqrt(FWHM_gal ** 2 - template_resolution ** 2)
+    sigma = FWHM_dif / 2.355 / h2['CDELT1']  # SIGMA DIFFERENCE IN PIXELS
 
-    # Logarithmically rebin the whole Mun library of spectra, and store each template as a column in the array TEMPLATES,
+    # Logarithmically rebin the whole Mun library of spectra, and store each template as a column in the array TEMPLATES
 
-    # for j in range(len(vazdekis)):
-    # hdu = fits.open(vazdekis[j])
-    # ssp = hdu[0].data
-    # ssp = ndimage.gaussian_filter1d(ssp, sigma)
-    # sspNew, logLam2, velscale = util.log_rebin(lamRange2, ssp, velscale=velscale)
-    # templates[:, j] = sspNew / np.median(sspNew)  # Normalizes templates
+    #   for j in range(len(vazdekis)):
+    #       hdu = fits.open(vazdekis[j])
+    #       ssp = hdu[0].data
+    #       ssp = ndimage.gaussian_filter1d(ssp, sigma)
+    #       sspNew, logLam2, velscale = util.log_rebin(lamRange2, ssp, velscale=velscale)
+    #       templates[:, j] = sspNew / np.median(sspNew)  # Normalizes templates
 
-    for j in range(len(Mun)):
-        hdu = fits.open(Mun[j])
-        ssp = hdu[0].data
-        ssp = ndimage.gaussian_filter1d(ssp, sigma)
-        sspNew, logLam2, velscale = util.log_rebin(lamRange2, ssp, velscale=velscale2)
+    for j in range(len(template_spectra)):
+        with fits.open(template_spectra[j]) as temp_hdu_j:
+            ssp_j = temp_hdu_j[0].data
+        ssp_j = ndimage.gaussian_filter1d(ssp_j, sigma)
+        sspNew, logLam2, velscale = util.log_rebin(lamRange2, ssp_j, velscale=velscale)
+
         templates[:, j] = sspNew / np.median(sspNew)  # Normalizes templates
 
     # The galaxy and the template spectra do not have the same starting wavelength. For this reason an extra velocity
@@ -511,22 +521,22 @@ def ppxf_kinematics(bin_sci, ppxf_file, ppxf_bestfit, template_fits, template_re
     h4_list = []
     dh3_list = []
     dh4_list = []
+    gp = []
 
-    for j in range(len(in_file)):
-        print('>>>>> {}  {}'.format(j, in_file[j]))
+    for j in range(len(galaxy_spectra_files)):
+        # print('>>>>> {}  {}'.format(j, galaxy_spectra_files[j]))
 
-        hdu = fits.open(in_file[j])
-        b_gal = hdu[0].data
+        with fits.open(galaxy_spectra_files[j]) as gal_hdu_j:
+            b_gal = gal_hdu_j[0].data
         b_gal = ndimage.gaussian_filter1d(b_gal, sigma)
 
         galaxy, logLam1, velscale = util.log_rebin(lam_range, b_gal, velscale=velscale)
         # error = galaxy*0 + 1 # Assume constant error
+        noise = galaxy * 0 + 0.0049  # Assume constant noise per pixel here
 
         # ''' Replace 0 values with interpretad values, check validity of this '''
         # mask = np.isnan(galaxy)
         # galaxy[mask] = np.interp(np.flatnonzero(mask), np.flatnonzero(~mask), galaxy[~mask])
-
-        noise = galaxy * 0 + 0.0049  # Assume constant noise per pixel here
 
         c = 299792.458
         dv = (logLam2[0] - logLam1[0]) * c  # km/s
@@ -536,6 +546,7 @@ def ppxf_kinematics(bin_sci, ppxf_file, ppxf_bestfit, template_fits, template_re
 
         goodPixels = util.determine_goodpixels(logLam1, lamRange2, z)
         # Gwen uses goodpixel range: [range(2,195),range(235,790),range(830,890),range(930,940),range(980,1300)]
+        # util.determine_goodpixels selects [range(0,201),range(230,792),range(821,896),range(925,945),range(975,1299)]
 
         # Here the actual fit starts. The best fit is plotted on the screen.
         # Gas emission lines are excluded from the pPXF fit using the GOODPIXELS keyword.
@@ -544,13 +555,11 @@ def ppxf_kinematics(bin_sci, ppxf_file, ppxf_bestfit, template_fits, template_re
         t = clock()
 
         pp = ppxf(templates, galaxy, noise, velscale, start, goodpixels=goodPixels, plot=True, moments=4,
-                  degree=4, vsyst=dv, bias=bias)
+                  degree=4, vsyst=dv, bias=bias, quiet=True)
 
-        print("Formal errors:")
-        print("     dV    dsigma   dh3      dh4")
-        print("".join("%8.2g" % f for f in pp.error * np.sqrt(pp.chi2)))
-
-        print('Elapsed time in PPXF: %.2f s' % (clock() - t))
+        # print("Formal errors:")
+        # print("     dV    dsigma   dh3      dh4")
+        # print("".join("%8.2g" % f for f in pp.error * np.sqrt(pp.chi2)))
 
         # If the galaxy is at significant redshift z and the wavelength has been de-redshifted with the three lines
         # "z = 1.23..." near the beginning of this procedure, the best-fitting redshift is now given by the following
@@ -574,8 +583,7 @@ def ppxf_kinematics(bin_sci, ppxf_file, ppxf_bestfit, template_fits, template_re
         hdu_best.data = pp.bestfit
         hdu_best.writeto(ppxf_bestfit.format(j), clobber=True)
 
-    if bias == 0:
-        ppxf_file = ppxf_file.strip('.txt') + '_bias0.txt'
+    print('Elapsed time in PPXF: %.2f s' % (clock() - t))
 
     np.savetxt(ppxf_file,
                np.column_stack([vel_list, sig_list, h3_list, h4_list, dV_list, dsigma_list, dh3_list, dh4_list]),
@@ -673,7 +681,7 @@ def plot_velfield_setup(vel, v2b_xy_file, flux_scopy_file):
     plt.show()
 
 
-def ppxf_simulation(ppxf_bestfit, lam_range, target_sn, spaxel=20):
+def ppxf_simulation(ppxf_bestfit, lam_range, target_sn, bias=0.6, spaxel=0):
     """
     2. Perform a fit of your kinematics *without* penalty (PPXF keyword BIAS=0).
        The solution will be noisy and may be affected by spurious solutions,
@@ -702,54 +710,51 @@ def ppxf_simulation(ppxf_bestfit, lam_range, target_sn, spaxel=20):
        (see e.g. Fig.2 of Emsellem et al. 2004, MNRAS, 352, 721).
     """
 
-    # dir = 'spectra/'
-    # file = dir + 'Rbi1.30z+0.00t12.59.fits'
-    # hdu = pyfits.open(file)
-    #    ssp = hdu[0].data
-    #    h = hdu[0].header
+    #   dir = 'spectra/'
+    #   file = dir + 'Rbi1.30z+0.00t12.59.fits'
+    #   hdu = pyfits.open(file)
+    #   ssp = hdu[0].data
+    #   h = hdu[0].header
 
     bestfit_file = ppxf_bestfit.format(spaxel)
     assert os.path.exists(bestfit_file), 'Best fit spectra not found: {}'.format(bestfit_file)
-    hdu = fits.open(bestfit_file)
-    ssp = hdu[0].data
-    h = hdu[0].header
+
+    with fits.open(bestfit_file) as best_hdu:
+        ssp = best_hdu[0].data
+        h = best_hdu[0].header
 
     #   lamRange = h['CRVAL1'] + np.array([0., h['CDELT1'] * (h['NAXIS1'] - 1)])
     #   star, logLam, velscale = util.log_rebin(lamRange, ssp)
 
     star, logLam, velscale = util.log_rebin(lam_range, ssp)
 
-    # The finite sampling of the observed spectrum is modeled in detail:
-    # the galaxy spectrum is obtained by oversampling the actual observed spectrum
-    # to a high resolution. This represent the true spectrum, which is later resampled
-    # to lower resolution to simulate the observations on the CCD. Similarly, the
-    # convolution with a well-sampled LOSVD is done on the high-resolution spectrum,
-    # and later resampled to the observed resolution before fitting with PPXF.
+    # The finite sampling of the observed spectrum is modeled in detail: the galaxy spectrum is obtained by oversampling
+    # the actual observed spectrum to a high resolution. This represents the true spectrum, which is later resampled
+    # to lower resolution to simulate the observations on the CCD. Similarly, the convolution with a well-sampled LOSVD
+    # is done on the high-resolution spectrum, and later resampled to the observed resolution before fitting with PPXF.
 
     factor = 10  # Oversampling integer factor for an accurate convolution
-    starNew = ndimage.interpolation.zoom(star, factor,
-                                         order=1)  # This is the underlying spectrum, known at high resolution
+    starNew = ndimage.interpolation.zoom(star, factor, order=1)  # The underlying spectrum, known at high resolution
     star = rebin(starNew, factor)  # Make sure that the observed spectrum is the integral over the pixels
 
     #   vel = 0.3  # velocity in *pixels* [=V(km/s)/velScale]
     #   h3 = 0.1  # Adopted G-H parameters of the LOSVD
     #   h4 = -0.1
     #   sn = 60.  # Adopted S/N of the Monte Carlo simulation
+    #   m = 300  # Number of realizations of the simulation
+    #   sigmaV = np.linspace(0.8, 4, m)  # Range of sigma in *pixels* [=sigma(km/s)/velScale]
 
     print('bestfit {} : velscale = {}'.format(spaxel, velscale))
-    # bestfit 0 : velscale = 51.53155507
-    # max(sig), min(sig) = 180.3, 36.23 [km/s] =  3.51551545809, 0.706306062378 [pix]
-    # 1543./51.5 = 29.961
-    # Taking
+    # bestfit 0 : velscale = 57.44245804
+    # max(sig), min(sig) = 164.026343, 11.306016 [km/s] =  2.87765514,  0.19835116 [pix]
 
-    vel = 2.35
-    h3 = -0.003146  # -0.01376
-    h4 = 0.000112583  # 0.13594
+    vel = 0.3  # mean vel = 1556.4989, I have no idea why this value is 0.3 ...
+    h3 = -0.003146
+    h4 = -0.003662
     sn = target_sn
     m = 300  # Number of realizations of the simulation
-    #   sigmaV = np.linspace(0.8, 4, m)  # Range of sigma in *pixels* [=sigma(km/s)/velScale]
-    # numpy.linspace(start, stop, num=50) Return evenly spaced numbers over a specified interval.
-    sigmaV = np.linspace(0.706, 3.052, m)
+    sigmaV = np.linspace(0.8, 4, m)  # Range of sigma in *pixels* [=sigma(km/s)/velScale]
+    # sigmaV = np.linspace(0.198, 2.877, m)
 
     result = np.zeros((m, 4))  # This will store the results
     t = clock()
@@ -773,10 +778,8 @@ def ppxf_simulation(ppxf_bestfit, lam_range, target_sn, spaxel=20):
         start = np.array(
             [vel + np.random.random(), sigma * np.random.uniform(0.85, 1.15)]) * velscale  # Convert to km/s
 
-        print(j, m)
-
         pp = ppxf(star, galaxy, noise, velscale, start, goodpixels=np.arange(dx, galaxy.size - dx),
-                  plot=False, moments=4, bias=0.6)
+                  plot=False, moments=4, bias=bias, quiet=True)
         result[j, :] = pp.sol
 
     print('Calculation time: %.2f s' % (clock() - t))
@@ -784,6 +787,7 @@ def ppxf_simulation(ppxf_bestfit, lam_range, target_sn, spaxel=20):
     plt.clf()
     plt.subplot(221)
     plt.plot(sigmaV * velscale, result[:, 0] - vel * velscale, '+k')
+    plt.plot(sigmaV * velscale, np.ones(len(sigmaV * velscale)) * np.mean(result[:, 0] - vel * velscale), '-b')
     plt.plot(sigmaV * velscale, sigmaV * velscale * 0, '-r')
     plt.ylim(-40, 40)
     plt.xlabel('$\sigma_{in}\ (km\ s^{-1})$')
@@ -791,6 +795,7 @@ def ppxf_simulation(ppxf_bestfit, lam_range, target_sn, spaxel=20):
 
     plt.subplot(222)
     plt.plot(sigmaV * velscale, result[:, 1] - sigmaV * velscale, '+k')
+    plt.plot(sigmaV * velscale, np.ones(len(sigmaV * velscale)) * np.mean(result[:, 1] - sigmaV * velscale), '-b')
     plt.plot(sigmaV * velscale, sigmaV * velscale * 0, '-r')
     plt.ylim(-40, 40)
     plt.xlabel('$\sigma_{in}\ (km\ s^{-1})$')
@@ -799,6 +804,7 @@ def ppxf_simulation(ppxf_bestfit, lam_range, target_sn, spaxel=20):
     plt.subplot(223)
     plt.plot(sigmaV * velscale, result[:, 2], '+k')
     plt.plot(sigmaV * velscale, sigmaV * velscale * 0 + h3, '-r')
+    plt.plot(sigmaV * velscale, np.ones(len(sigmaV * velscale)) * np.mean(result[:, 2]), '-b')
     plt.ylim(-0.2 + h3, 0.2 + h3)
     plt.xlabel('$\sigma_{in}\ (km\ s^{-1})$')
     plt.ylabel('$h_3$')
@@ -806,6 +812,7 @@ def ppxf_simulation(ppxf_bestfit, lam_range, target_sn, spaxel=20):
     plt.subplot(224)
     plt.plot(sigmaV * velscale, result[:, 3], '+k')
     plt.plot(sigmaV * velscale, sigmaV * velscale * 0 + h4, '-r')
+    plt.plot(sigmaV * velscale, np.ones(len(sigmaV * velscale)) * np.mean(result[:, 3]), '-b')
     plt.ylim(-0.2 + h4, 0.2 + h4)
     plt.xlabel('$\sigma_{in}\ (km\ s^{-1})$')
     plt.ylabel('$h_4$')
@@ -823,7 +830,7 @@ def rebin(x, factor):
     return np.mean(x.reshape(-1, factor), axis=1)
 
 
-def xcsao_bins(bin_sci, rvsao_bin_list, rvsao_template, rvsao_file, systematic_vel):
+def rvsao_bins(bin_sci, ppxf_bestfit, rvsao_file):
     """
 
     """
@@ -832,23 +839,70 @@ def xcsao_bins(bin_sci, rvsao_bin_list, rvsao_template, rvsao_file, systematic_v
         print('File {} already exists'.format(rvsao_file))
         return
 
-    assert os.path.exists(rvsao_template), 'Template spectra {} does not exist'.format(fxcor_template)
-
-    if not os.path.exists(rvsao_bin_list):
-        bin_files = glob.glob(bin_sci.format('*'))
-        assert len(bin_files) > 0, 'Input files {} do not exist'.format(bin_sci.format('*'))
-        np.array(bin_files).tofile(rvsao_bin_list, sep='\n')
-
     from pyraf import iraf
 
+    iraf.images()
     iraf.rvsao()
 
-    try:
-        iraf.xcsao('@{}'.format(rvsao_bin_list), templates=rvsao_template, report_mode=2, logfiles=rvsao_file,
-                   displot='yes', s_emchop="yes", low_bin=10, top_low=20, top_nrun=800, nrun=1000, zeropad="yes",
-                   nzpass=1, curmode="no", pkmode=2) # vel_init="guess", czguess=systematic_vel, 
-    except Exception, e:
-        print('Error: {}'.format(e))
+    bin_files = glob.glob(bin_sci.format('*'))
+
+    for i in range(len(bin_files)):  # Not 'for file in bin_files' as index wont match for the template file (?)
+        bin_file = bin_sci.format(i)
+        assert os.path.exists(bin_file), 'Input spectra {} does not exist'.format(bin_file)
+        bestfit_template = ppxf_bestfit.format(i)
+        assert os.path.exists(bestfit_template), 'Bestfit spectra {} does not exist'.format(bestfit_template)
+
+        # Update headers in bestfit spectra to be able to read from pixels to wavelength
+        with fits.open(bin_file) as bin_hdu:
+            bin_header = bin_hdu[0].header
+
+        iraf.hedit(bestfit_template, 'CRVAL1', bin_header['CRVAL1'], add="yes")
+        iraf.hedit(bestfit_template, 'CRPIX1', bin_header['CRPIX1'], add="yes")
+        iraf.hedit(bestfit_template, 'CD1_1', bin_header['CD1_1'], add="yes")
+
+        bin_file_emlines = 'emlines_' + bin_file
+        bin_file_ablines = 'ablines_' + bin_file
+
+        iraf.imarith(bin_file, '-', bestfit_template, bin_file_emlines)
+        assert os.path.exists(bin_file_emlines), 'Imarith failed, {} was not created'.format(bin_file_emlines)
+        iraf.imarith(bin_file, '-', bin_file_emlines, bin_file_ablines)
+        assert os.path.exists(bin_file_ablines), 'Imarith failed, {} was not created'.format(bin_file_ablines)
+
+        iraf.xcsao(bin_file_ablines, templates=bestfit_template, report_mode=2, logfiles=rvsao_file, displot='no',
+                   low_bin=10, top_low=20, top_nrun=80, nrun=211, zeropad="yes", nzpass=1, curmode="no", pkmode=2)
+
+
+def make_template():
+    ssp_dir = '/Users/kwebb/idl/cappellari/ppxf/spectra/'
+    ssp_list = ['bc2003_hr_m22_salp_ssp.145', 'bc2003_hr_m32_salp_ssp.145', 'bc2003_hr_m42_salp_ssp.130',
+                'bc2003_hr_m52_salp_ssp.70', 'bc2003_hr_m62_salp_ssp.70', 'bc2003_hr_m72_salp_ssp.70']
+
+    ssp0 = pd.read_table('{}/{}'.format(ssp_dir, ssp_list[0]), sep='  ', skiprows=6, engine='python',
+                         usecols=[0, 1, 2, 3, 4, 5],
+                         names=["lambda", "flux0", "flux1", "flux2", "flux3", "flux4"])
+    ssp1 = pd.read_table('{}/{}'.format(ssp_dir, ssp_list[1]), sep='  ', skiprows=6, engine='python',
+                         usecols=[1, 2, 3, 4, 5],
+                         names=["flux5", "flux6", "flux7", "flux8", "flux9"])
+    ssp2 = pd.read_table('{}/{}'.format(ssp_dir, ssp_list[2]), sep='  ', skiprows=6, engine='python',
+                         usecols=[1, 2, 3, 4, 5, 6, 7],
+                         names=["flux10", "flux11", "flux12", "flux13", "flux14", "flux15", "flux16"])
+    ssp3 = pd.read_table('{}/{}'.format(ssp_dir, ssp_list[3]), sep='  ', skiprows=6, engine='python',
+                         usecols=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+                         names=["flux17", "flux18", "flux19", "flux20", "flux21", "flux22", "flux23", "flux24",
+                                "flux25", "flux26", "flux27", "flux28"])
+    ssp4 = pd.read_table('{}/{}'.format(ssp_dir, ssp_list[4]), sep='  ', skiprows=6, engine='python',
+                         usecols=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+                         names=["flux29", "flux30", "flux31", "flux32", "flux33", "flux34", "flux35", "flux36",
+                                "flux37", "flux38", "flux39", "flux40"])
+    ssp5 = pd.read_table('{}/{}'.format(ssp_dir, ssp_list[5]), sep='  ', skiprows=6, engine='python',
+                         usecols=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+                         names=["flux41", "flux42", "flux43", "flux44", "flux45", "flux46", "flux47", "flux48",
+                                "flux49", "flux50", "flux51", "flux52"])
+
+    ssp = pd.concat([ssp0["flux0"], ssp0["flux1"], ssp0["flux2"], ssp0["flux3"], ssp0["flux4"],
+                     ssp1, ssp2, ssp3, ssp4, ssp5], axis=1)
+
+    return ssp
 
 
 if __name__ == '__main__':
@@ -880,11 +934,12 @@ if __name__ == '__main__':
     # Run pPXF
     make_table(IMAGE_CUBE, SCI_EXT, VAR_EXT, XYSN_FILE)
     voronoi_binning(XYSN_FILE, V2B_FILE, V2B_XY_FILE)
-    '''
+
     combine_spectra(V2B_FILE, IMAGE_CUBE, BIN_SCI, FLUX_SCI, BIN_VAR, FLUX_VAR)
-    '''
-    # ppxf_kinematics(BIN_SCI, PPXF_FILE, PPXF_BESTFIT, TEMPLATE_FITS, TEMPLATE_RESOLUTION, LAM_RANGE, VEL_INIT, SIG_INIT, 0)
-    # ppxf_simulation(PPXF_BESTFIT, LAM_RANGE, TARGET_SN)
+
+    # ppxf_kinematics(BIN_SCI, PPXF_FILE.strip('.txt') + '_bias0.txt', PPXF_BESTFIT.strip('.fits') + '_bias0.fits',
+    #                 TEMPLATE_FITS, TEMPLATE_RESOLUTION, LAM_RANGE, VEL_INIT, SIG_INIT, 0)
+    # ppxf_simulation(PPXF_BESTFIT.strip('.fits') + '_bias0.fits', LAM_RANGE, TARGET_SN, bias=0.5, spaxel=0)
     # chosen bias = 0.6
     ppxf_vel = ppxf_kinematics(BIN_SCI, PPXF_FILE, PPXF_BESTFIT, TEMPLATE_FITS, TEMPLATE_RESOLUTION, LAM_RANGE,
                                VEL_INIT, SIG_INIT, bias=0.6)
@@ -893,7 +948,7 @@ if __name__ == '__main__':
     fxcor_bins(BIN_SCI, FXCOR_BIN_LIST, FXCOR_TEMPLATE, FXCOR_FILE)
     '''
     # Run rvsao xcsao
-    xcsao_bins(BIN_SCI, RVSAO_BIN_LIST, RVSAO_TEMPLATE, RVSAO_FILE, SYSTEMATIC_VEL)
+    rvsao_bins(BIN_SCI, PPXF_BESTFIT, RVSAO_FILE)
     '''
     # Calculate average flux
     scopy_flux(FLUX_SCI, FLUX_SCOPY_FITS, FLUX_SCOPY_RANGE, FLUX_SCOPY_FILE)
@@ -901,6 +956,7 @@ if __name__ == '__main__':
     # Plot results
     if not ppxf_vel:
         ppxf_vel, ppxf_sig, h3, h4, ppxf_dvel, ppxf_dsig, dh3, dh4 = np.loadtxt(PPXF_FILE, unpack=True)
+    ppxf_vel, ppxf_dvel = np.loadtxt(PPXF_FILE.strip('.txt')+'_subsysvel.txt', unpack=True)
     plot_velfield_setup(ppxf_vel, V2B_XY_FILE, FLUX_SCOPY_FILE)
 
     fxcor_vel = pd.read_table('{}.txt'.format(FXCOR_FILE), sep=r"\s*", engine='python', skiprows=16, usecols=[10],
