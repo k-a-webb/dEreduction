@@ -126,6 +126,8 @@ RVSAO_BIN_LIST = os.path.join(RVSAO_PATH, 'bin_sci_sn{}_list.lis'.format(TARGET_
 RVSAO_TEMPLATE = os.path.join(RVSAO_PATH, BIN_SCI.format(TEMPLATE_SPECTRA))
 RVSAO_FILE = os.path.join(RVSAO_PATH, 'xcsao_bin_sci_sn{}_tmpl{}.txt'.format(TARGET_SN, TEMPLATE_SPECTRA))
 SYSTEMATIC_VEL = 1320
+EM_RVSAO_FILE = os.path.join(RVSAO_PATH, 'emsao_bin_sci_sn{}_tmpl{}.txt'.format(TARGET_SN, TEMPLATE_SPECTRA))
+EM_RVSAO_BIN_LIST = os.path.join(RVSAO_PATH, 'em_bin_sci_sn{}_list.lis'.format(TARGET_SN))
 
 # pPXF parameters
 VEL_INIT = 1500.  # initial guess for velocity
@@ -137,7 +139,7 @@ LAM_RANGE = [4186, 5369]  # wavelength range for logarithmic rebinning (full wav
 # spectral resolution of sigma=6.4 km/s, R=20,000. The same caveats and advantages apply to this synthetic library as
 # to the previous one. From Munari et al. (2005)
 TEMPLATE_FITS = '/Users/kwebb/idl/cappellari/ppxf/spectra/Mun1.30z*.fits'
-TEMPLATE_RESOLUTION = 6.4  # FWHM of the template spectra *** ADAPT CALCULATION OF SIGMA ACCORDING TO UNITS ***
+TEMPLATE_RESOLUTION = 6.4 * 2.35 * 5100 / 3e5  # FWHM of the template spectra *** IN ANGSTROMS *** (Mun 6.4 km/s)
 
 # To create combined (averaged) spectra to determine mean flux of a specific wavelength range to plot
 # YOU DO NOT NEED TO CROP THE SPECTRA HERE, it is just a good idea to check that you measure the same velocity for
@@ -406,16 +408,14 @@ def ppxf_kinematics(bin_sci, ppxf_file, ppxf_bestfit, template_fits, template_re
         print('File {} already exists'.format(ppxf_file))
         return
 
-    assert os.path.exists(bin_sci.format(0)), 'Binned spectrum not found: {}'.format(bin_sci)
-
     # Read a galaxy spectrum and define the wavelength range
-    galaxy_spectra_files = glob.glob(bin_sci.format('*'))
+    assert len(glob.glob(bin_sci.format('*'))) > 0, 'Binned spectra {} not found'.format(glob.glob(bin_sci.format('*')))
 
     # hdu = fits.open(in_file[0])
     # gal_lin = hdu[0].data
-    #    h1 = hdu[0].header
+    # h1 = hdu[0].header
 
-    with fits.open(galaxy_spectra_files[0]) as gal_hdu:
+    with fits.open(bin_sci.format(0)) as gal_hdu:
         gal_lin = gal_hdu[0].data
         gal_hdr = gal_hdu[0].header
 
@@ -489,8 +489,6 @@ def ppxf_kinematics(bin_sci, ppxf_file, ppxf_bestfit, template_fits, template_re
     # Thus: The quadratic difference is sigma = sqrt(75^2 - 56.8^2) = 49.0 km/s
     # ---------------------------------------------------------------------------------
 
-    # IF TEMPLATE RESOLUTION IN KM/S CONVERT TO ANGSTROMS
-    template_resolution = template_resolution * 2.35 * 5100 / 3e5  # = 0.259 A for Mun spec with 6.5 km/s resolution
     FWHM_dif = np.sqrt(FWHM_gal ** 2 - template_resolution ** 2)
     sigma = FWHM_dif / 2.355 / h2['CDELT1']  # SIGMA DIFFERENCE IN PIXELS
 
@@ -526,22 +524,16 @@ def ppxf_kinematics(bin_sci, ppxf_file, ppxf_bestfit, template_fits, template_re
     h4_list = []
     dh3_list = []
     dh4_list = []
-    gp = []
 
-    for j in range(len(galaxy_spectra_files)):
-        # print('>>>>> {}  {}'.format(j, galaxy_spectra_files[j]))
+    for j in range(len(glob.glob(bin_sci.format('*')))):
 
-        with fits.open(galaxy_spectra_files[j]) as gal_hdu_j:
-            b_gal = gal_hdu_j[0].data
+        b_gal = fits.getdata(bin_sci.format(j), 0)
+
         b_gal = ndimage.gaussian_filter1d(b_gal, sigma)
 
         galaxy, logLam1, velscale = util.log_rebin(lam_range, b_gal, velscale=velscale)
         # error = galaxy*0 + 1 # Assume constant error
         noise = galaxy * 0 + 0.0049  # Assume constant noise per pixel here
-
-        # ''' Replace 0 values with interpretad values, check validity of this '''
-        # mask = np.isnan(galaxy)
-        # galaxy[mask] = np.interp(np.flatnonzero(mask), np.flatnonzero(~mask), galaxy[~mask])
 
         c = 299792.458
         dv = (logLam2[0] - logLam1[0]) * c  # km/s
@@ -642,64 +634,20 @@ def scopy_flux(flux_sci, flux_scopy_fits, flux_scopy_range, flux_scopy_file):
     np.array(flux_scopy_fits_i_data_mean).tofile(flux_scopy_file, sep='\n')
 
 
-def fxcor_bins(bin_sci, fxcor_bin_list, template_spectra, fxcor_file, ppxf_bestfit):
+def fxcor(spec, template_spec, spec_list_file, fxcor_output_file):
     """
     Run fxcor on the binned spectra to determine the relative velocity (with respect to the template spectra)
     INPUT: BIN_SCI, FXCOR_TEMPLATE
     OUTPUT: FXCOR_BIN_LIST, FXCOR_FILE(s)
     """
 
-    if os.path.exists(fxcor_file + '.txt'):
-        print('File {} already exists'.format(fxcor_file + '.txt'))
-        return
-
-    #fxcor_template = bin_sci.format(template_spectra)
-    fxcor_template = ppxf_bestfit.format(template_spectra)
-    assert os.path.exists(fxcor_template), 'Template spectra {} does not exist'.format(fxcor_template)
-
-    #bin_files = glob.glob(bin_sci.format('*'))
-    #assert len(bin_files) > 0, 'Input files {} do not exist'.format(bin_sci.format('*'))
-    #np.array(bin_files).tofile(fxcor_bin_list, sep='\n')
-    bin_files = glob.glob(ppxf_bestfit.format('*'))
-    assert len(bin_files) > 0, 'Input files {} do not exist'.format(bin_sci.format('*'))
-    new_list = fxcor_bin_list.strip('.lis') + '_bestfits.lis'
-    fxcor_file = fxcor_file + '_bestfits'
-    np.array(bin_files).tofile(new_list, sep='\n')
-
-    try:
-        dcflag = fits.getval(fxcor_template, "DC-FLAG")
-    except KeyError:
-        dcflag = None
-    print('>>>>> template has binning type {}'.format(dcflag))
-
-    from pyraf import iraf
-
-    iraf.noao()
-    iraf.rv()
-
-    try:
-        #iraf.fxcor('@{}'.format(fxcor_bin_list), fxcor_template, output=fxcor_file, continuum="both",
-        #           interactive="yes", order=1, high_rej=2, low_rej=2,  # osample="4500-5100", rsample="4500-5100",
-        #           rebin="smallest", imupdate="no", pixcorr="no", filter="both", f_type="welch", cuton=20, cutoff=1000,
-        #           fullon=30, fulloff=800, ra="RA", dec="DEC", ut="UTSTART", epoch="EQUINOX", verbose="nolog")
-        iraf.fxcor('@{}'.format(new_list), fxcor_template, output=fxcor_file, continuum="both",
-                   interactive="no", order=1, high_rej=2, low_rej=2,  # osample="4500-5100", rsample="4500-5100",
-                   rebin="smallest", imupdate="no", pixcorr="no", filter="both", f_type="welch", cuton=20, cutoff=1000,
-                   fullon=30, fulloff=800, ra="RA", dec="DEC", ut="UTSTART", epoch="EQUINOX", verbose="nolog")
-
-    except StopIteration:
-        os.remove(fxcor_file + '*')
-
-    assert os.path.exists(fxcor_file + '.txt'), 'Error in iraf.fxcor: File {} was not created'.format(
-        fxcor_file + '.txt')
-
-
-def fxcor_emission(spec, template_spec, spec_list_file, fxcor_output_file):
     if os.path.exists(fxcor_output_file + '.txt'):
         print('File {} already exists'.format(fxcor_output_file + '.txt'))
         return
 
-    spec_list = glob.glob(spec.format('*'))
+    spec_list = []
+    for i in range(len(glob.glob(spec.format('*')))):
+        spec_list.append(spec.format(i))
     assert len(spec_list) > 0, 'Input files {} do not exist'.format(spec.format('*'))
     np.array(spec_list).tofile(spec_list_file, sep='\n')
 
@@ -766,7 +714,7 @@ def ppxf_simulation(ppxf_bestfit, lam_range, target_sn, bias=0.6, spaxel=0):
 
     # dir = 'spectra/'
     # file = dir + 'Rbi1.30z+0.00t12.59.fits'
-    #   hdu = pyfits.open(file)
+    # hdu = pyfits.open(file)
     #   ssp = hdu[0].data
     #   h = hdu[0].header
 
@@ -884,7 +832,7 @@ def rebin(x, factor):
     return np.mean(x.reshape(-1, factor), axis=1)
 
 
-def rvsao_bins(bin_sci, ppxf_bestfit, template_spectra, rvsao_file):
+def rvsao_xcsao(bin_sci, ppxf_bestfit, template_spectra, rvsao_file):
     """
 
     """
@@ -898,11 +846,13 @@ def rvsao_bins(bin_sci, ppxf_bestfit, template_spectra, rvsao_file):
     iraf.images()
     iraf.rvsao()
 
-    bin_files = glob.glob(bin_sci.format('*'))
+    bin_files = []
+    for i in range(len(glob.glob(bin_sci.format('*')))):  # Do this so order is 0-61 (not 0, 1, 10, 11, etc)
+        bin_files.append(bin_sci.format(i))
+
     bestfit_template = ppxf_bestfit.format(template_spectra)
 
     bin_header = fits.getheader(bin_sci.format(template_spectra), 0)
-
     cd11 = fits.getval(bestfit_template, 'CD1_1')
     print('>>>>> CD1_1 is {}'.format(cd11))
     if cd11 is None:
@@ -914,6 +864,29 @@ def rvsao_bins(bin_sci, ppxf_bestfit, template_spectra, rvsao_file):
         iraf.xcsao(bin_spec, templates=bestfit_template, report_mode=2, logfiles=rvsao_file, displot='yes',
                    low_bin=10, top_low=20, top_nrun=80, nrun=211, zeropad="yes", nzpass=1, curmode="no", pkmode=1,
                    s_emchop="yes")
+
+
+def rvsao_emsao(em_bin_sci, em_bin_list_file, em_rvsao_file):
+    """
+    """
+
+    if os.path.exists(em_rvsao_file):
+        print('File {} already exists'.format(em_rvsao_file))
+        return
+
+    em_bin_list = []
+    for i in range(len(glob.glob(em_bin_sci.format('*')))):  # Do it this was to ensure order is 0-61 (not 0, 1, 10, 11, etc)
+        em_bin_list.append(em_bin_sci.format(i))
+    assert len(em_bin_list) > 0, 'Emission bin spectra do not exist: {}'.format(em_bin_sci.format('*'))
+    np.array(em_bin_list).tofile(em_bin_list_file, sep='\n')
+
+    from pyraf import iraf
+
+    iraf.images()
+    iraf.rvsao()
+
+    iraf.emsao('@{}'.format(em_bin_list_file), logfiles=em_rvsao_file, vel_init="guess", czguess=1500, linesig=1.,
+               displot="no", report_mode=2)
 
 
 def rebin_log_to_lin(bestfit_template):
@@ -967,7 +940,7 @@ def make_em_abs_spectra(bin_sci, ppxf_bestfit, em_bin_sci):
         assert os.path.exists(bin_file), 'Input spectra {} does not exist'.format(bin_file)
         bestfit_template = ppxf_bestfit.format(i)
         assert os.path.exists(bestfit_template), 'Bestfit spectra {} does not exist'.format(bestfit_template)
-        #bestfit_template_rebin = rebin_log_to_lin(bestfit_template)
+        # bestfit_template_rebin = rebin_log_to_lin(bestfit_template)
         #assert os.path.exists(bestfit_template_rebin), 'Rebinned bestfit spectra {} does not exist'.format(bestfit_template_rebin)
 
         # Create files with just absorption/just emission spectra (via operations with ppxf bestfit template spectra)
@@ -1054,6 +1027,14 @@ def clean_spec_30(bin_sci):
     orig_hdu.writeto(bin_spec_orig, clobber=True)
 
 
+def read_emsao_output(emaso_input):
+
+    emsao_vel = []
+    with open(emaso_input) as infile:
+        for line in infile:
+            emsao_vel.append(float(line.split()[3]))
+    return emsao_vel
+
 if __name__ == '__main__':
     """
     See detailed information at the top of the script
@@ -1075,7 +1056,7 @@ if __name__ == '__main__':
         os.mkdir(DIR_VAR_COMB)
 
     # To flatten 3D cube to 2D in specific wavelengths (Don't use these flattend cubes otherwise)
-    #    print('>>>>> Flattening 3D cube')
+    # print('>>>>> Flattening 3D cube')
     #    scrop_cube(IMAGE_CUBE, SCROP_RANGE, CUBE_SCROPD)
     #    imcombine_flatten(CUBE_SCROPD, SCI_EXT_SCROPD, VAR_EXT_SCROPD)
 
@@ -1094,31 +1075,38 @@ if __name__ == '__main__':
     #                    TEMPLATE_FITS, TEMPLATE_RESOLUTION, LAM_RANGE, VEL_INIT, SIG_INIT, 0)
     #    ppxf_simulation(PPXF_BESTFIT.strip('.fits') + '_bias0.fits', LAM_RANGE, TARGET_SN, bias=0.5, spaxel=0)
 
-    #    ppxf_vel = ppxf_kinematics(BIN_SCI, PPXF_FILE, PPXF_BESTFIT, TEMPLATE_FITS, TEMPLATE_RESOLUTION, LAM_RANGE,
-    #                           VEL_INIT, SIG_INIT, bias=0.6)
+    ppxf_vel = ppxf_kinematics(BIN_SCI, PPXF_FILE, PPXF_BESTFIT, TEMPLATE_FITS, TEMPLATE_RESOLUTION, LAM_RANGE,
+                               VEL_INIT, SIG_INIT, bias=0.6)
     # Plot results
-    #    ppxf_vel, ppxf_sig, h3, h4, ppxf_dvel, ppxf_dsig, dh3, dh4 = np.loadtxt(PPXF_FILE, unpack=True)
+    ppxf_vel, ppxf_sig, h3, h4, ppxf_dvel, ppxf_dsig, dh3, dh4 = np.loadtxt(PPXF_FILE, unpack=True)
     #    ppxf_vel, ppxf_dvel = np.loadtxt(PPXF_FILE.strip('.txt')+'_subsysvel.txt', unpack=True)
-    #    plot_velfield_setup(ppxf_vel, V2B_XY_FILE, FLUX_SCOPY_FILE)
+    plot_velfield_setup(ppxf_vel, V2B_XY_FILE, FLUX_SCOPY_FILE)
 
     # Run rv fxcor
-    #    fxcor_bins(BIN_SCI, FXCOR_BIN_LIST, TEMPLATE_SPECTRA, FXCOR_FILE, PPXF_BESTFIT)
+    #    fxcor(BIN_SCI, TEMPLATE_SPECTRA, FXCOR_BIN_LIST, FXCOR_FILE)
+    #    make_em_abs_spectra(BIN_SCI, PPXF_BESTFIT, EM_BIN_SCI)
+    #    fxcor(EM_BIN_SCI, TEMPLATE_SPECTRA, EM_FXCOR_BIN_LIST, EM_FXCOR_FILE)
 
-    make_em_abs_spectra(BIN_SCI, PPXF_BESTFIT, EM_BIN_SCI)
-    fxcor_emission(EM_BIN_SCI, TEMPLATE_SPECTRA, EM_FXCOR_BIN_LIST, EM_FXCOR_FILE)
-
-    #    fxcor_vel = pd.read_table('{}.txt'.format(FXCOR_FILE), sep=r"\s*", engine='python', skiprows=16, usecols=[10],
+    #   fxcor_vel = pd.read_table(FXCOR_FILE + '.txt', sep=r"\s*", engine='python', skiprows=16, usecols=[10],
     #                          names=["vrel"], squeeze=True).values
-    fxcor_vel = pd.read_table('{}.txt'.format(EM_FXCOR_FILE), sep=r"\s*", engine='python', skiprows=16, usecols=[10],
-                              names=["vrel"], squeeze=True).values
-    plot_velfield_setup(fxcor_vel, V2B_XY_FILE, FLUX_SCOPY_FILE)
+    #   em_fxcor_vel = pd.read_table(EM_FXCOR_FILE + '.txt', sep=r"\s*", engine='python', skiprows=16, usecols=[10],
+    #                          names=["vrel"], squeeze=True).values
+    #   plot_velfield_setup(fxcor_vel, V2B_XY_FILE, FLUX_SCOPY_FILE)
+    #   plot_velfield_setup(em_fxcor_vel, V2B_XY_FILE, FLUX_SCOPY_FILE)
 
     # Run rvsao xcsao
-    #    rvsao_bins(BIN_SCI.split('bin')[0]+'ablines_bin'+BIN_SCI.split('bin')[1], PPXF_BESTFIT.strip('.fits')+'_rebin.fits',
-    #               TEMPLATE_SPECTRA, RVSAO_FILE.strip('.txt')+'_rebin.txt')
-    #    rvsao_bins(BIN_SCI, PPXF_BESTFIT, TEMPLATE_SPECTRA, RVSAO_FILE)
-    #    xcsao_vel = pd.read_table(RVSAO_FILE, sep=r"\s*", engine='python', usecols=[3], names=["vrel"], squeeze=True).values
-    #    plot_velfield_setup(xcsao_vel, V2B_XY_FILE, FLUX_SCOPY_FILE)
+    #    rvsao_xcsao(BIN_SCI.split('bin')[0] + 'ablines_bin' + BIN_SCI.split('bin')[1], PPXF_BESTFIT.strip('.fits') +
+    #               '_rebin.fits', TEMPLATE_SPECTRA, RVSAO_FILE.strip('.txt') + '_rebin.txt')
+    #   rvsao_xcsao(BIN_SCI, PPXF_BESTFIT, TEMPLATE_SPECTRA, RVSAO_FILE)
+    #   rvsao_emsao(EM_BIN_SCI, EM_RVSAO_BIN_LIST, EM_RVSAO_FILE)
+    #   xcsao_vel = pd.read_table(RVSAO_FILE, sep=r"\s*", engine='python', usecols=[3], names=["vrel"], squeeze=True).values
+    #   plot_velfield_setup(xcsao_vel, V2B_XY_FILE, FLUX_SCOPY_FILE)
+    #   emsao_vel = read_emsao_output(EM_RVSAO_FILE)
+    #   plot_velfield_setup(emsao_vel, V2B_XY_FILE, FLUX_SCOPY_FILE)
+
+
+##### NOT PLOTTING IN THE CORRECT ORDER YOU IDIOT
+
 
 """
 EXAMPLES OF THE SCRIPT OUTPUT
