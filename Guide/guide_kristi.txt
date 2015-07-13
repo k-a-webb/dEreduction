@@ -24,9 +24,16 @@ I make an effort to reproduce her results but using the standard IRAF gmos tasks
 	    - plotting the results
 
 	- Kinematic analysis with Python
+	    - Flatten (optional, kinda, do here or after preprocessing)
+	    - Scrop flatten (optional)
 	    - Binning
    	    - pPXF
 	    - plotting the results
+	    - fxcor
+	    - rvsoa
+	    - check if velocity shift between CCDs
+
+Michele Cappellari’s Voronoi binning and pPXF programs can be found here: http://www-astro.physics.ox.ac.uk/~mxc/software/
 
 
 
@@ -120,7 +127,7 @@ This updated version of ifuproc was named ‘ifuproc_gqecorr.cl’.
 	  the function I produced was very similar to that of Gwen’s, it was not the exact same shape. 
 	**** Test to see if this has a significant effect
 
-In order to determine the best reduction method, a comparison was made to find the minimized wavelength shift between the two IFU slits. The various methods tested were: Gwen’s original method as detailed in her script ‘preliminary_reduction.cl’, a reproduction of Gwen’s method using her version of scripts and IRAF tasks, using James’ reduction method with Bryan’s IRAF tasks (which require the original ifuproc), James’ method with the standard IRAF tasks, and James’ method with James’ IRAF tasks (which include an improved method of flat- fielding). The comparison between the methods is shown in ‘wavelength shift.txt’.
+In order to determine the best reduction method, a comparison was made to find the minimized wavelength shift between the two IFU slits. The various methods tested were: Gwen’s original method as detailed in her script ‘preliminary_reduction.cl’, a reproduction of Gwen’s method using her version of scripts and IRAF tasks, using James’ reduction method with Bryan’s IRAF tasks (which require the original ifuproc), James’ method with the standard IRAF tasks, and James’ method with James’ IRAF tasks (which include an improved method of flat- fielding). The comparison between the methods is shown in ‘wavelength shift.txt’. Also see the section “Check if velocity shift between CCDs” for more information.
 
 The best method was James’ reduction method with James’ IRAF tasks, so this was used to preform the reduction. As we expect James’ methods in his tasks will be included in the next update of the gmos tasks we do not worry about whether others cannot reproduce our results. The only task of James’ that I did not use was ‘gfresponse.cl’ as it is currently not capable of handling twilights.
 
@@ -177,6 +184,8 @@ James has written an IRAF package ‘pyfu’ which includes the tasks ‘pyfalig
 	  make any sense to use James’ reduction method with Gwen’s cubing method.
 
 I then flatten the science and variance extension of the 3D cube to be processed by the voronoi 2D binning method.
+
+This can also be acomplised in the script described below (‘do_all.py’) if you’d rather avoid IRAF at all costs… (good luck with that).
   
   cl>  imcombine dcsteqpxbprgN20051205S0006_add.fits[sci] IC225_2D_sci.fits project=yes
   cl>  imcombine dcsteqpxbprgN20051205S0006_add.fits[var] IC225_2D_var.fits project=yes
@@ -246,7 +255,7 @@ Now run the binning program ‘v2b_IC225_centroid.pro’ which requires ‘voron
 
 	**** To be able to run this you need to remove the rows with 0.0000 noise from the input file
 
-****** WHY, SEEMS SHADY ************************************************
+****** WHY?, SEEMS SHADY ************************************************
 
 		INPUT: idl_proc/x_y_signal_noise.txt
 		OUTPUT: idl_proc/v2b_output_sn30.txt, idl_proc/v2b_output_sn30_XBIN_cent.txt, 
@@ -394,43 +403,69 @@ Then the results are plotted with the script ‘/idl/cappellari/misc/plot_ppxf_3
 Kinematic analysis - Python method
 ——————————————————————————————————
 
+To do absolutely everything!!! I kid, but everything is in here.
+
 	$ python do_all.py
 
 All the steps necessary to create the input spectra for pPXF are handled in the script ‘do_all.py’ as well as running pPXF. I will outline the steps in the script below, there are also brief descriptions in the script itself.
 
 	- instead of using the folder name ‘idl_proc’ I use ‘doall_proc_{S/N}’ because it makes more sense dammit.
 
-By comparison of several different S/N_min it looks like a S/N of ~20 gives good enough resolution for the kinematic analysis
+By comparison of several different S/N_min it looks like a S/N of ~20 gives good enough resolution for the kinematic analysis.
 
-BINNING
+The S/N, file names, and path names are hardcoded in at the top of the ‘do_all.py’ script, so they will need to be edited manually according to how you want to sue the script. Also the methods you use are in the bottom __init__ method, uncomment them as needed. They should work according to the variabels named at the top of the script.
+
+FLATTEN (optional step depending on how you did the last of the preprocessing)
 ———————
 
-The S/N, file names, and path names are hardcoded in at the top of the ‘do_all.py’ script, so they will need to be edited manually.
+This just takes the cube and flattens it (for the whole spectral range!) into 2D. It runs imcombine the same way as I described above and as Gwen did, jsut conveniently implemented in Python!
+
+		INPUT: dcsteqpxbprgN20051205S0006_add.fits
+		OUTPUT: IC225_2D_sci.fits, IC225_2D_var.fits
+
+SCROP FLATTEN (again, optional, basically just for visual comparison of different wavelength ranges)
+—————————————
+
+This just involves cropping the 3D cube to a specific spectral range before flattening. The wavelength ranges I examine include:
+    - OIII: 4980-5035 A (4959-5700/5368.54488701)
+    - H_beta: 4883-4887 A
+    - H_gamma: 4360-4362 A
+    - continuum: 4370-4870 A
+
+		INPUT: dcsteqpxbprgN20051205S0006_add.fits
+		OUTPUT: IC225_2D_sci_{lambda_start}_{lambda_end}.fits, IC225_2D_var_{lambda_start}_{lambda_end}.fits
+
+
+BINNING - the ACTUAL start of the analysis
+———————
 
 The first step is to create the input file for the voronoi 2D binning which consists of a text file with the x/y coordinates and the corresponding signal to noise. I used the same method as gwen in ‘make_table.pro’. 
 
-As the noise must be positive values in ‘voronoi_2d_binning.py’ make sure to remove any lines where the varanice == 0. 
+As the noise must be positive values in ‘voronoi_2d_binning.py’ make sure to remove any lines where the variance == 0. 
 
 **** MAYBE NEED TO CROP IMAGE??? MAYBE WRITE IN SOMETHING TO AUTOMATICALLY IGNORE THESE VALUES??? ********************
 **** SHOULD WE IGNORE THE NEGATIVE VALUES OR TABLE ABSOLUTE VALUES???? ********************
 
-		INPUT: IC225_2D_james_sci.fits, IC225_2D_james_var.fits
+		INPUT: IC225_2D_sci.fits, IC225_2D_var.fits
 		OUTPUT: doall_proc_20/x_y_signal_noise.txt
 
-Then run the voronoi binning which outputs a list of x/y coordinates and their respective bin number in a text file ‘ppxf_proc/v2b_output_sn30.txt’ and the other coordinate measurements in ‘ppxf_proc/v2b_output_sn30_xy.txt’. And example of the console output is shown at the bottom of the script.
+Then run the voronoi binning which outputs a list of x/y coordinates and their respective bin number in a text file ‘doall_proc_20/v2b_output_sn30.txt’ and the other coordinate measurements in ‘doall_proc_20/v2b_output_sn30_xy.txt’. And example of the console output is shown at the bottom of the do_all script.
 
 		INPUT: doall_proc_20/x_y_signal_noise.txt
 		OUTPUT: doall_proc_20/v2b_output_sn20.txt, doall_proc_20/v2b_output_sn20_xy.txt, 
 
 Before this can be put through pPXF the spectra need to be organized with respect to their bin. This involves making lists of which spectra are in each bin, then combining the spectra of the same bin. Gwen does this with her script ‘make_binned_spectra.cl’ which uses awk to produce a file ‘awkprogram.cl’ which you then run in IRAf. I do something equivalent in Python.
-Despite choose a smaller minimum bin value than Gwen (this is because the S/N I calculate differs from Gwen’s, see Analysis of differences section) it 
+Basically she uses imcombine to combine all the spectra of the same bin in ‘bin’ fits files.
+Despite choose a smaller minimum bin value than Gwen (this is because the S/N I calculate differs from Gwen’s, see Analysis of differences section) the S/N I have requires many spectra to be combined to meat this minimum.
+I cannot use imcombine because it routinely fails when there are too many images. So I have have rewritten an equivalent method in Python. 
+Also in this step I produce flux fits files, where the average (rather than the sum which is used to increase the S/N) flux of the combined images can be calculated. 
 
 
 		INPUT: dcsteqpxbprgN20051205S0006_add.fits, doall_proc_20/v2b_output_sn20.txt
-		OUTPUT: doall_proc_20/comb_lists_sci_20/imcomb_sci_*.lis, doall_proc_{S/N}/comb_lists_var_30/imcomb_var_*.lis,
-			doall_proc_20/comb_fits_sci_20/bin_sci_*.fits, doall_proc_{S/N}/comb_fits_var_30/bin_var_*.fits
+		OUTPUT: doall_proc_20/comb_fits_sci_20/bin_sci_*.fits, doall_proc_20/comb_fits_sci_20/flux_sci_*.fits
+			doall_proc_20/comb_fits_var_20/bin_var_*.fits, doall_proc_20/comb_fits_var_20/flux_var_*.fits
 
-The combined spectra (in my case ppxf_proc/comb_fits_sci_30/bin_sci_*.fits) will be what you input into pPXF
+The combined spectra (flux summed) will be what you input into pPXF.
 
 
 pPXF
@@ -440,119 +475,106 @@ I have rewritten an example script in the latest version of the Python pPXF dist
 
 I think Gwen’s script (ppxf_IC225_1.pro) may be an outdated script. In her ‘easier to follow’ section of her IDL guide she uses ‘ppxf_IC225_full_length_30_s_n.pro’ instead. This script uses a different template - Mun, with it being implemented more like the Sauron example script which is provided with the pPXF download. I have rewritten this as ‘ppxf_IC225_fulllength.py’. This has *almost* the same functionaliy, with the exception of the second for loop which logarithmically rebinns all the galaxy spectra as this step was not included in the Sauron example. This is the template I use in ‘do_all.py’, and I follow the same method here as in ‘ppxf_IC225_fulllength.py’
 
-The names of the template files and the 2D image file are hardcoded and will require the file to be edited, as well as with the changes specified above for Gwen’s equivalent script.
+The names of the template files and the 2D image file are hardcoded and will require the file to be edited, as well as with the changes specified above for Gwen’s equivalent script. Except the goodpixels. This is now handled by a python function included inthe new ppxf util, and it seems to work  very well.
+
+I have also adapted the way that gwen calculates the ‘sigma’ (I’m a bit confused how she does this actually) to work with the actual resolution of the synthetic spectra Munori template (http://adsabs.harvard.edu/abs/2005A%26A...442.1127). I use (See the script for more details). It’s one of the templates that is recommened on Cappelari’s website. 
 
 The logarithmic rebinning of the cropped spectra is handled in either ppxf* script rather than having to do it explicitly. I had rewritten gwen’s script in python though, ‘log_rebin_IC225.py’ before I realized the step wasn’t necessary; so it’s there if you need it……
 
-So now we can run ‘ppxf_IC225_fulllength.py’. An example of the output can be found at the end of the script.
+Before we run pPXF though we need to determine a good penalty (BIAS) value to use for our data. See Cappellari’s readme.txt in her pPXF distribution for more details (actually it’s rather sparse on details).
 
-		INPUT: ppxf_proc/comb_fits_sci_30/bin_sci_*.fits, idl/cappellari/ppxf/spectra/Mun1.30z*.fits
-		OUTPUT:  ppxf_proc/ppxf/vel_sigma_output_sn30.txt, ppxf_proc/ppxf/vel_output_sn30.txt, 
-			ppxf_proc/ppxf/ppxf_bestfit_sn30.fits, ppxf_proc/ppxf/ppxf_error_sn30.fits
 
-MONTE CARLO
+So now we can run pPXF. An example of the output can be found at the end of the script.
 
-When running with bias=0 observe the h3 h4 terms along with their respective errors. The values of both which are close the limit of -0.3 and +0.3 typically are null measurements. We therefore consider only the values with small errors and those not around the limit (ie with values in the range -0.15-0.15 only and with errors less than 1) -> h3=-0.003146 h4=0.000112583
 
-In selecting the velocity we estimated the systematic velocity and subtracted this from the measured velocity in pPXF = 120 km/s
-V / velscale = 120 / 51 = 2.35
 
+————— MONTE CARLO for errors
+
+First run pPXF with BIAS=0. Observe the h3 h4 terms along with their respective errors in the output text file. The values of both which are close the limit of -0.3 and +0.3 typically are null measurements. We therefore consider only the values with small errors and those not around the limit (ie with values in the range -0.15-0.15 only and with errors less than 1) -> h3=-0.003146 h4=0.000112583
+
+Now put these values in the python monte carlo simulation method. According to Cappellari’s instruction for this you only need to change the h3 and h4 variables(?) and not ‘sigmaV’ or ‘vel’ (?). It didn’t seen to make a big difference anyways so I left them as they were in teh template.
+
+I select a bias of 0.6. Put this into the actual run of pPXF
+
+————— run pPXF
+
+Make sure you have the proper bias value.
+
+		INPUT: doall_proc_20/comb_fits_sci_20/bin_sci_*.fits, idl/cappellari/ppxf/spectra/Mun1.30z*.fits
+		OUTPUT:  doall_proc_20/ppxf_output_sn20.txt, doall_proc_20/ppxf_proc/bestfit_*.fits
 
 
 PLOTTING THE RESULTS
 ————————————————————
 
-Basically the same as Gwen’s method as I haven’t figured out how to use scrop in Python
+First calculate the average flux in each bin for a given spectral range (i.e. the full range available). This is done in ‘scopy_flux’.
+
+		INPUT: doall_proc_20/comb_fits_sci_20/flux_sci_*.fits, spectral range
+		OUTPUT: doall_proc_20/binned_flux_20.txt
+
+Then read in the velocity information from the pPXF output, and the spatial information from the voronoi binning output. Throw all this into ‘plot_velfield_setup’ which setup’s Cappellari’s method ‘plot_velfield’. Observe output plot. Ooo pretty colours.
+
+		INPUT: doall_proc_20/binned_flux_20.txt, doall_proc_20/ppxf_output_sn20.txt, doall_proc_20/v2b_output_sn20.txt
 
 
-Make the overplot data and the continuum spectral region, the same as Gwen, just conveniently written in the script 
-  ‘idl_proc/make_overplot_data.cl’
+FXCOR
+—————
 
-  cl>  cl < make_overplot_data.cl
+So we want to able to compare different methods to do the kinematic analysis. pPXF is great because it automatically rejects emission lines in order to calculate the stellar velocity field from the absorption spectrum alone. Great! But let’s see what we can do with fxcor, which is perhaps a more traditional program to use. 
 
-		INPUT: @comb_lists_sci_30/imcomb_sci_*.lis
-		OUTPUT: bin_spec_sn30/flux_*.fits, bin_spec_sn30/cont_flux_*.fits, bin_spec_sn30/binned_cont_flux.lis
-
-	- Load some tasks…
-  IDL>  .r  /Applications/exelis/idl83/lib/reverse.pro
+First issue - how do we get the absorption spectra to do the stellar kinematic analysis? (i.e. delete those pesky emission lines)
+Well, pPXF applied a pretty fancy technique to optimize template spectra selection, and outputs the best fitting template into a fits file (while I wrote in the feature to save it as a fits file). This should represent the absorption spectrum pretty well, and we can use it to remove the emission lines. Great! This involves subtracting the bestfitting template fromthe original spectra leaving the emission lines. We cannot subtract the emission lines from the original spectra directly though (that would leave us with the best fitting template), so you would need to convolved the emission lines with a gaussian, then subtract them. This is the technique initially used by the SAURON project (http://adsabs.harvard.edu/abs/2001MNRAS.326...23B). In their third paper though (http://adsabs.harvard.edu/abs/2004MNRAS.352..721E) Cappellari’s technique has been around for a while and they use this instead, stating the results are equivalent to their earlier technique. Great! So we should expect both to give the same result. Do we? ******************************************
 
 
-  IDL>  .r /Users/kwebb/IFU_reduction/idl_proc/plot_ppxf_30.pro
-  IDL>  plot_ppxf_30
+What we can do easily with fxcor is the kinematic analysis of the emission lines. Select a spaxel bin with a nice high S/N, preferably in the center of the galaxy, to use as the template, and run! In the output plot (input the velocity information from fxcor into plot_velfield_setup jsut like we did for pPXF) we can see that there’s an obvious velocity difference top to bottom across the galaxy indicative or rotation. Or is it? 
 
-		INPUT: idl_proc/v2b_output_sn30_xbin_cent, idl_proc/v2b_output_sn30_ybin_cent, 
-			idl_proc/ppxf/vel_output_sn30.txt, idl_proc/bin_spec_sn30/binned_cont_flux.lis
-		OUTPUT: plots/continuum_velfield_sn30.png (saved manually)
+The next hing would be to ensure that this is not an artificial effect of the difference in applying the same wavelength solution in the preprocessing to both the CCDs despite slight differences. Spoiler, it doesn’t look like an artificial effect. See section ‘Check if velocity shift between CCDs’ below for more information about this.
 
+		INPUT: doall_proc_20/comb_fits_sci_20/bin_sci_*.fits
+		OUTPUT: doall_proc_20/fxcor_proc/bin_sci_sn20_list.lis, doall_proc_20/fxcor_proc/fxcor_bin_sci_sn20_tmpl6.txt,
+			doall_proc_20/fxcor_proc/em_bin_sci_sn20_list.lis, doall_proc_20/fxcor_proc/fxcor_em_bin_sci_sn20_tmpl6.txt
+
+
+RVSAO
+—————
+
+So we can do a kinematic analysis of the stellar kinematics with pPXF and with fxcor (albeit complicatedly, and should get the same results). But surely there is an IRAF task which does the same cross correllation as fxcor but removes the emission features?! And there is! Well, in theory.
+
+The rvsao task xcsao should be able to preform the same cross correlation (see help for details about this) as fxcor while chopping off the emission lines. The trick here is getting it to work. *************************************
+
+Well what about the velocity velocity field of the emission lines? The task emsao can calculate this. And we expect the results from this task to closely match that of the fxcor emission line kinematics. 
+
+Again we check if the apparently rotation is an effect of the difference between the two CCDs. Again it looks like it’s not.
 
 
 CHECK IF VELOCITY SHIFT BETWEEN CCDS
 ————————————————————————————————————
 
-In the plots we want to ensure the ‘rotation’ feature we can see (i.e. the velocity difference at the top of the galaxy and the bottom) is not a feature of a shift in the wavelength correction between the CCDs. 
+In the plots we want to ensure the ‘rotation’ feature we can see (i.e. the velocity difference at the top of the galaxy and the bottom) is not a feature of a shift in the wavelength correction between the CCDs. So let’s go back to the preprocessing and calculated the velocity/pixel shift needed to correct for the difference in the correction. I do this with the script ‘wavelength_shift_check/reduce_and_cube_with_shift.cl’ which basically just includes the task ‘gfshift’ to apply the shift. In order to calculate the shift needed for each galaxy image, refer to the ‘Measure velocity difference between…’ section in the script. It’s the example Gwen has in her script actually. I’ll highlight the steps. 
+
+Transform the first arc, make sure to use Bryan’s version of gftransform and in IRAF (pyraf gives a wird error with one of the variables)
+   cl > gftransform ergN20051205S0008.fits wavtraname=ergN20051205S0008
+Determine the correction, use Gwen’s version of gfxcor in pyraf (iraf gives a weird error, convenient eh?). Continue in pyraf.
+   ——> gfxcor tergN20051205S0008.fits obs=Gemini-North
+Separate out the regions of the two CCDs
+   ——> tselect tergN20051205S0008.fits[mdf] slit1.fits "NO <= 750"
+   ——> tselect tergN20051205S0008.fits[mdf] slit2.fits "NO >= 751"
+Calculate the difference, first in pixels then in relative velocity
+   ——> tstat s008_1.fits,s008_2.fits SHIFT lowlim=-9999.0 highlim=15.
+   ——> tstat s008_1.fits,s008_2.fits VREL lowlim=-9999.0 highlim=10.
+The difference is the mean of s008_2.fits minus s008_1.fits (Then the shift is the negative of this, just to be arbitrarily confusing with the math, but also to follow Gwen’s example)
+Repeat for the second arc, the shift correction is then the average of the two values. 
+The velocity shift is just informative, I do nothing with it. The shift applied is in pixels.
+
+I use this method also to determine which of the reduction methods is the best - i.e. the best method requires the smallest shift. 
 
 
+—— Notes
 
+in doall_sci_20:
+	- cleaned noise in bin 54
 
-
-
-
-
-
-
-####################################################################################################################
-Test notes:
-
-voronoi_2d_binning.py output at SN=30
-
-	41  initial bins.
-	Reassign bad bins...
-	26  good bins.
-	Modified Lloyd algorithm...
-	Iter:    1  Diff: 139.2
-	Iter:    2  Diff: 13.32
-	Iter:    3  Diff: 6.005
-	Iter:    4  Diff: 3.506
-	Iter:    5  Diff: 1.943
-	Iter:    6  Diff: 1.511
-	Iter:    7  Diff: 0.9909
-	Iter:    8  Diff: 0.4755
-	Iter:    9  Diff: 0.5045
-	Iter:   10  Diff: 0.2212
-	Iter:   11  Diff: 0.1989
-	Iter:   12  Diff: 0.06859
-	Iter:   13  Diff: 0.1068
-	Iter:   14  Diff: 0.1636
-	Iter:   15  Diff: 0.08666
-	Iter:   16  Diff: 0.07709
-	Iter:   17  Diff: 0.1417
-	Iter:   18  Diff: 0.06984
-	Iter:   19  Diff: 0.0317
-	Iter:   20  Diff: 0.009915
-	Iter:   21  Diff: 0
-	20  iterations.
-	Unbinned pixels:  0  /  3600
-	Fractional S/N scatter (%): 13.3416729619
-
-
-
-#####################################################################################################################
-
-
-
-
-
-—————
-FXCOR
-—————
-
-ran fxcor with default parameters on binned spectra with SN 15 like gwen did (in her paper she mentions this)
-output = fxcor_proc/fxcor_binned_spec_sn15*
-
-
-
-
-
-——
+in doall_sci_20_shift:
+	- cleaned noise in bin 30
 
 
