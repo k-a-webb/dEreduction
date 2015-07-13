@@ -178,8 +178,8 @@ James has written an IRAF package ‘pyfu’ which includes the tasks ‘pyfalig
 
 I then flatten the science and variance extension of the 3D cube to be processed by the voronoi 2D binning method.
   
-  cl>  imcombine dcsteqpxbprgN20051205S0006_add.fits[sci] IC225_2D_james_sci.fits project=yes
-  cl>  imcombine dcsteqpxbprgN20051205S0006_add.fits[var] IC225_2D_james_var.fits project=yes
+  cl>  imcombine dcsteqpxbprgN20051205S0006_add.fits[sci] IC225_2D_sci.fits project=yes
+  cl>  imcombine dcsteqpxbprgN20051205S0006_add.fits[var] IC225_2D_var.fits project=yes
 
 
 
@@ -302,6 +302,8 @@ The main file that runs pPXF is ‘idl/cappellari/ppxf/ppxf_IC225_1.pro’ and r
 
 Crop the spectra to the wavelenth range available in the template spectra:
 
+	**** I believe this is done with the IRAF standard scrop, not gwen’s version (?)
+
   cl> scrop idl_proc/comb_fits_sci_30/bin_sci_100.fits idl_proc/comb_fits_sci_30/bin_sci_crop_100.fits w1=4800 w2=5366
 
     - I have written a script, ‘crop_spectra.cl’, which does this for each file.
@@ -396,14 +398,14 @@ Kinematic analysis - Python method
 
 All the steps necessary to create the input spectra for pPXF are handled in the script ‘do_all.py’ as well as running pPXF. I will outline the steps in the script below, there are also brief descriptions in the script itself.
 
-	- instead of using the folder name ‘idl_proc’ I use ‘ppxf_proc’ because it makes more sense dammit.
+	- instead of using the folder name ‘idl_proc’ I use ‘doall_proc_{S/N}’ because it makes more sense dammit.
+
+By comparison of several different S/N_min it looks like a S/N of ~20 gives good enough resolution for the kinematic analysis
 
 BINNING
 ———————
 
 The S/N, file names, and path names are hardcoded in at the top of the ‘do_all.py’ script, so they will need to be edited manually.
-
-**** To be determined if the methods are equivalant ************************************************************
 
 The first step is to create the input file for the voronoi 2D binning which consists of a text file with the x/y coordinates and the corresponding signal to noise. I used the same method as gwen in ‘make_table.pro’. 
 
@@ -413,19 +415,20 @@ As the noise must be positive values in ‘voronoi_2d_binning.py’ make sure to
 **** SHOULD WE IGNORE THE NEGATIVE VALUES OR TABLE ABSOLUTE VALUES???? ********************
 
 		INPUT: IC225_2D_james_sci.fits, IC225_2D_james_var.fits
-		OUTPUT: ppxf_proc/x_y_signal_noise.txt
+		OUTPUT: doall_proc_20/x_y_signal_noise.txt
 
 Then run the voronoi binning which outputs a list of x/y coordinates and their respective bin number in a text file ‘ppxf_proc/v2b_output_sn30.txt’ and the other coordinate measurements in ‘ppxf_proc/v2b_output_sn30_xy.txt’. And example of the console output is shown at the bottom of the script.
 
-		INPUT: ppxf_proc/x_y_signal_noise.txt
-		OUTPUT: ppxf_proc/v2b_output_sn30.txt, ppxf_proc/v2b_output_sn30_xy.txt, 
+		INPUT: doall_proc_20/x_y_signal_noise.txt
+		OUTPUT: doall_proc_20/v2b_output_sn20.txt, doall_proc_20/v2b_output_sn20_xy.txt, 
 
-Before this can be put through pPXF the spectra need to be organized with respect to their bin. This involves making lists of which spectra are in each bin, then combining the spectra of the same bin. Gwen does this with her script ‘make_binned_spectra.cl’ which uses awk to produce a file ‘awkprogram.cl’ which youthen run in IRAf. I do something equivalent in Python.
-Both methods produce folders with the lists, one for the science and one for the variance. I name mine: ‘ppxf_proc/comb_lists_sci_{S/N}’ and ‘ppxf_proc/comb_lists_var_{S/N}’. Gwen does something similar. 
+Before this can be put through pPXF the spectra need to be organized with respect to their bin. This involves making lists of which spectra are in each bin, then combining the spectra of the same bin. Gwen does this with her script ‘make_binned_spectra.cl’ which uses awk to produce a file ‘awkprogram.cl’ which you then run in IRAf. I do something equivalent in Python.
+Despite choose a smaller minimum bin value than Gwen (this is because the S/N I calculate differs from Gwen’s, see Analysis of differences section) it 
 
-		INPUT: dcsteqpxbprgN20051205S0006_add.fits, idl_proc/v2b_output_sn30.txt
-		OUTPUT: ppxf_proc/comb_lists_sci_30/imcomb_sci_*.lis, ppxf_proc/comb_lists_var_30/imcomb_var_*.lis,
-			ppxf_proc/comb_fits_sci_30/bin_sci_*.fits, ppxf_proc/comb_fits_var_30/bin_var_*.fits
+
+		INPUT: dcsteqpxbprgN20051205S0006_add.fits, doall_proc_20/v2b_output_sn20.txt
+		OUTPUT: doall_proc_20/comb_lists_sci_20/imcomb_sci_*.lis, doall_proc_{S/N}/comb_lists_var_30/imcomb_var_*.lis,
+			doall_proc_20/comb_fits_sci_20/bin_sci_*.fits, doall_proc_{S/N}/comb_fits_var_30/bin_var_*.fits
 
 The combined spectra (in my case ppxf_proc/comb_fits_sci_30/bin_sci_*.fits) will be what you input into pPXF
 
@@ -446,6 +449,14 @@ So now we can run ‘ppxf_IC225_fulllength.py’. An example of the output can b
 		INPUT: ppxf_proc/comb_fits_sci_30/bin_sci_*.fits, idl/cappellari/ppxf/spectra/Mun1.30z*.fits
 		OUTPUT:  ppxf_proc/ppxf/vel_sigma_output_sn30.txt, ppxf_proc/ppxf/vel_output_sn30.txt, 
 			ppxf_proc/ppxf/ppxf_bestfit_sn30.fits, ppxf_proc/ppxf/ppxf_error_sn30.fits
+
+MONTE CARLO
+
+When running with bias=0 observe the h3 h4 terms along with their respective errors. The values of both which are close the limit of -0.3 and +0.3 typically are null measurements. We therefore consider only the values with small errors and those not around the limit (ie with values in the range -0.15-0.15 only and with errors less than 1) -> h3=-0.003146 h4=0.000112583
+
+In selecting the velocity we estimated the systematic velocity and subtracted this from the measured velocity in pPXF = 120 km/s
+V / velscale = 120 / 51 = 2.35
+
 
 
 PLOTTING THE RESULTS
@@ -471,7 +482,14 @@ Make the overplot data and the continuum spectral region, the same as Gwen, just
 
 		INPUT: idl_proc/v2b_output_sn30_xbin_cent, idl_proc/v2b_output_sn30_ybin_cent, 
 			idl_proc/ppxf/vel_output_sn30.txt, idl_proc/bin_spec_sn30/binned_cont_flux.lis
-		OUTPUT: 
+		OUTPUT: plots/continuum_velfield_sn30.png (saved manually)
+
+
+
+CHECK IF VELOCITY SHIFT BETWEEN CCDS
+————————————————————————————————————
+
+In the plots we want to ensure the ‘rotation’ feature we can see (i.e. the velocity difference at the top of the galaxy and the bottom) is not a feature of a shift in the wavelength correction between the CCDs. 
 
 
 
@@ -482,50 +500,59 @@ Make the overplot data and the continuum spectral region, the same as Gwen, just
 
 
 
-
-
-
-
-
-##################################################################################################################################
+####################################################################################################################
 Test notes:
 
-voronoi_2d_binning.py does not accept blank (0) pixels.
+voronoi_2d_binning.py output at SN=30
 
-- remove pixels with 0 signal and noise from x_y_signal_noise.txt
-
-	- voronoi_2d_binning.py output
-
-		2996  initial bins.
-		Reassign bad bins...
-		2943  good bins.
-		Modified Lloyd algorithm...
-		Iter:    1  Diff: 35.23
-		Iter:    2  Diff: 0.5329
-		Iter:    3  Diff: 0.2078
-		Iter:    4  Diff: 0.02606
-		Iter:    5  Diff: 0
-		4  iterations.
-		Unbinned pixels:  2572  /  3779
-		Fractional S/N scatter (%): 27.4468318781
-
-		- bins up to 2941
-
-- replace pixels with 0 signal and noise from x_y_signal_noise.txt to 0.000001
-
-	- voronoi_2d_binning.py output, one extra bin for 0s pixels
-
-		2996  initial bins.
-		Reassign bad bins...
-		2944  good bins.
-		Modified Lloyd algorithm...
-		Iter:    1  Diff: 34.99
-		Iter:    2  Diff: 1.152
-		Iter:    3  Diff: 0.1894
-		Iter:    4  Diff: 0
-		3  iterations.
-		Unbinned pixels:  2574  /  3800
-		Fractional S/N scatter (%): 27.2855572768
+	41  initial bins.
+	Reassign bad bins...
+	26  good bins.
+	Modified Lloyd algorithm...
+	Iter:    1  Diff: 139.2
+	Iter:    2  Diff: 13.32
+	Iter:    3  Diff: 6.005
+	Iter:    4  Diff: 3.506
+	Iter:    5  Diff: 1.943
+	Iter:    6  Diff: 1.511
+	Iter:    7  Diff: 0.9909
+	Iter:    8  Diff: 0.4755
+	Iter:    9  Diff: 0.5045
+	Iter:   10  Diff: 0.2212
+	Iter:   11  Diff: 0.1989
+	Iter:   12  Diff: 0.06859
+	Iter:   13  Diff: 0.1068
+	Iter:   14  Diff: 0.1636
+	Iter:   15  Diff: 0.08666
+	Iter:   16  Diff: 0.07709
+	Iter:   17  Diff: 0.1417
+	Iter:   18  Diff: 0.06984
+	Iter:   19  Diff: 0.0317
+	Iter:   20  Diff: 0.009915
+	Iter:   21  Diff: 0
+	20  iterations.
+	Unbinned pixels:  0  /  3600
+	Fractional S/N scatter (%): 13.3416729619
 
 
-##################################################################################################################################
+
+#####################################################################################################################
+
+
+
+
+
+—————
+FXCOR
+—————
+
+ran fxcor with default parameters on binned spectra with SN 15 like gwen did (in her paper she mentions this)
+output = fxcor_proc/fxcor_binned_spec_sn15*
+
+
+
+
+
+——
+
+
