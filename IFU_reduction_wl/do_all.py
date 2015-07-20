@@ -18,6 +18,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.ticker import MaxNLocator
 from sauron_colormap import sauron
 from cap_plot_velfield import plot_velfield
+from scipy.optimize import curve_fit
 # import specutils as su
 
 """
@@ -72,7 +73,7 @@ Template spectra for fxcor/rvsoa (bin with high SN)
 # --------------------------------------------------
 
 DIR_PATH = '/Users/kwebb/IFU_reduction_wl'  # Working directory (where the 3D cube is)
-IMAGE_CUBE = os.path.join(DIR_PATH, 'dcsteqpxbprgN20051205S0006_add.fits')
+IMAGE_CUBE = os.path.join(DIR_PATH, 'dchsteqpxbprgN20051205S0006_add_shift.fits')
 TARGET_SN = 20  # REMEMBER TO CHANGE TEMPLATE SPECTRA FOR EACH S/N
 TEMPLATE_SPECTRA = 6  # bin 38 at SN 20 is about in the middle of the frame
 
@@ -88,10 +89,10 @@ VAR_EXT_SCROPD = os.path.join(SCROP_PATH, 'IC225_2D_var_{}_{}.fits'.format(SCROP
 # -----------------------------------------------------------------------------
 
 # Flattened 3D cubes images
-SCI_EXT = os.path.join(DIR_PATH, 'IC225_2D_sci.fits')
-VAR_EXT = os.path.join(DIR_PATH, 'IC225_2D_var.fits')
+SCI_EXT = os.path.join(DIR_PATH, 'IC225_2D_sci_shift.fits')
+VAR_EXT = os.path.join(DIR_PATH, 'IC225_2D_var_shift.fits')
 
-PROC_PATH = os.path.join(DIR_PATH, 'doall_proc_{}'.format(TARGET_SN))
+PROC_PATH = os.path.join(DIR_PATH, 'doall_proc_{}_shift'.format(TARGET_SN))
 
 # Organise output of Voronoi binning
 XYSN_FILE = os.path.join(PROC_PATH, 'x_y_signal_noise.txt')  # output of make_table
@@ -107,10 +108,11 @@ FLUX_SCI = os.path.join(DIR_SCI_COMB, 'flux_sci_{}.fits')  # naming convention o
 FLUX_VAR = os.path.join(DIR_VAR_COMB, 'flux_var_{}.fits')  # naming convention of combined (average) var spectra
 
 EM_BIN_SCI = os.path.join(DIR_SCI_COMB, 'em_bin_sci_{}.fits')
+ABS_BIN_SCI = os.path.join(DIR_SCI_COMB, 'abs_bin_sci_{}.fits')
 
 # Organise output of pPXF
-PPXF_PATH = os.path.join(PROC_PATH, 'ppxf_proc')
-PPXF_FILE = os.path.join(PROC_PATH, 'ppxf_output_sn{}.txt'.format(TARGET_SN))
+PPXF_PATH = os.path.join(PROC_PATH, 'ppxf_proc_cleaned')
+PPXF_FILE = os.path.join(PPXF_PATH, 'ppxf_output_sn{}.txt'.format(TARGET_SN))
 PPXF_BESTFIT = os.path.join(PPXF_PATH, 'bestfit_{}.fits')
 
 # Organise output of fxcor
@@ -119,27 +121,27 @@ FXCOR_BIN_LIST = os.path.join(FXCOR_PATH, 'bin_sci_sn{}_list.lis'.format(TARGET_
 FXCOR_FILE = os.path.join(FXCOR_PATH, 'fxcor_bin_sci_sn{}_tmpl{}'.format(TARGET_SN, TEMPLATE_SPECTRA))
 EM_FXCOR_FILE = os.path.join(FXCOR_PATH, 'fxcor_em_bin_sci_sn{}_tmpl{}'.format(TARGET_SN, TEMPLATE_SPECTRA))
 EM_FXCOR_BIN_LIST = os.path.join(FXCOR_PATH, 'em_bin_sci_sn{}_list.lis'.format(TARGET_SN))
+ABS_FXCOR_FILE = os.path.join(FXCOR_PATH, 'fxcor_abs_bin_sci_sn{}_tmpl{}'.format(TARGET_SN, TEMPLATE_SPECTRA))
+ABS_FXCOR_BIN_LIST = os.path.join(FXCOR_PATH, 'abs_bin_sci_sn{}_list.lis'.format(TARGET_SN))
 
 # Organize output of rvsao
 RVSAO_PATH = os.path.join(PROC_PATH, 'rvsao_proc')
-RVSAO_BIN_LIST = os.path.join(RVSAO_PATH, 'bin_sci_sn{}_list.lis'.format(TARGET_SN))
-RVSAO_TEMPLATE = os.path.join(RVSAO_PATH, BIN_SCI.format(TEMPLATE_SPECTRA))
-RVSAO_FILE = os.path.join(RVSAO_PATH, 'xcsao_bin_sci_sn{}_tmpl{}.txt'.format(TARGET_SN, TEMPLATE_SPECTRA))
+XCSAO_BIN_LIST = os.path.join(RVSAO_PATH, 'abs_bin_sci_sn{}_list.lis'.format(TARGET_SN))
+XCSAO_TEMPLATE = os.path.join(RVSAO_PATH, BIN_SCI.format(TEMPLATE_SPECTRA))
+XCSAO_FILE = os.path.join(RVSAO_PATH, 'xcsao_bin_sci_sn{}_tmpl{}.txt'.format(TARGET_SN, TEMPLATE_SPECTRA))
 SYSTEMATIC_VEL = 1320
-EM_RVSAO_FILE = os.path.join(RVSAO_PATH, 'emsao_bin_sci_sn{}_tmpl{}.txt'.format(TARGET_SN, TEMPLATE_SPECTRA))
-EM_RVSAO_BIN_LIST = os.path.join(RVSAO_PATH, 'em_bin_sci_sn{}_list.lis'.format(TARGET_SN))
+EMSAO_FILE = os.path.join(RVSAO_PATH, 'emsao_bin_sci_sn{}_tmpl{}.txt'.format(TARGET_SN, TEMPLATE_SPECTRA))
+EMSAO_BIN_LIST = os.path.join(RVSAO_PATH, 'em_bin_sci_sn{}_list.lis'.format(TARGET_SN))
 
 # pPXF parameters
 VEL_INIT = 1500.  # initial guess for velocity
-SIG_INIT = 100.  # inital guess of sigma distribution
+SIG_INIT = 150.  # inital guess of sigma distribution
 LAM_RANGE = [4186, 5369]  # wavelength range for logarithmic rebinning (full wavelength range observed [4186:5369])
-# template from http://archives.pd.astro.it/2500-10500/
-# adsabs paper: http://adsabs.harvard.edu/abs/2005A%26A...442.1127
-# SYNTHE synthetic library of stellar spectra covering the wavelength region from 2500 A to 1.05 micrometers at a
-# spectral resolution of sigma=6.4 km/s, R=20,000. The same caveats and advantages apply to this synthetic library as
-# to the previous one. From Munari et al. (2005)
+# template from MILES Library spanning 3540-7410 A, with resolution spectral resolution of 2.54 A (FWHM),
+# sigma~64 km/s, R~2000. From Sanchez-Blazquez, et al. (2006)
+# (http://www.iac.es/proyecto/miles/pages/stellar-libraries/miles-library.php)
 TEMPLATE_FITS = '/Users/kwebb/idl/cappellari/ppxf/spectra/Mun1.30z*.fits'
-TEMPLATE_RESOLUTION = 6.4 * 2.35 * 5100 / 3e5  # FWHM of the template spectra *** IN ANGSTROMS *** (Mun 6.4 km/s)
+TEMPLATE_RESOLUTION = 2.54  # FWHM of the template spectra *** IN ANGSTROMS ***
 
 # To create combined (averaged) spectra to determine mean flux of a specific wavelength range to plot
 # YOU DO NOT NEED TO CROP THE SPECTRA HERE, it is just a good idea to check that you measure the same velocity for
@@ -148,6 +150,19 @@ FLUX_SCOPY_RANGE = [4186, 5369]  # [4370, 4870]
 FLUX_SCOPY_FITS_SUFFIX = 'flux_{}.fits'  # wavelength range combined sci spectra from flux*
 FLUX_SCOPY_FILE = os.path.join(PROC_PATH, 'binned_flux_{}.txt'.format(TARGET_SN))
 FLUX_SCOPY_FITS = os.path.join(DIR_SCI_COMB, FLUX_SCOPY_FITS_SUFFIX)
+
+
+def flatten_cube(image_cube, sci_ext, var_ext):
+    """
+    equivalent of last step of preprocessing
+    """
+
+    from pyraf import iraf
+
+    iraf.images()
+
+    iraf.imcombine(image_cube + '[sci]', sci_ext, project="yes")
+    iraf.imcombine(image_cube + '[var]', var_ext, project="yes")
 
 
 def scrop_cube(image_cube, scrop_range, cube_scropd):
@@ -389,8 +404,26 @@ def write_imcomb_fits(outdata, outfile, cube_header, cube_header_0):
     outfile_hdu.header['CD1_1'] = cube_header['CD3_3']
     outfile_hdu.header['CRPIX1'] = cube_header['CRPIX3']
     outfile_hdu.header['CRVAL1'] = cube_header['CRVAL3']
+
+    outfile_hdu.header['DATE'] = cube_header_0['DATE']
+    outfile_hdu.header['INSTRUME'] = cube_header_0['INSTRUME']
+    outfile_hdu.header['OBJECT'] = cube_header_0['OBJECT']
+    outfile_hdu.header['GEMPRGID'] = cube_header_0['GEMPRGID']
+    outfile_hdu.header['OBSID'] = cube_header_0['OBSID']
+    outfile_hdu.header['OBSERVAT'] = cube_header_0['OBSERVAT']
+    outfile_hdu.header['TELESCOP'] = cube_header_0['TELESCOP']
+    outfile_hdu.header['EQUINOX'] = cube_header_0['EQUINOX']
+    outfile_hdu.header['EPOCH'] = cube_header_0['EPOCH']
+    outfile_hdu.header['RA'] = cube_header_0['RA']
+    outfile_hdu.header['DEC'] = cube_header_0['DEC']
+    outfile_hdu.header['DATE-OBS'] = cube_header_0['DATE-OBS']
+    outfile_hdu.header['TIME-OBS'] = cube_header_0['TIME-OBS']
+    outfile_hdu.header['UTSTART'] = cube_header_0['UTSTART']
+    outfile_hdu.header['UTEND'] = cube_header_0['UTEND']
+    outfile_hdu.header['EXPTIME'] = cube_header_0['EXPTIME']
+
     outfile_hdu.header['DC-FLAG'] = 0  # ie linear binning (1 = linear-log binning)
-    ## Header values readable by rvsao
+    # Header values readable by rvsao
     outfile_hdu.header['DEC--TAN'] = 'LAMBDA'
     outfile_hdu.data = outdata
     outfile_hdu.writeto(outfile, clobber=True)
@@ -419,8 +452,8 @@ def ppxf_kinematics(bin_sci, ppxf_file, ppxf_bestfit, template_fits, template_re
         gal_lin = gal_hdu[0].data
         gal_hdr = gal_hdu[0].header
 
-    #   lamRange1 = h1['CRVAL1'] + np.array([0.,h1['CDELT1']*(h1['NAXIS1']-1)])
-    #   FWHM_gal = 4.2 # SAURON has an instrumental resolution FWHM of 4.2A.
+    # lamRange1 = h1['CRVAL1'] + np.array([0.,h1['CDELT1']*(h1['NAXIS1']-1)])
+    # FWHM_gal = 4.2 # SAURON has an instrumental resolution FWHM of 4.2A.
 
     # lamRange1 is now variable lam_range (because I was lazy and didnt put headers into the binned spectra)
     FWHM_gal = 2.3  # GMOS IFU has an instrumental resolution FWHM of 2.3 A
@@ -437,7 +470,7 @@ def ppxf_kinematics(bin_sci, ppxf_file, ppxf_bestfit, template_fits, template_re
     # lamRange1 = lamRange1/(1+z) # Compute approximate restframe wavelength range
     # FWHM_gal = FWHM_gal/(1+z)   # Adjust resolution in Angstrom
 
-    #   galaxy, logLam1, velscale = util.log_rebin(lamRange1, gal_lin)
+    # galaxy, logLam1, velscale = util.log_rebin(lamRange1, gal_lin)
     #   galaxy = galaxy/np.median(galaxy) # Normalize spectrum to avoid numerical issues
     #   noise = galaxy*0 + 0.0049           # Assume constant noise per pixel here
 
@@ -489,8 +522,9 @@ def ppxf_kinematics(bin_sci, ppxf_file, ppxf_bestfit, template_fits, template_re
     # Thus: The quadratic difference is sigma = sqrt(75^2 - 56.8^2) = 49.0 km/s
     # ---------------------------------------------------------------------------------
 
-    FWHM_dif = np.sqrt(FWHM_gal ** 2 - template_resolution ** 2)
-    sigma = FWHM_dif / 2.355 / h2['CDELT1']  # SIGMA DIFFERENCE IN PIXELS
+    # FWHM_dif = np.sqrt(FWHM_gal ** 2 - template_resolution ** 2)
+    FWHM_dif = np.sqrt(template_resolution ** 2 - FWHM_gal ** 2)
+    sigma = FWHM_dif / 2.355 / h2['CDELT1']  # SIGMA DIFFERENCE IN PIXELS, 1.078435697220085
 
     # Logarithmically rebin the whole Mun library of spectra, and store each template as a column in the array TEMPLATES
 
@@ -526,14 +560,12 @@ def ppxf_kinematics(bin_sci, ppxf_file, ppxf_bestfit, template_fits, template_re
     dh4_list = []
 
     for j in range(len(glob.glob(bin_sci.format('*')))):
-
         b_gal = fits.getdata(bin_sci.format(j), 0)
 
         b_gal = ndimage.gaussian_filter1d(b_gal, sigma)
 
         galaxy, logLam1, velscale = util.log_rebin(lam_range, b_gal, velscale=velscale)
-        # error = galaxy*0 + 1 # Assume constant error
-        noise = galaxy * 0 + 0.0049  # Assume constant noise per pixel here
+        noise = galaxy * 0 + 1  # Assume constant noise per pixel here
 
         c = 299792.458
         dv = (logLam2[0] - logLam1[0]) * c  # km/s
@@ -551,8 +583,8 @@ def ppxf_kinematics(bin_sci, ppxf_file, ppxf_bestfit, template_fits, template_re
         start = [vel_init, sig_init]  # (km/s), starting guess for [V,sigma]
         t = clock()
 
-        pp = ppxf(templates, galaxy, noise, velscale, start, goodpixels=goodPixels, plot=True, moments=4,
-                  degree=4, vsyst=dv, bias=bias, quiet=True)
+        pp = ppxf(templates, galaxy, noise, velscale, start, goodpixels=goodPixels, plot=False, moments=4,
+                  degree=4, vsyst=dv, bias=bias, quiet=False, clean=True)
 
         # print("Formal errors:")
         # print("     dV    dsigma   dh3      dh4")
@@ -659,7 +691,7 @@ def fxcor(spec, template_spec, spec_list_file, fxcor_output_file):
     iraf.fxcor('@{}'.format(spec_list_file), spec.format(template_spec), output=fxcor_output_file, continuum="both",
                interactive="no", order=1, high_rej=2, low_rej=2, osample="4500-5100", rsample="4500-5100",
                rebin="smallest", imupdate="no", pixcorr="no", filter="both", f_type="welch", cuton=20, cutoff=1000,
-               fullon=30, fulloff=800, ra="RA", dec="DEC", ut="UTSTART", epoch="EQUINOX", verbose="nolog")
+               fullon=30, fulloff=800, ra="RA", dec="DEC", ut="UTSTART", epoch="EQUINOX", verbose="nogki")
 
     assert os.path.exists(fxcor_output_file + '.txt'), 'Error in iraf.fxcor: File {} was not created'.format(
         fxcor_output_file + '.txt')
@@ -715,8 +747,8 @@ def ppxf_simulation(ppxf_bestfit, lam_range, target_sn, bias=0.6, spaxel=0):
     # dir = 'spectra/'
     # file = dir + 'Rbi1.30z+0.00t12.59.fits'
     # hdu = pyfits.open(file)
-    #   ssp = hdu[0].data
-    #   h = hdu[0].header
+    # ssp = hdu[0].data
+    # h = hdu[0].header
 
     bestfit_file = ppxf_bestfit.format(spaxel)
     assert os.path.exists(bestfit_file), 'Best fit spectra not found: {}'.format(bestfit_file)
@@ -725,7 +757,7 @@ def ppxf_simulation(ppxf_bestfit, lam_range, target_sn, bias=0.6, spaxel=0):
         ssp = best_hdu[0].data
         h = best_hdu[0].header
 
-    #   lamRange = h['CRVAL1'] + np.array([0., h['CDELT1'] * (h['NAXIS1'] - 1)])
+    # lamRange = h['CRVAL1'] + np.array([0., h['CDELT1'] * (h['NAXIS1'] - 1)])
     #   star, logLam, velscale = util.log_rebin(lamRange, ssp)
 
     star, logLam, velscale = util.log_rebin(lam_range, ssp)
@@ -862,8 +894,32 @@ def rvsao_xcsao(bin_sci, ppxf_bestfit, template_spectra, rvsao_file):
 
     for bin_spec in bin_files:
         iraf.xcsao(bin_spec, templates=bestfit_template, report_mode=2, logfiles=rvsao_file, displot='yes',
-                   low_bin=10, top_low=20, top_nrun=80, nrun=211, zeropad="yes", nzpass=1, curmode="no", pkmode=1,
-                   s_emchop="yes")
+                   low_bin=10, top_low=20, top_nrun=80, nrun=211, zeropad="yes", nzpass=1, curmode="no", pkmode=2,
+                   s_emchop="yes", vel_init="guess", czguess=1500)
+
+
+def rvsao_xcsao2(bin_sci, template_spectra, xcsao_file, xcsao_bin_list):
+    """
+    """
+
+    if os.path.exists(xcsao_file):
+        print('File {} already exists'.format(xcsao_file))
+        return
+
+    bin_list = []
+    for i in range(len(glob.glob(bin_sci.format('*')))):  # to ensure order is 0-61 (not 0, 1, 10, 11, etc)
+        bin_list.append(bin_sci.format(i))
+    assert len(bin_list) > 0, 'Absorption bin spectra do not exist: {}'.format(em_bin_sci.format('*'))
+    np.array(bin_list).tofile(xcsao_bin_list, sep='\n')
+
+    from pyraf import iraf
+
+    iraf.images()
+    iraf.rvsao()
+
+    iraf.xcsao('@{}'.format(xcsao_bin_list), templates=bin_sci.format(template_spectra), report_mode=2,
+               logfiles=xcsao_file, displot='yes', low_bin=10, top_low=20, top_nrun=80, nrun=211, zeropad="yes",
+               nzpass=1, curmode="no", pkmode=2, s_emchop="no", vel_init="guess", czguess=1500)
 
 
 def rvsao_emsao(em_bin_sci, em_bin_list_file, em_rvsao_file):
@@ -875,7 +931,7 @@ def rvsao_emsao(em_bin_sci, em_bin_list_file, em_rvsao_file):
         return
 
     em_bin_list = []
-    for i in range(len(glob.glob(em_bin_sci.format('*')))):  # Do it this was to ensure order is 0-61 (not 0, 1, 10, 11, etc)
+    for i in range(len(glob.glob(em_bin_sci.format('*')))):  # to ensure order is 0-61 (not 0, 1, 10, 11, etc)
         em_bin_list.append(em_bin_sci.format(i))
     assert len(em_bin_list) > 0, 'Emission bin spectra do not exist: {}'.format(em_bin_sci.format('*'))
     np.array(em_bin_list).tofile(em_bin_list_file, sep='\n')
@@ -886,7 +942,7 @@ def rvsao_emsao(em_bin_sci, em_bin_list_file, em_rvsao_file):
     iraf.rvsao()
 
     iraf.emsao('@{}'.format(em_bin_list_file), logfiles=em_rvsao_file, vel_init="guess", czguess=1500, linesig=1.,
-               displot="no", report_mode=2)
+               displot="no", report_mode=2, contsub_plot="no")
 
 
 def rebin_log_to_lin(bestfit_template):
@@ -923,7 +979,7 @@ def rebin_log_to_lin(bestfit_template):
     return bestfit_template.strip('.fits') + '_rebin.fits'
 
 
-def make_em_abs_spectra(bin_sci, ppxf_bestfit, em_bin_sci):
+def remove_absorp_lines(bin_sci, ppxf_bestfit, em_bin_sci):
     """
     """
 
@@ -941,7 +997,7 @@ def make_em_abs_spectra(bin_sci, ppxf_bestfit, em_bin_sci):
         bestfit_template = ppxf_bestfit.format(i)
         assert os.path.exists(bestfit_template), 'Bestfit spectra {} does not exist'.format(bestfit_template)
         # bestfit_template_rebin = rebin_log_to_lin(bestfit_template)
-        #assert os.path.exists(bestfit_template_rebin), 'Rebinned bestfit spectra {} does not exist'.format(bestfit_template_rebin)
+        # assert os.path.exists(bestfit_template_rebin), 'Rebinned bestfit spectra {} does not exist'.format(bestfit_template_rebin)
 
         # Create files with just absorption/just emission spectra (via operations with ppxf bestfit template spectra)
         em_bin_file = em_bin_sci.format(i)
@@ -949,8 +1005,8 @@ def make_em_abs_spectra(bin_sci, ppxf_bestfit, em_bin_sci):
         if not os.path.exists(em_bin_file):
             iraf.imarith(bin_file, '-', bestfit_template, em_bin_file)
             assert os.path.exists(em_bin_file), 'Imarith failed, {} was not created'.format(em_bin_file)
-            #if not os.path.exists(bin_file_ablines):
-            #    iraf.imarith(bin_file, '-', bestfit_template_rebin, bin_file_ablines)
+            # if not os.path.exists(bin_file_ablines):
+            # iraf.imarith(bin_file, '-', bestfit_template_rebin, bin_file_ablines)
             #    assert os.path.exists(bin_file_ablines), 'Imarith failed, {} was not created'.format(bin_file_ablines)
 
 
@@ -1028,12 +1084,198 @@ def clean_spec_30(bin_sci):
 
 
 def read_emsao_output(emaso_input):
-
     emsao_vel = []
     with open(emaso_input) as infile:
         for line in infile:
             emsao_vel.append(float(line.split()[3]))
     return emsao_vel
+
+
+def gauss_function(x, a, x0, sigma, b):
+    return a * np.exp(-(x - x0) ** 2 / (2 * sigma ** 2)) + b
+
+
+def gauss_fit(data, lni):
+    x = np.linspace(0, len(lni) - 2, len(lni) - 1)
+    y = data[lni[0]:lni[-1]]
+
+    amp = np.max(y) - np.min(y)
+    x0 = np.argmax(y)
+    sigma = 2.
+    b = np.min(y)
+
+    popt, pcov = curve_fit(gauss_function, x, y, p0=[amp, x0, sigma, b])
+    gauss = gauss_function(x, popt[0], popt[1], popt[2], popt[3])
+
+    return np.subtract(gauss, np.min(gauss))
+
+
+def remove_emission_lines(bin_sci, abs_bin_sci):
+    """
+    """
+
+    if os.path.exists(abs_bin_sci.format(1)):
+        print('Absorption spectra already exists')
+        return
+
+    for j in range(len(glob.glob(bin_sci.format('*')))):
+
+        with fits.open(bin_sci.format(j)) as hdu:
+            odata = hdu[0].data
+            ohdr = hdu[0].header
+
+        galaxy, logLam1, velscale = util.log_rebin([4186, 5369], odata)
+        emlns, lnames, lwave = util.emission_lines(logLam1, [4186, 5369], 2.3)
+
+        # three lines will be detected in this wavelength range, Hg, Hb, and a OIII doublet
+        # each line will be given it's own axis in the emlns array
+        ln1 = emlns[:, 0]
+        ln2 = emlns[:, 1]
+        ln3 = emlns[:, 2]
+
+        ln1i = []
+        ln2i = []
+        ln3i = []
+        for i in range(ln1.size):
+            if ln1[i] > 0:
+                ln1i.append(i)
+            if ln2[i] > 0:
+                ln2i.append(i)
+            if ln3[i] > 0:
+                ln3i.append(i)
+
+        # split up the OIII doublet
+        ln3i1 = ln3i[0:int(len(ln3i) / 2)]
+        ln3i2 = ln3i[int(len(ln3i) / 2):]
+
+        # Apply a Gaussian fit to each emission line
+        gaussHa = gauss_fit(odata, ln1i)
+        gaussHb = gauss_fit(odata, ln2i)
+        gaussOIIIa = gauss_fit(odata, ln3i1)
+        gaussOIIIb = gauss_fit(odata, ln3i2)
+
+        # Add all the spectral lines together
+        ems = []
+        for i in range(odata.size):
+            if i in np.linspace(0, len(ln1i) - 2, len(ln1i) - 1) + ln1i[0]:
+                ems.append(gaussHa[i - ln1i[0]])
+            elif i in np.linspace(0, len(ln2i) - 2, len(ln2i) - 1) + ln2i[0]:
+                ems.append(gaussHb[i - ln2i[0]])
+            elif i in np.linspace(0, len(ln3i1) - 2, len(ln3i1) - 1) + ln3i1[0]:
+                ems.append(gaussOIIIa[i - ln3i1[0]])
+            elif i in np.linspace(0, len(ln3i2) - 2, len(ln3i2) - 1) + ln3i2[0]:
+                ems.append(gaussOIIIb[i - ln3i2[0]])
+            else:
+                ems.append(0)
+
+        absorp_spec = np.subtract(odata, ems)
+        '''
+        plt.plot(range(len(odata)), odata, '-b')
+        plt.plot(range(len(ems)), ems, '-g')
+        plt.plot(range(len(absorp_spec)), absorp_spec, '-r')
+        plt.show()
+        '''
+        ahdu = fits.PrimaryHDU()
+        ahdu.data = absorp_spec
+        ahdu.header = ohdr
+        ahdu.writeto(abs_bin_sci.format(j))
+
+
+def select_emission_lines(logLam_temp, lamRange_gal, FWHM_gal):
+    """
+    Generates an array of Gaussian emission lines to be used as templates in PPXF.
+    Additional lines can be easily added by editing this procedure.
+    - logLam_temp is the natural log of the wavelength of the templates in Angstrom.
+      logLam_temp should be the same as that of the stellar templates.
+    - lamRange_gal is the estimated rest-frame fitted wavelength range
+      Typically lamRange_gal = np.array([np.min(wave), np.max(wave)])/(1 + z),
+      where wave is the observed wavelength of the fitted galaxy pixels and
+      z is an initial very rough estimate of the galaxy redshift.
+    - FWHM_gal is the instrumantal FWHM of the galaxy spectrum under study in
+      Angstrom. Here it is assumed constant. It could be a function of wavelength.
+    - The [OI], [OIII] and [NII] doublets are fixed at theoretical flux ratio~3.
+
+    """
+    lam = np.exp(logLam_temp)
+    sigma = FWHM_gal/2.355 # Assumes instrumental sigma is constant in Angstrom
+
+    # Balmer Series:      Hdelta   Hgamma    Hbeta   Halpha
+    line_wave = np.array([4101.76, 4340.47, 4861.33, 6562.80])
+    line_names = np.array(['Hdelta', 'Hgamma', 'Hbeta', 'Halpha'])
+    #                 -----[OII]-----    -----[SII]-----
+    line_wave.append([3726.03, 3728.82, 6716.47, 6730.85])
+    line_names.append(['[OII]3726', '[OII]3729', '[SII]6716', '[SII]6731'])
+    #                 -----[OIII]-----
+    line_wave.append([4958.92, 5006.84])
+    line_names.append('[OIII]5007d')  # single template for this doublet
+    #                  -----[OI]-----
+    line_wave.append([6363.67, 6300.30])
+    line_names.append('[OI]6300d')  # single template for this doublet
+    #                 -----[NII]-----
+    line_wave.append([6548.03, 6583.41])
+    line_names.append('[NII]6583d')  # single template for this doublet
+
+
+    lam = np.exp(logLam_temp)
+    sigma = FWHM_gal/2.355 # Assumes instrumental sigma is constant in Angstrom
+
+    # Balmer Series:      Hdelta   Hgamma    Hbeta   Halpha
+    line_wave = np.array([4101.76, 4340.47, 4861.33, 6562.80])
+    line_names = np.array(['Hdelta', 'Hgamma', 'Hbeta', 'Halpha'])
+    emission_lines = np.exp(-0.5*((lam[:,np.newaxis] - line_wave)/sigma)**2)
+
+    #                 -----[OII]-----    -----[SII]-----
+    lines = np.array([3726.03, 3728.82, 6716.47, 6730.85])
+    names = np.array(['[OII]3726', '[OII]3729', '[SII]6716', '[SII]6731'])
+    gauss = np.exp(-0.5*((lam[:,np.newaxis] - lines)/sigma)**2)
+    emission_lines = np.column_stack([emission_lines, gauss])
+    line_names = np.append(line_names, names)
+    line_wave = np.append(line_wave, lines)
+
+    #                 -----[OIII]-----
+    lines = np.array([4958.92, 5006.84])
+    doublet = np.exp(-0.5*((lam - lines[1])/sigma)**2) + 0.35*np.exp(-0.5*((lam - lines[0])/sigma)**2)
+    emission_lines = np.column_stack([emission_lines, doublet])
+    line_names = np.append(line_names, '[OIII]5007d') # single template for this doublet
+    line_wave = np.append(line_wave, lines[1])
+
+    #                  -----[OI]-----
+    lines = np.array([6363.67, 6300.30])
+    doublet = np.exp(-0.5*((lam - lines[1])/sigma)**2) + 0.33*np.exp(-0.5*((lam - lines[0])/sigma)**2)
+    emission_lines = np.column_stack([emission_lines, doublet])
+    line_names = np.append(line_names, '[OI]6300d') # single template for this doublet
+    line_wave = np.append(line_wave, lines[1])
+
+    #                 -----[NII]-----
+    lines = np.array([6548.03, 6583.41])
+    doublet = np.exp(-0.5*((lam - lines[1])/sigma)**2) + 0.34*np.exp(-0.5*((lam - lines[0])/sigma)**2)
+    emission_lines = np.column_stack([emission_lines, doublet])
+    line_names = np.append(line_names, '[NII]6583d') # single template for this doublet
+    line_wave = np.append(line_wave, lines[1])
+
+    # Only include lines falling within the estimated fitted wavelength range.
+    # This is important to avoid instabilities in the PPXF system solution
+    #
+    w = (line_wave > lamRange_gal[0]) & (line_wave < lamRange_gal[1])
+    emission_lines = emission_lines[:, w]
+    line_names = line_names[w]
+    line_wave = line_wave[w]
+
+
+
+    # Only include lines falling within the estimated fitted wavelength range.
+    # This is important to avoid instabilities in the PPXF system solution
+    #
+    w = (line_wave > lamRange_gal[0]) & (line_wave < lamRange_gal[1])
+    emission_lines = emission_lines[:, w]
+    line_names = line_names[w]
+    line_wave = line_wave[w]
+
+    print('Emission lines included in gas templates:')
+    print(line_names)
+
+    return emission_lines, line_names, line_wave
+
 
 if __name__ == '__main__':
     """
@@ -1055,166 +1297,171 @@ if __name__ == '__main__':
     if not os.path.exists(DIR_VAR_COMB):
         os.mkdir(DIR_VAR_COMB)
 
+    # UNCOMMENT AS NEEDED (not the fanciest system I know...)
+
     # To flatten 3D cube to 2D in specific wavelengths (Don't use these flattend cubes otherwise)
     # print('>>>>> Flattening 3D cube')
-    #    scrop_cube(IMAGE_CUBE, SCROP_RANGE, CUBE_SCROPD)
-    #    imcombine_flatten(CUBE_SCROPD, SCI_EXT_SCROPD, VAR_EXT_SCROPD)
+    # scrop_cube(IMAGE_CUBE, SCROP_RANGE, CUBE_SCROPD)
+    # imcombine_flatten(CUBE_SCROPD, SCI_EXT_SCROPD, VAR_EXT_SCROPD)
 
     # Run pPXF
-    #    make_table(IMAGE_CUBE, SCI_EXT, VAR_EXT, XYSN_FILE)
-    #    voronoi_binning(XYSN_FILE, V2B_FILE, V2B_XY_FILE)
+    # flatten_cube(IMAGE_CUBE, SCI_EXT, VAR_EXT)
+    #   make_table(IMAGE_CUBE, SCI_EXT, VAR_EXT, XYSN_FILE)
+    #   voronoi_binning(XYSN_FILE, V2B_FILE, V2B_XY_FILE)
 
-    #    combine_spectra(V2B_FILE, IMAGE_CUBE, BIN_SCI, FLUX_SCI, BIN_VAR, FLUX_VAR)
+    #   combine_spectra(V2B_FILE, IMAGE_CUBE, BIN_SCI, FLUX_SCI, BIN_VAR, FLUX_VAR)
     # Calculate average flux
-    #    scopy_flux(FLUX_SCI, FLUX_SCOPY_FITS, FLUX_SCOPY_RANGE, FLUX_SCOPY_FILE)
+    #   scopy_flux(FLUX_SCI, FLUX_SCOPY_FITS, FLUX_SCOPY_RANGE, FLUX_SCOPY_FILE)
 
     # To determine optimal penalty (BIAS) first run with BIAS=0 then preform monte carlo simulation
     # See information in ppxf.py (or the readme which comes with the ppxf download) for more details
     # The chosen penalty for IC 225 is BIAS=0.6
-    #    ppxf_kinematics(BIN_SCI, PPXF_FILE.strip('.txt') + '_bias0.txt', PPXF_BESTFIT.strip('.fits') + '_bias0.fits',
-    #                    TEMPLATE_FITS, TEMPLATE_RESOLUTION, LAM_RANGE, VEL_INIT, SIG_INIT, 0)
-    #    ppxf_simulation(PPXF_BESTFIT.strip('.fits') + '_bias0.fits', LAM_RANGE, TARGET_SN, bias=0.5, spaxel=0)
+    #   ppxf_kinematics(BIN_SCI, PPXF_FILE.strip('.txt') + '_bias0.txt', PPXF_BESTFIT.strip('.fits') + '_bias0.fits',
+    #                TEMPLATE_FITS, TEMPLATE_RESOLUTION, LAM_RANGE, VEL_INIT, SIG_INIT, 0)
+    #   ppxf_simulation(PPXF_BESTFIT.strip('.fits') + '_bias0.fits', LAM_RANGE, TARGET_SN, bias=0.5, spaxel=0)
 
     ppxf_vel = ppxf_kinematics(BIN_SCI, PPXF_FILE, PPXF_BESTFIT, TEMPLATE_FITS, TEMPLATE_RESOLUTION, LAM_RANGE,
                                VEL_INIT, SIG_INIT, bias=0.6)
     # Plot results
-    ppxf_vel, ppxf_sig, h3, h4, ppxf_dvel, ppxf_dsig, dh3, dh4 = np.loadtxt(PPXF_FILE, unpack=True)
-    #    ppxf_vel, ppxf_dvel = np.loadtxt(PPXF_FILE.strip('.txt')+'_subsysvel.txt', unpack=True)
+    #   ppxf_vel, ppxf_sig, h3, h4, ppxf_dvel, ppxf_dsig, dh3, dh4 = np.loadtxt(PPXF_FILE, unpack=True)
+    #   ppxf_vel, ppxf_dvel = np.loadtxt(PPXF_FILE.strip('.txt')+'_subsysvel.txt', unpack=True)
     plot_velfield_setup(ppxf_vel, V2B_XY_FILE, FLUX_SCOPY_FILE)
 
+    # Make spectre of just emission and just absorption lines
+    #   remove_emission_lines(BIN_SCI, ABS_BIN_SCI)
+    #   remove_absorp_lines(BIN_SCI, PPXF_BESTFIT, EM_BIN_SCI)
+
     # Run rv fxcor
-    #    fxcor(BIN_SCI, TEMPLATE_SPECTRA, FXCOR_BIN_LIST, FXCOR_FILE)
-    #    make_em_abs_spectra(BIN_SCI, PPXF_BESTFIT, EM_BIN_SCI)
-    #    fxcor(EM_BIN_SCI, TEMPLATE_SPECTRA, EM_FXCOR_BIN_LIST, EM_FXCOR_FILE)
+    #   fxcor(BIN_SCI, TEMPLATE_SPECTRA, FXCOR_BIN_LIST, FXCOR_FILE)
+    #   fxcor(EM_BIN_SCI, TEMPLATE_SPECTRA, EM_FXCOR_BIN_LIST, EM_FXCOR_FILE)
+    #   fxcor(ABS_BIN_SCI, TEMPLATE_SPECTRA, ABS_FXCOR_BIN_LIST, ABS_FXCOR_FILE)
 
     #   fxcor_vel = pd.read_table(FXCOR_FILE + '.txt', sep=r"\s*", engine='python', skiprows=16, usecols=[10],
     #                          names=["vrel"], squeeze=True).values
     #   em_fxcor_vel = pd.read_table(EM_FXCOR_FILE + '.txt', sep=r"\s*", engine='python', skiprows=16, usecols=[10],
-    #                          names=["vrel"], squeeze=True).values
+    #                             names=["vrel"], squeeze=True).values
+    #   abs_fxcor_vel = pd.read_table(ABS_FXCOR_FILE + '.txt', sep=r"\s*", engine='python', skiprows=16, usecols=[10],
+    #                              names=["vrel"], squeeze=True).values
     #   plot_velfield_setup(fxcor_vel, V2B_XY_FILE, FLUX_SCOPY_FILE)
     #   plot_velfield_setup(em_fxcor_vel, V2B_XY_FILE, FLUX_SCOPY_FILE)
+    #   plot_velfield_setup(abs_fxcor_vel, V2B_XY_FILE, FLUX_SCOPY_FILE)
 
     # Run rvsao xcsao
-    #    rvsao_xcsao(BIN_SCI.split('bin')[0] + 'ablines_bin' + BIN_SCI.split('bin')[1], PPXF_BESTFIT.strip('.fits') +
-    #               '_rebin.fits', TEMPLATE_SPECTRA, RVSAO_FILE.strip('.txt') + '_rebin.txt')
-    #   rvsao_xcsao(BIN_SCI, PPXF_BESTFIT, TEMPLATE_SPECTRA, RVSAO_FILE)
-    #   rvsao_emsao(EM_BIN_SCI, EM_RVSAO_BIN_LIST, EM_RVSAO_FILE)
-    #   xcsao_vel = pd.read_table(RVSAO_FILE, sep=r"\s*", engine='python', usecols=[3], names=["vrel"], squeeze=True).values
+    #   rvsao_xcsao(ABS_BIN_SCI, PPXF_BESTFIT, TEMPLATE_SPECTRA, XCSAO_FILE)
+    #   rvsao_xcsao2(ABS_BIN_SCI, TEMPLATE_SPECTRA, XCSAO_FILE, XCSAO_BIN_LIST)
+    #   xcsao_vel = pd.read_table(XCSAO_FILE, sep=r"\s*", engine='python', usecols=[3], names=["vrel"], squeeze=True).values
     #   plot_velfield_setup(xcsao_vel, V2B_XY_FILE, FLUX_SCOPY_FILE)
-    #   emsao_vel = read_emsao_output(EM_RVSAO_FILE)
+    #   rvsao_emsao(EM_BIN_SCI, EMSAO_BIN_LIST, EMSAO_FILE)
+    #   emsao_vel = read_emsao_output(EMSAO_FILE)
     #   plot_velfield_setup(emsao_vel, V2B_XY_FILE, FLUX_SCOPY_FILE)
 
+    """
+    EXAMPLES OF THE SCRIPT OUTPUT
 
-##### NOT PLOTTING IN THE CORRECT ORDER YOU IDIOT
-
-
-"""
-EXAMPLES OF THE SCRIPT OUTPUT
-
-make_table - x, y, signal, noise
-----------
-   0   0   0.0   0.0
-   0   1   0.0   0.0
-   0   2   0.0   0.0
-   0   3   0.0   0.0
-   0   4   0.0242297947407   0.0486673600972
-   0   5   0.0287907179445   0.0496814213693
-   0   6   0.0284730419517   0.0493335090578
-   0   7   0.0294728595763   0.0492805354297
-   0   8   0.0299422219396   0.0492736101151
-   0   9   0.0302106719464   0.049401614815
+    make_table - x, y, signal, noise
+    ----------
+       0   0   0.0   0.0
+       0   1   0.0   0.0
+       0   2   0.0   0.0
+       0   3   0.0   0.0
+       0   4   0.0242297947407   0.0486673600972
+       0   5   0.0287907179445   0.0496814213693
+       0   6   0.0284730419517   0.0493335090578
+       0   7   0.0294728595763   0.0492805354297
+       0   8   0.0299422219396   0.0492736101151
+       0   9   0.0302106719464   0.049401614815
 
 
-Voronoi binning terminal output at S/N 30
------------------------------------------
-41  initial bins.
-Reassign bad bins...
-26  good bins.
-Modified Lloyd algorithm...
-Iter:    1  Diff: 139.2
-Iter:    2  Diff: 13.32
-Iter:    3  Diff: 6.005
-Iter:    4  Diff: 3.506
-Iter:    5  Diff: 1.943
-Iter:    6  Diff: 1.511
-Iter:    7  Diff: 0.9909
-Iter:    8  Diff: 0.4755
-Iter:    9  Diff: 0.5045
-Iter:   10  Diff: 0.2212
-Iter:   11  Diff: 0.1989
-Iter:   12  Diff: 0.06859
-Iter:   13  Diff: 0.1068
-Iter:   14  Diff: 0.1636
-Iter:   15  Diff: 0.08666
-Iter:   16  Diff: 0.07709
-Iter:   17  Diff: 0.1417
-Iter:   18  Diff: 0.06984
-Iter:   19  Diff: 0.0317
-Iter:   20  Diff: 0.009915
-Iter:   21  Diff: 0
-20  iterations.
-Unbinned pixels:  0  /  3600
-Fractional S/N scatter (%): 13.3416729619
+    Voronoi binning terminal output at S/N 30
+    -----------------------------------------
+    41  initial bins.
+    Reassign bad bins...
+    26  good bins.
+    Modified Lloyd algorithm...
+    Iter:    1  Diff: 139.2
+    Iter:    2  Diff: 13.32
+    Iter:    3  Diff: 6.005
+    Iter:    4  Diff: 3.506
+    Iter:    5  Diff: 1.943
+    Iter:    6  Diff: 1.511
+    Iter:    7  Diff: 0.9909
+    Iter:    8  Diff: 0.4755
+    Iter:    9  Diff: 0.5045
+    Iter:   10  Diff: 0.2212
+    Iter:   11  Diff: 0.1989
+    Iter:   12  Diff: 0.06859
+    Iter:   13  Diff: 0.1068
+    Iter:   14  Diff: 0.1636
+    Iter:   15  Diff: 0.08666
+    Iter:   16  Diff: 0.07709
+    Iter:   17  Diff: 0.1417
+    Iter:   18  Diff: 0.06984
+    Iter:   19  Diff: 0.0317
+    Iter:   20  Diff: 0.009915
+    Iter:   21  Diff: 0
+    20  iterations.
+    Unbinned pixels:  0  /  3600
+    Fractional S/N scatter (%): 13.3416729619
 
 
-v2b_output_sn30.txt
--------------------
-# x  y  binNum
-  0.000000   0.000000       24
-  0.000000   1.000000       24
-  0.000000   2.000000       24
-  0.000000   3.000000       24
-  0.000000   4.000000       24
+    v2b_output_sn30.txt
+    -------------------
+    # x  y  binNum
+      0.000000   0.000000       24
+      0.000000   1.000000       24
+      0.000000   2.000000       24
+      0.000000   3.000000       24
+      0.000000   4.000000       24
 
 
-v2b_output_xy_sn30.txt
-----------------------
-# xBar  yBar  xNode   yNode
- 28.322327  32.169845  28.272727  32.045455
- 23.398545  29.802916  23.290323  29.709677
- 23.862846  35.158733  23.700000  35.166667
- 27.721677  25.361104  27.711864  24.932203
+    v2b_output_xy_sn30.txt
+    ----------------------
+    # xBar  yBar  xNode   yNode
+     28.322327  32.169845  28.272727  32.045455
+     23.398545  29.802916  23.290323  29.709677
+     23.862846  35.158733  23.700000  35.166667
+     27.721677  25.361104  27.711864  24.932203
 
 
-pPXF terminal output at S/N 15 - with moments =4
-------------------------------
-Best Fit:       V     sigma        h3        h4        h5        h6
-comp. 0   1.56e+03      44.5   -0.0144  0.000161
-chi2/DOF: 170.7
-Function evaluations: 45
-Nonzero Templates:  3  /  31
-Formal errors:
-     dV    dsigma   dh3      dh4
-      58   1e+02    0.85     1.1
-Elapsed time in PPXF: 1.62 s
+    pPXF terminal output at S/N 15 - with moments =4
+    ------------------------------
+    Best Fit:       V     sigma        h3        h4        h5        h6
+    comp. 0   1.56e+03      44.5   -0.0144  0.000161
+    chi2/DOF: 170.7
+    Function evaluations: 45
+    Nonzero Templates:  3  /  31
+    Formal errors:
+         dV    dsigma   dh3      dh4
+          58   1e+02    0.85     1.1
+    Elapsed time in PPXF: 1.62 s
 
 
-ppxf_output_sn30.txt
---------------------
-# velocity    sigma       h3           h4         dV          dsigma       dh3         dh4
-1555.078045   54.908761   -0.009226    0.017820   16.998730   13.021736    0.228814    0.091529
-1546.774034   50.347287   -0.030425    0.004431    9.008727   45.028757    0.094371    0.477264
-1559.821945   32.639841   -0.013985   -0.016247  126.604720  145.538259    2.047092    1.750520
+    ppxf_output_sn30.txt
+    --------------------
+    # velocity    sigma       h3           h4         dV          dsigma       dh3         dh4
+    1555.078045   54.908761   -0.009226    0.017820   16.998730   13.021736    0.228814    0.091529
+    1546.774034   50.347287   -0.030425    0.004431    9.008727   45.028757    0.094371    0.477264
+    1559.821945   32.639841   -0.013985   -0.016247  126.604720  145.538259    2.047092    1.750520
 
 
-binned_cont_flux_30.txt
------------------------
-0.26100513339
-0.193801268935
-0.131731316447
-0.192921474576
-0.0340581573546
-0.212753847241
-0.151029586792
+    binned_cont_flux_30.txt
+    -----------------------
+    0.26100513339
+    0.193801268935
+    0.131731316447
+    0.192921474576
+    0.0340581573546
+    0.212753847241
+    0.151029586792
 
 
-xcsao_bin_sci_sn30.txt
-----------------------
-bin_sci_0.fits   /Users/kwebb/IFU  77.21    -1.718    1.460 0.966 151.753
-bin_sci_1.fits   /Users/kwebb/IFU  76.20    -3.727    1.463 0.970 150.110
-bin_sci_10.fits  /Users/kwebb/IFU  43.02     5.536    2.440 0.943 143.557
-bin_sci_11.fits  /Users/kwebb/IFU  38.89     6.026    2.695 0.939 143.641
-bin_sci_12.fits  /Users/kwebb/IFU  33.66    12.732    3.091 0.927 142.409
-bin_sci_13.fits  /Users/kwebb/IFU  44.80     2.267    2.340 0.946 142.572
+    xcsao_bin_sci_sn30.txt
+    ----------------------
+    bin_sci_0.fits   /Users/kwebb/IFU  77.21    -1.718    1.460 0.966 151.753
+    bin_sci_1.fits   /Users/kwebb/IFU  76.20    -3.727    1.463 0.970 150.110
+    bin_sci_10.fits  /Users/kwebb/IFU  43.02     5.536    2.440 0.943 143.557
+    bin_sci_11.fits  /Users/kwebb/IFU  38.89     6.026    2.695 0.939 143.641
+    bin_sci_12.fits  /Users/kwebb/IFU  33.66    12.732    3.091 0.927 142.409
+    bin_sci_13.fits  /Users/kwebb/IFU  44.80     2.267    2.340 0.946 142.572
 
-"""
+    """
