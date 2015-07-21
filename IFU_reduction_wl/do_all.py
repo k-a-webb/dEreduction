@@ -471,8 +471,8 @@ def ppxf_kinematics(bin_sci, ppxf_file, ppxf_bestfit, template_fits, template_re
     # FWHM_gal = FWHM_gal/(1+z)   # Adjust resolution in Angstrom
 
     # galaxy, logLam1, velscale = util.log_rebin(lamRange1, gal_lin)
-    #   galaxy = galaxy/np.median(galaxy) # Normalize spectrum to avoid numerical issues
-    #   noise = galaxy*0 + 0.0049           # Assume constant noise per pixel here
+    # galaxy = galaxy/np.median(galaxy) # Normalize spectrum to avoid numerical issues
+    # noise = galaxy*0 + 0.0049           # Assume constant noise per pixel here
 
     galaxy, logLam1, velscale = util.log_rebin(lam_range, gal_lin)
     galaxy = galaxy / np.median(galaxy)  # Normalize spectrum to avoid numerical issues
@@ -758,7 +758,7 @@ def ppxf_simulation(ppxf_bestfit, lam_range, target_sn, bias=0.6, spaxel=0):
         h = best_hdu[0].header
 
     # lamRange = h['CRVAL1'] + np.array([0., h['CDELT1'] * (h['NAXIS1'] - 1)])
-    #   star, logLam, velscale = util.log_rebin(lamRange, ssp)
+    # star, logLam, velscale = util.log_rebin(lamRange, ssp)
 
     star, logLam, velscale = util.log_rebin(lam_range, ssp)
 
@@ -771,7 +771,7 @@ def ppxf_simulation(ppxf_bestfit, lam_range, target_sn, bias=0.6, spaxel=0):
     starNew = ndimage.interpolation.zoom(star, factor, order=1)  # The underlying spectrum, known at high resolution
     star = rebin(starNew, factor)  # Make sure that the observed spectrum is the integral over the pixels
 
-    #   vel = 0.3  # velocity in *pixels* [=V(km/s)/velScale]
+    # vel = 0.3  # velocity in *pixels* [=V(km/s)/velScale]
     #   h3 = 0.1  # Adopted G-H parameters of the LOSVD
     #   h4 = -0.1
     #   sn = 60.  # Adopted S/N of the Monte Carlo simulation
@@ -1007,7 +1007,7 @@ def remove_absorp_lines(bin_sci, ppxf_bestfit, em_bin_sci):
             assert os.path.exists(em_bin_file), 'Imarith failed, {} was not created'.format(em_bin_file)
             # if not os.path.exists(bin_file_ablines):
             # iraf.imarith(bin_file, '-', bestfit_template_rebin, bin_file_ablines)
-            #    assert os.path.exists(bin_file_ablines), 'Imarith failed, {} was not created'.format(bin_file_ablines)
+            # assert os.path.exists(bin_file_ablines), 'Imarith failed, {} was not created'.format(bin_file_ablines)
 
 
 def make_template():
@@ -1110,7 +1110,7 @@ def gauss_fit(data, lni):
     return np.subtract(gauss, np.min(gauss))
 
 
-def remove_emission_lines(bin_sci, abs_bin_sci):
+def remove_emission_lines(bin_sci, abs_bin_sci, ppxf_bestfit):
     """
     """
 
@@ -1124,157 +1124,181 @@ def remove_emission_lines(bin_sci, abs_bin_sci):
             odata = hdu[0].data
             ohdr = hdu[0].header
 
-        galaxy, logLam1, velscale = util.log_rebin([4186, 5369], odata)
-        emlns, lnames, lwave = util.emission_lines(logLam1, [4186, 5369], 2.3)
+        bestfit = fits.getdata(ppxf_bestfit.format(j))
 
-        # three lines will be detected in this wavelength range, Hg, Hb, and a OIII doublet
-        # each line will be given it's own axis in the emlns array
-        ln1 = emlns[:, 0]
-        ln2 = emlns[:, 1]
-        ln3 = emlns[:, 2]
+        # Find the range of values in wavelength
+        crval3 = ohdr['CRVAL1']
+        crpix3 = ohdr['CRPIX1']
+        cd33 = ohdr['CD1_1']
+        npix = ohdr['NAXIS1']
+        wmin = crval3 + (1. - crpix3) * cd33
+        wmax = crval3 + (npix - crpix3) * cd33
+        # Log bin the spectra to match the best fit absorption template
+        galaxy, logLam1, velscale = util.log_rebin([wmin, wmax], odata)
 
-        ln1i = []
-        ln2i = []
-        ln3i = []
-        for i in range(ln1.size):
-            if ln1[i] > 0:
-                ln1i.append(i)
-            if ln2[i] > 0:
-                ln2i.append(i)
-            if ln3[i] > 0:
-                ln3i.append(i)
+        # Hgamma 4340.47, Hbeta 4861.33, OIII [4958.92, 5006.84]
+        lwave = [4340.47, 4861.33, 4958.92, 5006.84]
 
-        # split up the OIII doublet
-        ln3i1 = ln3i[0:int(len(ln3i) / 2)]
-        ln3i2 = ln3i[int(len(ln3i) / 2):]
+        # find the index of the emission lines
+        iHg = (np.abs(np.exp(logLam1) - lwave[0])).argmin()
+        iHb = (np.abs(np.exp(logLam1) - lwave[1])).argmin()
+        iOIIIa = (np.abs(np.exp(logLam1) - lwave[2])).argmin()
+        iOIIIb = (np.abs(np.exp(logLam1) - lwave[2])).argmin()
 
-        # Apply a Gaussian fit to each emission line
-        gaussHa = gauss_fit(odata, ln1i)
-        gaussHb = gauss_fit(odata, ln2i)
-        gaussOIIIa = gauss_fit(odata, ln3i1)
-        gaussOIIIb = gauss_fit(odata, ln3i2)
+        # There are BOTH absorption and emission features about the wavelength of Hgamma and Hbeta, so we need
+        # to use a specialized fitting function (convolved Guassian and Lorentzian -> pVoight) to remove the
+        # emission lines
+        xHg, abs_fit_Hg = fit_pvoight(galaxy, iHg, bestfit)
+        xHb, abs_fit_Hb = fit_pvoight(galaxy, iHb, bestfit)
 
-        # Add all the spectral lines together
-        ems = []
-        for i in range(odata.size):
-            if i in np.linspace(0, len(ln1i) - 2, len(ln1i) - 1) + ln1i[0]:
-                ems.append(gaussHa[i - ln1i[0]])
-            elif i in np.linspace(0, len(ln2i) - 2, len(ln2i) - 1) + ln2i[0]:
-                ems.append(gaussHb[i - ln2i[0]])
-            elif i in np.linspace(0, len(ln3i1) - 2, len(ln3i1) - 1) + ln3i1[0]:
-                ems.append(gaussOIIIa[i - ln3i1[0]])
-            elif i in np.linspace(0, len(ln3i2) - 2, len(ln3i2) - 1) + ln3i2[0]:
-                ems.append(gaussOIIIb[i - ln3i2[0]])
+        # There are only emission features about the OIII doublet so we only fit the emission line with a Gaussian
+        xOIIIa, abs_fit_OIIIa = fit_gauss(galaxy, iOIIIa, bestfit)
+        xOIIIb, abs_fit_OIIIb = fit_gauss(galaxy, iOIIIb, bestfit)
+
+        # Add all the cutout spectra together
+        abs_fit = []
+        for xx in np.exp(logLam1):
+            if xx in xHg:
+                abs_fit.append(abs_fit_Hg[np.where(xHg == xx)][0])
+            elif xx in xHb:
+                abs_fit.append(abs_fit_Hb[np.where(xHb == xx)][0])
+            elif xx in xOIIIa:
+                abs_fit.append(abs_fit_OIIIa[np.where(xOIIIa == xx)][0])
+            elif xx in xOIIIb:
+                abs_fit.append(abs_fit_OIIIb[np.where(xOIIIb == xx)][0])
             else:
-                ems.append(0)
+                abs_fit.append(galaxy[np.where(np.exp(logLam1) == xx)][0])
 
-        absorp_spec = np.subtract(odata, ems)
-        '''
-        plt.plot(range(len(odata)), odata, '-b')
-        plt.plot(range(len(ems)), ems, '-g')
-        plt.plot(range(len(absorp_spec)), absorp_spec, '-r')
+        plt.plot(np.exp(logLam1), galaxy, '-k', label="spectra")
+        plt.plot(np.exp(logLam1), bestfit, '--r', label="bestfit absorption line")
+        plt.plot(np.exp(logLam1), abs_fit, '-g', label="fit of bestfit spectra")
+        #plt.legend()
         plt.show()
-        '''
-        ahdu = fits.PrimaryHDU()
-        ahdu.data = absorp_spec
-        ahdu.header = ohdr
-        ahdu.writeto(abs_bin_sci.format(j))
 
-
-def select_emission_lines(logLam_temp, lamRange_gal, FWHM_gal):
-    """
-    Generates an array of Gaussian emission lines to be used as templates in PPXF.
-    Additional lines can be easily added by editing this procedure.
-    - logLam_temp is the natural log of the wavelength of the templates in Angstrom.
-      logLam_temp should be the same as that of the stellar templates.
-    - lamRange_gal is the estimated rest-frame fitted wavelength range
-      Typically lamRange_gal = np.array([np.min(wave), np.max(wave)])/(1 + z),
-      where wave is the observed wavelength of the fitted galaxy pixels and
-      z is an initial very rough estimate of the galaxy redshift.
-    - FWHM_gal is the instrumantal FWHM of the galaxy spectrum under study in
-      Angstrom. Here it is assumed constant. It could be a function of wavelength.
-    - The [OI], [OIII] and [NII] doublets are fixed at theoretical flux ratio~3.
-
-    """
-    lam = np.exp(logLam_temp)
-    sigma = FWHM_gal/2.355 # Assumes instrumental sigma is constant in Angstrom
-
-    # Balmer Series:      Hdelta   Hgamma    Hbeta   Halpha
-    line_wave = np.array([4101.76, 4340.47, 4861.33, 6562.80])
-    line_names = np.array(['Hdelta', 'Hgamma', 'Hbeta', 'Halpha'])
-    #                 -----[OII]-----    -----[SII]-----
-    line_wave.append([3726.03, 3728.82, 6716.47, 6730.85])
-    line_names.append(['[OII]3726', '[OII]3729', '[SII]6716', '[SII]6731'])
-    #                 -----[OIII]-----
-    line_wave.append([4958.92, 5006.84])
-    line_names.append('[OIII]5007d')  # single template for this doublet
-    #                  -----[OI]-----
-    line_wave.append([6363.67, 6300.30])
-    line_names.append('[OI]6300d')  # single template for this doublet
-    #                 -----[NII]-----
-    line_wave.append([6548.03, 6583.41])
-    line_names.append('[NII]6583d')  # single template for this doublet
-
-
-    lam = np.exp(logLam_temp)
-    sigma = FWHM_gal/2.355 # Assumes instrumental sigma is constant in Angstrom
-
-    # Balmer Series:      Hdelta   Hgamma    Hbeta   Halpha
-    line_wave = np.array([4101.76, 4340.47, 4861.33, 6562.80])
-    line_names = np.array(['Hdelta', 'Hgamma', 'Hbeta', 'Halpha'])
-    emission_lines = np.exp(-0.5*((lam[:,np.newaxis] - line_wave)/sigma)**2)
-
-    #                 -----[OII]-----    -----[SII]-----
-    lines = np.array([3726.03, 3728.82, 6716.47, 6730.85])
-    names = np.array(['[OII]3726', '[OII]3729', '[SII]6716', '[SII]6731'])
-    gauss = np.exp(-0.5*((lam[:,np.newaxis] - lines)/sigma)**2)
-    emission_lines = np.column_stack([emission_lines, gauss])
-    line_names = np.append(line_names, names)
-    line_wave = np.append(line_wave, lines)
-
-    #                 -----[OIII]-----
-    lines = np.array([4958.92, 5006.84])
-    doublet = np.exp(-0.5*((lam - lines[1])/sigma)**2) + 0.35*np.exp(-0.5*((lam - lines[0])/sigma)**2)
-    emission_lines = np.column_stack([emission_lines, doublet])
-    line_names = np.append(line_names, '[OIII]5007d') # single template for this doublet
-    line_wave = np.append(line_wave, lines[1])
-
-    #                  -----[OI]-----
-    lines = np.array([6363.67, 6300.30])
-    doublet = np.exp(-0.5*((lam - lines[1])/sigma)**2) + 0.33*np.exp(-0.5*((lam - lines[0])/sigma)**2)
-    emission_lines = np.column_stack([emission_lines, doublet])
-    line_names = np.append(line_names, '[OI]6300d') # single template for this doublet
-    line_wave = np.append(line_wave, lines[1])
-
-    #                 -----[NII]-----
-    lines = np.array([6548.03, 6583.41])
-    doublet = np.exp(-0.5*((lam - lines[1])/sigma)**2) + 0.34*np.exp(-0.5*((lam - lines[0])/sigma)**2)
-    emission_lines = np.column_stack([emission_lines, doublet])
-    line_names = np.append(line_names, '[NII]6583d') # single template for this doublet
-    line_wave = np.append(line_wave, lines[1])
-
-    # Only include lines falling within the estimated fitted wavelength range.
-    # This is important to avoid instabilities in the PPXF system solution
-    #
-    w = (line_wave > lamRange_gal[0]) & (line_wave < lamRange_gal[1])
-    emission_lines = emission_lines[:, w]
-    line_names = line_names[w]
-    line_wave = line_wave[w]
+        abs_hdu = fits.PrimaryHDU()
+        abs_hdu.data = abs_fit
+        abs_hdu.header = ohdr
+        abs_hdu.writeto(abs_bin_sci.format(j))
 
 
 
-    # Only include lines falling within the estimated fitted wavelength range.
-    # This is important to avoid instabilities in the PPXF system solution
-    #
-    w = (line_wave > lamRange_gal[0]) & (line_wave < lamRange_gal[1])
-    emission_lines = emission_lines[:, w]
-    line_names = line_names[w]
-    line_wave = line_wave[w]
+def fit_pvoight(galaxy, iline, bestfit):
 
-    print('Emission lines included in gas templates:')
-    print(line_names)
+    # Chop the spectra around the index of the emission line
+    w = 100
+    cutout = galaxy[iline - w / 2:iline + w / 2]
 
-    return emission_lines, line_names, line_wave
+    # Find the peak within this cutout, emission line may be shifted from where it is expected to be
+    iline2 = np.where(galaxy == np.max(cutout))[0][0]  # This is the index of the real emission line
+    x = np.exp(logLam1)[iline2 - w / 2:iline2 + w / 2]
+    cutout2 = galaxy[iline2 - w / 2:iline2 + w / 2]
+
+    #   plt.plot(np.exp(logLam1)[iline - w / 2:iline + w / 2], cutout, '--b', label="expected location of emission line")
+    #   plt.plot(x, cutout2, '-r', label="location of emission line")
+    #   plt.legend()
+    #   plt.show()
+
+    # To fit the spectra to a pVoight (absorption) and a Guassian (emission) we first want to determine what the
+    # optimal parameters for the absorption is by using the best fit absorption template
+    bfcutout = bestfit[iline2 - w / 2:iline2 + w / 2]
+
+    b_init = np.mean([np.mean(bfcutout[0:int(len(bfcutout) / 4)]),
+                      np.mean(bfcutout[int(3 * len(bfcutout) / 4):-1])])
+    a_init = b_init - np.min(bfcutout)
+    x0_init = x[np.argmin(bfcutout)]
+
+    # Fit the absorption spectra to a pVoight function (weighted sum of a Gaussian and Lorentzian function)
+
+    poptbf, pcovbf = curve_fit(pvoigt, x, bfcutout, p0=[a_init, 5., x0_init, b_init, 0.8])
+    bf_voi = pvoigt(x, poptbf[0], poptbf[1], poptbf[2], poptbf[3], poptbf[4])
+    global bf_voi  # do this to access this function in the ab_em_fcn method
+
+    #   plt.plot(x, bfcutout, '--b', label="bestfit absorption line")
+    #   plt.plot(x, cutout2, '-r', label="spectra")
+    #   plt.plot(x, bf_voi, '-g', label="fit of bestfit spectra")
+    #   plt.legend()
+    #   plt.show()
+
+    # Now fit the cutout region to a Gaussian function and and the bf_voi pVoight function
+    a_em = np.max(cutout2) - poptbf[1]
+    b_em = poptbf[1]
+
+    popt, pcov = curve_fit(ab_em_fcn, x, cutout2, p0=[a_em, 2., poptbf[3], b_em])
+    em_fit = gaussian(x, popt[0], popt[1], popt[2], popt[3])
+    abs_fit = np.subtract(cutout2, em_fit)
+
+    #   plt.plot(x, bfcutout, '--b', label="bestfit absorption line")
+    #   plt.plot(x, cutout2, '-r', label="spectra")
+    #   plt.plot(x, spec_fit, '--k', label="fit of spectra")
+    #   plt.plot(x, em_fit, '-.g', label="emission spectra")
+    #   plt.plot(x, abs_fit, '-b', label="absorption spectra")
+    #   plt.legend()
+    #   plt.show()
+
+    return x, abs_fit
+
+
+def fit_gauss(galaxy, iline, bestfit):
+
+    w = 90
+    cutout = galaxy[iline - w / 2:iline + w / 2]
+
+    # Find the peak within this cutout, emission line may be shifted from where it is expected to be
+    iline2 = np.where(galaxy == np.max(cutout))[0][0]  # This is the index of the real emission line
+    x = np.exp(logLam1)[iline2 - w / 2:iline2 + w / 2]
+    cutout2 = galaxy[iline2 - w / 2:iline2 + w / 2]
+
+    b_init = np.mean([np.mean(cutout2[0:int(len(cutout2) / 4)]), np.mean(cutout2[int(3 * len(cutout2) / 4):-1])])
+    a_init = np.max(cutout2) - b_init
+    x0_init = x[np.argmax(cutout2)]
+
+    bfcutout = bestfit[iline2 - w / 2:iline2 + w / 2]
+    poptbf, pcovbf = curve_fit(linear, x, bfcutout, p0=[-0.1, b_init])
+    bf_lin = linear(x, poptbf[0], poptbf[1])
+    global bf_lin
+
+    popt, pcov = curve_fit(gaus_cont, x, cutout2, p0=[a_init, 5., x0_init])
+    spec_fit = gaus_cont(x, popt[0], popt[1], popt[2])
+
+    #   plt.plot(x, cutout2, '-r', label="spectra")
+    #   plt.plot(x, bf_lin, '-k', label="spectra")
+    #   plt.plot(x, spec_fit, '-g', label="spectra")
+    #   plt.show()
+
+    em_fit = gaussian(x, popt[0], 0., popt[1], popt[2])
+    abs_fit = np.subtract(cutout2, em_fit)
+
+    #   plt.plot(x, cutout2, '-r', label="spectra")
+    #   plt.plot(x, em_fit, '-g', label="fit of bestfit spectra")
+    #   plt.plot(x, abs_fit, '-k', label="fit of spectra")
+    #   plt.legend()
+    #   plt.show()
+
+    return x, abs_fit
+
+
+def lorentz(x, a, w, x0, b):
+    return a / (1 + ((x - x0) / (w / 2)) ** 2) + b
+
+
+def gaussian(x, a, w, x0, b):
+    return a * np.exp(-(x - x0) ** 2 / (2 * w ** 2)) + b
+
+
+def pvoigt(x, a, w, x0, b, frac):
+    return (1 - frac) * gaussian(x, a, w, x0, b) + frac * lorentz(x, a, w, x0, b)
+
+
+def ab_em_fcn(x, a, w, x0, b):
+    return gaussian(x, a, w, x0, b) + bf_voi
+
+
+def gaus_cont(x, a, w, x0):
+    return a * np.exp(-(x - x0) ** 2 / (2 * w ** 2)) + bf_lin
+
+
+def linear(x, m, b):
+    return m * x + b
 
 
 if __name__ == '__main__':
@@ -1306,8 +1330,8 @@ if __name__ == '__main__':
 
     # Run pPXF
     # flatten_cube(IMAGE_CUBE, SCI_EXT, VAR_EXT)
-    #   make_table(IMAGE_CUBE, SCI_EXT, VAR_EXT, XYSN_FILE)
-    #   voronoi_binning(XYSN_FILE, V2B_FILE, V2B_XY_FILE)
+    # make_table(IMAGE_CUBE, SCI_EXT, VAR_EXT, XYSN_FILE)
+    # voronoi_binning(XYSN_FILE, V2B_FILE, V2B_XY_FILE)
 
     #   combine_spectra(V2B_FILE, IMAGE_CUBE, BIN_SCI, FLUX_SCI, BIN_VAR, FLUX_VAR)
     # Calculate average flux
@@ -1320,15 +1344,15 @@ if __name__ == '__main__':
     #                TEMPLATE_FITS, TEMPLATE_RESOLUTION, LAM_RANGE, VEL_INIT, SIG_INIT, 0)
     #   ppxf_simulation(PPXF_BESTFIT.strip('.fits') + '_bias0.fits', LAM_RANGE, TARGET_SN, bias=0.5, spaxel=0)
 
-    ppxf_vel = ppxf_kinematics(BIN_SCI, PPXF_FILE, PPXF_BESTFIT, TEMPLATE_FITS, TEMPLATE_RESOLUTION, LAM_RANGE,
-                               VEL_INIT, SIG_INIT, bias=0.6)
+    #   ppxf_vel = ppxf_kinematics(BIN_SCI, PPXF_FILE, PPXF_BESTFIT, TEMPLATE_FITS, TEMPLATE_RESOLUTION, LAM_RANGE,
+    #                           VEL_INIT, SIG_INIT, bias=0.6)
     # Plot results
     #   ppxf_vel, ppxf_sig, h3, h4, ppxf_dvel, ppxf_dsig, dh3, dh4 = np.loadtxt(PPXF_FILE, unpack=True)
     #   ppxf_vel, ppxf_dvel = np.loadtxt(PPXF_FILE.strip('.txt')+'_subsysvel.txt', unpack=True)
-    plot_velfield_setup(ppxf_vel, V2B_XY_FILE, FLUX_SCOPY_FILE)
+    #   plot_velfield_setup(ppxf_vel, V2B_XY_FILE, FLUX_SCOPY_FILE)
 
     # Make spectre of just emission and just absorption lines
-    #   remove_emission_lines(BIN_SCI, ABS_BIN_SCI)
+    remove_emission_lines(BIN_SCI, ABS_BIN_SCI, PPXF_BESTFIT)
     #   remove_absorp_lines(BIN_SCI, PPXF_BESTFIT, EM_BIN_SCI)
 
     # Run rv fxcor
