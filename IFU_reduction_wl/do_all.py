@@ -20,6 +20,7 @@ from sauron_colormap import sauron
 from cap_plot_velfield import plot_velfield
 from scipy.optimize import curve_fit
 # import specutils as su
+import remove_lines
 
 """
 This script covers all the kinematic analysis of a reduced 3D image cube by the method in reduce_and_cubel.cl
@@ -46,20 +47,42 @@ To run pPXF:
             voronoi_binning(XYSN_FILE, V2B_FILE, V2B_XY_FILE)
     - Combine spectra of the same bin into fits files
             combine_spectra(V2B_FILE, IMAGE_CUBE, BIN_SCI, FLUX_SCI, BIN_VAR, FLUX_VAR)
+    - Determine the optimal BIAS, first run ppxf with BIAS=0 to find the h3 and h4 parameters, put these into
+      ppxf_simulation and determine the optimal BIAS. See the information in ppxf.py or in the ppxf readme.txt for
+      more information about this step. I have selected BIAS=0.6 as a good value.
+            ppxf_simulation(PPXF_BESTFIT.strip('.fits') + '_bias0.fits', LAM_RANGE, TARGET_SN, bias=0.5, spaxel=0)
     - Preform pPXF on the binned spectra
-            ppxf_kinematics(BIN_SCI, PPXF_FILE, PPXF_BESTFIT, LAM_RANGE, TEMPLATE_FITS, TEMPLATE_RESOLUTION, VEL_INIT, SIG_INIT)
+           ppxf_kinematics(BIN_SCI, PPXF_FILE, PPXF_BESTFIT, TEMPLATE_FITS, TEMPLATE_RESOLUTION, LAM_RANGE, VEL_INIT, SIG_INIT, bias=0.6)
 To plot pPXF output:
     - Copy the desired spectral range and read mean flux values to be used for plotting
             scopy_flux(FLUX_SCI, FLUX_SCOPY_FITS, FLUX_SCOPY_RANGE, FLUX_SCOPY_FILE)
-    - Access arrays to input into cap_plot_velfield()
-            plot_ppxf_velfield(V2B_XY_FILE, PPXF_FILE, FLUX_SCOPY_FILE)
+    - Access arrays to input into cap_plot_velfield(), set vel as velocity information obtained from ppxf
+            plot_velfield_setup(vel, V2B_XY_FILE, FLUX_SCOPY_FILE)
+
+As the spectra contain both emission and absorption features, it is important to separate the two before using fxcor
+or rvsao as (unlike ppxf) they do not remove the emission lines
+    - Create a spectra of the emission lines to study the gas kinematics
+            remove_lines.remove_absorp_lines(BIN_SCI, PPXF_BESTFIT, EM_BIN_SCI)
+    - Create a spectra of the emission lines to study the stellar kinematics
+            remove_lines.remove_emission_lines(BIN_SCI, ABS_BIN_SCI, PPXF_BESTFIT, plot=False)
 
 To run fxcor to preform cross correlation to determine relative velocity:
     - Create input file from list of spectral bins and select the bin to use as the template
-            fxcor_bins(bin_sci, fxcor_bin_list, fxcor_template, fxcor_file)
-To plot the pPXF output:
-    - Access arrays to input into cap_plot_velfield()
-            plot_fxcor_velfield(V2B_XY_FILE, FXCOR_FILE, FLUX_FILE)
+    - Absorption lines
+            fxcor(EM_BIN_SCI, TEMPLATE_SPECTRA, EM_FXCOR_BIN_LIST, EM_FXCOR_FILE)
+    - Emission lines
+            fxcor(ABS_BIN_SCI, TEMPLATE_SPECTRA, ABS_FXCOR_BIN_LIST, ABS_FXCOR_FILE)
+To plot the fxcor output:
+    - Access arrays to input into cap_plot_velfield(), set vel as velocity information obtained from fxcor
+            plot_velfield_setup(vel, V2B_XY_FILE, FLUX_SCOPY_FILE)
+
+To run rvsao (with xcsao or emsao) to preform cross correlation to determine relative velocity:
+    - Use the absorption lines spectra to study the relvative velocity of the stars
+            rvsao(ABS_BIN_SCI, 'xcsao', TEMPLATE_SPECTRA, XCSAO_FILE, XCSAO_BIN_LIST)
+    - Use the emission lines spectra to study the relvative velocity of the gas
+            rvsao(EM_BIN_SCI, 'emsao', TEMPLATE_SPECTRA, EMSAO_FILE, EMSAO_BIN_LIST)
+To plot, same method as above, with vel as the velcity information obtained from rvsao
+            plot_velfield_setup(vel, V2B_XY_FILE, FLUX_SCOPY_FILE)
 
 
 Template spectra for fxcor/rvsoa (bin with high SN)
@@ -481,9 +504,9 @@ def ppxf_kinematics(bin_sci, ppxf_file, ppxf_bestfit, template_fits, template_re
     # of the library is included for this example with permission. See http://purl.org/cappellari/software
     # for suggestions of more up-to-date stellar libraries.
 
-    #   vazdekis = glob.glob(dir + 'Rbi1.30z*.fits')
-    #   vazdekis.sort()
-    #   FWHM_tem = 1.8 # Vazdekis spectra have a resolution FWHM of 1.8A.
+    # vazdekis = glob.glob(dir + 'Rbi1.30z*.fits')
+    # vazdekis.sort()
+    # FWHM_tem = 1.8 # Vazdekis spectra have a resolution FWHM of 1.8A.
 
     template_spectra = glob.glob(template_fits)
     assert len(template_spectra) > 0, 'Template spectra not found: {}'.format(template_fits)
@@ -629,92 +652,6 @@ def ppxf_kinematics(bin_sci, ppxf_file, ppxf_bestfit, template_fits, template_re
     return vel_list
 
 
-def scopy_flux(flux_sci, flux_scopy_fits, flux_scopy_range, flux_scopy_file):
-    """
-    Combine (average) all spectra (according to bin) in the image for a given spectral range, calculate mean flux
-    INPUT: FLUX_SCI, FLUX_SCOPY_FITS, FLUX_SCOPY_RANGE
-    OUTPUT: FLUX_SCOPY_FILE
-    """
-
-    if os.path.exists(flux_scopy_file):
-        print('File {} already exists'.format(flux_scopy_file))
-        return
-
-    files_in_dir = glob.glob(flux_sci.format('*'))
-    assert len(files_in_dir) > 0, 'No files match {}'.format(flux_sci.format('*'))
-
-    from pyraf import iraf
-
-    iraf.noao()
-    iraf.onedspec()
-
-    flux_scopy_fits_i_data_mean = []
-
-    for i in range(len(files_in_dir)):
-
-        flux_sci_i = flux_sci.format(i)
-        flux_scopy_fits_i = flux_scopy_fits.format(i)
-
-        if not os.path.exists(flux_scopy_fits_i):
-            iraf.scopy(flux_sci_i, flux_scopy_fits_i, w1=flux_scopy_range[0], w2=flux_scopy_range[1])
-
-        flux_scopy_fits_i_data = fits.getdata(flux_scopy_fits_i, 0)
-        assert flux_scopy_fits_i_data.ndim != 0, "Scrop'd array is empty"
-
-        flux_scopy_fits_i_data_mean.append(flux_scopy_fits_i_data.mean())
-
-    np.array(flux_scopy_fits_i_data_mean).tofile(flux_scopy_file, sep='\n')
-
-
-def fxcor(spec, template_spec, spec_list_file, fxcor_output_file):
-    """
-    Run fxcor on the binned spectra to determine the relative velocity (with respect to the template spectra)
-    INPUT: BIN_SCI, FXCOR_TEMPLATE
-    OUTPUT: FXCOR_BIN_LIST, FXCOR_FILE(s)
-    """
-
-    if os.path.exists(fxcor_output_file + '.txt'):
-        print('File {} already exists'.format(fxcor_output_file + '.txt'))
-        return
-
-    spec_list = []
-    for i in range(len(glob.glob(spec.format('*')))):
-        spec_list.append(spec.format(i))
-    assert len(spec_list) > 0, 'Input files {} do not exist'.format(spec.format('*'))
-    np.array(spec_list).tofile(spec_list_file, sep='\n')
-
-    from pyraf import iraf
-
-    iraf.noao()
-    iraf.rv()
-
-    iraf.fxcor('@{}'.format(spec_list_file), spec.format(template_spec), output=fxcor_output_file, continuum="both",
-               interactive="no", order=1, high_rej=2, low_rej=2, osample="4500-5100", rsample="4500-5100",
-               rebin="smallest", imupdate="no", pixcorr="no", filter="both", f_type="welch", cuton=20, cutoff=1000,
-               fullon=30, fulloff=800, ra="RA", dec="DEC", ut="UTSTART", epoch="EQUINOX", verbose="nogki")
-
-    assert os.path.exists(fxcor_output_file + '.txt'), 'Error in iraf.fxcor: File {} was not created'.format(
-        fxcor_output_file + '.txt')
-
-
-def plot_velfield_setup(vel, v2b_xy_file, flux_scopy_file):
-    assert os.path.exists(v2b_xy_file), 'File {} does not exist'.format(v2b_xy_file)
-    assert os.path.exists(flux_scopy_file), 'File {} does not exist'.format(flux_scopy_file)
-    assert len(vel) > 0, 'Input velocity does not make sense'
-
-    xbar, ybar, xnode, ynode = np.loadtxt(v2b_xy_file, unpack=True, skiprows=1)
-    flux = np.loadtxt(flux_scopy_file, unpack=True)
-
-    assert len(xbar) == len(ybar), 'Xbar is not the same length as Ybar'
-    assert len(xbar) == len(vel), 'Xbar is not the same length as vel'
-    assert len(xbar) == len(flux), 'Xbar is not the same length as flux'
-
-    plt.clf()
-    plt.title('Velocity')
-    plot_velfield(xbar, ybar, vel, flux=flux, colorbar=True, label='km/s')
-    plt.show()
-
-
 def ppxf_simulation(ppxf_bestfit, lam_range, target_sn, bias=0.6, spaxel=0):
     """
     2. Perform a fit of your kinematics *without* penalty (PPXF keyword BIAS=0).
@@ -772,9 +709,9 @@ def ppxf_simulation(ppxf_bestfit, lam_range, target_sn, bias=0.6, spaxel=0):
     star = rebin(starNew, factor)  # Make sure that the observed spectrum is the integral over the pixels
 
     # vel = 0.3  # velocity in *pixels* [=V(km/s)/velScale]
-    #   h3 = 0.1  # Adopted G-H parameters of the LOSVD
-    #   h4 = -0.1
-    #   sn = 60.  # Adopted S/N of the Monte Carlo simulation
+    # h3 = 0.1  # Adopted G-H parameters of the LOSVD
+    # h4 = -0.1
+    # sn = 60.  # Adopted S/N of the Monte Carlo simulation
     #   m = 300  # Number of realizations of the simulation
     #   sigmaV = np.linspace(0.8, 4, m)  # Range of sigma in *pixels* [=sigma(km/s)/velScale]
 
@@ -855,6 +792,124 @@ def ppxf_simulation(ppxf_bestfit, lam_range, target_sn, bias=0.6, spaxel=0):
     plt.show()
 
 
+def scopy_flux(flux_sci, flux_scopy_fits, flux_scopy_range, flux_scopy_file):
+    """
+    Combine (average) all spectra (according to bin) in the image for a given spectral range, calculate mean flux
+    INPUT: FLUX_SCI, FLUX_SCOPY_FITS, FLUX_SCOPY_RANGE
+    OUTPUT: FLUX_SCOPY_FILE
+    """
+
+    if os.path.exists(flux_scopy_file):
+        print('File {} already exists'.format(flux_scopy_file))
+        return
+
+    files_in_dir = glob.glob(flux_sci.format('*'))
+    assert len(files_in_dir) > 0, 'No files match {}'.format(flux_sci.format('*'))
+
+    from pyraf import iraf
+
+    iraf.noao()
+    iraf.onedspec()
+
+    flux_scopy_fits_i_data_mean = []
+
+    for i in range(len(files_in_dir)):
+
+        flux_sci_i = flux_sci.format(i)
+        flux_scopy_fits_i = flux_scopy_fits.format(i)
+
+        if not os.path.exists(flux_scopy_fits_i):
+            iraf.scopy(flux_sci_i, flux_scopy_fits_i, w1=flux_scopy_range[0], w2=flux_scopy_range[1])
+
+        flux_scopy_fits_i_data = fits.getdata(flux_scopy_fits_i, 0)
+        assert flux_scopy_fits_i_data.ndim != 0, "Scrop'd array is empty"
+
+        flux_scopy_fits_i_data_mean.append(flux_scopy_fits_i_data.mean())
+
+    np.array(flux_scopy_fits_i_data_mean).tofile(flux_scopy_file, sep='\n')
+
+
+def fxcor(spec, template_spec, spec_list_file, fxcor_output_file):
+    """
+    Run fxcor on the binned spectra to determine the relative velocity (with respect to the template spectra)
+    INPUT: BIN_SCI, FXCOR_TEMPLATE
+    OUTPUT: FXCOR_BIN_LIST, FXCOR_FILE(s)
+    """
+
+    if os.path.exists(fxcor_output_file + '.txt'):
+        print('File {} already exists'.format(fxcor_output_file + '.txt'))
+        return
+
+    spec_list = []
+    for i in range(len(glob.glob(spec.format('*')))):
+        spec_list.append(spec.format(i))
+    assert len(spec_list) > 0, 'Input files {} do not exist'.format(spec.format('*'))
+    np.array(spec_list).tofile(spec_list_file, sep='\n')
+
+    from pyraf import iraf
+
+    iraf.noao()
+    iraf.rv()
+
+    iraf.fxcor('@{}'.format(spec_list_file), spec.format(template_spec), output=fxcor_output_file, continuum="both",
+               interactive="no", order=1, high_rej=2, low_rej=2, osample="4500-5100", rsample="4500-5100",
+               rebin="smallest", imupdate="no", pixcorr="no", filter="both", f_type="welch", cuton=20, cutoff=1000,
+               fullon=30, fulloff=800, ra="RA", dec="DEC", ut="UTSTART", epoch="EQUINOX", verbose="nogki")
+
+    assert os.path.exists(fxcor_output_file + '.txt'), 'Error in iraf.fxcor: File {} was not created'.format(
+        fxcor_output_file + '.txt')
+
+
+def rvsao(bin_sci, task, template_spectra, rvsao_file, rvsao_bin_list):
+    """
+    """
+
+    assert task == 'xcsao' or task == 'emsao', "task is not either 'xcsao' or 'emsao'"
+
+    if os.path.exists(rvsao_file):
+        print('File {} already exists'.format(rvsao_file))
+        return
+
+    bin_list = []
+    for i in range(len(glob.glob(bin_sci.format('*')))):  # to ensure order is 0-61 (not 0, 1, 10, 11, etc)
+        bin_list.append(bin_sci.format(i))
+    assert len(bin_list) > 0, 'Absorption/emission(?) bin spectra do not exist: {}'.format(em_bin_sci.format('*'))
+    np.array(bin_list).tofile(rvsao_bin_list, sep='\n')
+
+    from pyraf import iraf
+
+    iraf.images()
+    iraf.rvsao()
+
+    if task == 'xcsao':
+        iraf.xcsao('@{}'.format(rvsao_bin_list), templates=bin_sci.format(template_spectra), report_mode=2,
+                   logfiles=rvsao_file, displot='no', low_bin=10, top_low=20, top_nrun=80, nrun=211, zeropad="yes",
+                   nzpass=1, curmode="no", pkmode=2, s_emchop="no", vel_init="guess", czguess=1500, st_lambda=4300,
+                   end_lambda=5300)
+
+    elif task == 'emsao':
+        iraf.emsao('@{}'.format(em_bin_list_file), logfiles=em_rvsao_file, vel_init="guess", czguess=1500, linesig=1.,
+                   displot="no", report_mode=2, contsub_plot="no")
+
+
+def plot_velfield_setup(vel, v2b_xy_file, flux_scopy_file):
+    assert os.path.exists(v2b_xy_file), 'File {} does not exist'.format(v2b_xy_file)
+    assert os.path.exists(flux_scopy_file), 'File {} does not exist'.format(flux_scopy_file)
+    assert len(vel) > 0, 'Input velocity does not make sense'
+
+    xbar, ybar, xnode, ynode = np.loadtxt(v2b_xy_file, unpack=True, skiprows=1)
+    flux = np.loadtxt(flux_scopy_file, unpack=True)
+
+    assert len(xbar) == len(ybar), 'Xbar is not the same length as Ybar'
+    assert len(xbar) == len(vel), 'Xbar is not the same length as vel'
+    assert len(xbar) == len(flux), 'Xbar is not the same length as flux'
+
+    plt.clf()
+    plt.title('Velocity')
+    plot_velfield(xbar, ybar, vel, flux=flux, colorbar=True, label='km/s')
+    plt.show()
+
+
 def rebin(x, factor):
     """
     Rebin a one-dimensional vector by averaging
@@ -864,441 +919,12 @@ def rebin(x, factor):
     return np.mean(x.reshape(-1, factor), axis=1)
 
 
-def rvsao_xcsao(bin_sci, ppxf_bestfit, template_spectra, rvsao_file):
-    """
-
-    """
-
-    if os.path.exists(rvsao_file):
-        print('File {} already exists'.format(rvsao_file))
-        return
-
-    from pyraf import iraf
-
-    iraf.images()
-    iraf.rvsao()
-
-    bin_files = []
-    for i in range(len(glob.glob(bin_sci.format('*')))):  # Do this so order is 0-61 (not 0, 1, 10, 11, etc)
-        bin_files.append(bin_sci.format(i))
-
-    bestfit_template = ppxf_bestfit.format(template_spectra)
-
-    bin_header = fits.getheader(bin_sci.format(template_spectra), 0)
-    cd11 = fits.getval(bestfit_template, 'CD1_1')
-    print('>>>>> CD1_1 is {}'.format(cd11))
-    if cd11 is None:
-        iraf.hedit(bestfit_template, "CD1_1", bin_header['CD1_1'], add="yes", update="yes", verify="no")
-        iraf.hedit(bestfit_template, "CRVAL1", bin_header['CRVAL1'], add="yes", update="yes", verify="no")
-        iraf.hedit(bestfit_template, "CRPIX1", bin_header['CRPIX1'], add="yes", update="yes", verify="no")
-
-    for bin_spec in bin_files:
-        iraf.xcsao(bin_spec, templates=bestfit_template, report_mode=2, logfiles=rvsao_file, displot='yes',
-                   low_bin=10, top_low=20, top_nrun=80, nrun=211, zeropad="yes", nzpass=1, curmode="no", pkmode=2,
-                   s_emchop="yes", vel_init="guess", czguess=1500)
-
-
-def rvsao_xcsao2(bin_sci, template_spectra, xcsao_file, xcsao_bin_list):
-    """
-    """
-
-    if os.path.exists(xcsao_file):
-        print('File {} already exists'.format(xcsao_file))
-        return
-
-    bin_list = []
-    for i in range(len(glob.glob(bin_sci.format('*')))):  # to ensure order is 0-61 (not 0, 1, 10, 11, etc)
-        bin_list.append(bin_sci.format(i))
-    assert len(bin_list) > 0, 'Absorption bin spectra do not exist: {}'.format(em_bin_sci.format('*'))
-    np.array(bin_list).tofile(xcsao_bin_list, sep='\n')
-
-    from pyraf import iraf
-
-    iraf.images()
-    iraf.rvsao()
-
-    iraf.xcsao('@{}'.format(xcsao_bin_list), templates=bin_sci.format(template_spectra), report_mode=2,
-               logfiles=xcsao_file, displot='yes', low_bin=10, top_low=20, top_nrun=80, nrun=211, zeropad="yes",
-               nzpass=1, curmode="no", pkmode=2, s_emchop="no", vel_init="guess", czguess=1500)
-
-
-def rvsao_emsao(em_bin_sci, em_bin_list_file, em_rvsao_file):
-    """
-    """
-
-    if os.path.exists(em_rvsao_file):
-        print('File {} already exists'.format(em_rvsao_file))
-        return
-
-    em_bin_list = []
-    for i in range(len(glob.glob(em_bin_sci.format('*')))):  # to ensure order is 0-61 (not 0, 1, 10, 11, etc)
-        em_bin_list.append(em_bin_sci.format(i))
-    assert len(em_bin_list) > 0, 'Emission bin spectra do not exist: {}'.format(em_bin_sci.format('*'))
-    np.array(em_bin_list).tofile(em_bin_list_file, sep='\n')
-
-    from pyraf import iraf
-
-    iraf.images()
-    iraf.rvsao()
-
-    iraf.emsao('@{}'.format(em_bin_list_file), logfiles=em_rvsao_file, vel_init="guess", czguess=1500, linesig=1.,
-               displot="no", report_mode=2, contsub_plot="no")
-
-
-def rebin_log_to_lin(bestfit_template):
-    if os.path.exists(bestfit_template.strip('.fits') + '_rebin.fits'):
-        print('File {} already exists'.format(bestfit_template.strip('.fits') + '_rebin.fits'))
-        return
-
-    with fits.open(bestfit_template) as bf_hdu:
-        bf_header = bf_hdu[0].header
-        bf_data = bf_hdu[0].data
-
-    lambda_array = su.wavehead(bf_header, axis=1)
-
-    bf_delta_rebin = 1.8
-    lamda_rebin = np.arange(np.min(lambda_array), np.max(lambda_array), bf_delta_rebin)
-
-    bf_data_rebin = su.rebin_spec(lambda_array, bf_data, lamda_rebin)
-
-    plt.plot(lambda_array[0:99], bf_data[0:99], color='blue')
-    plt.plot(lamda_rebin[0:99], bf_data_rebin[0:99], color='red')
-    plt.show()
-
-    # Write output fits file
-    if not os.path.isfile(bestfit_template.strip('.fits') + '_rebin.fits'):
-        hdu_rebin = fits.HDUList()
-        hdu_rebin.append(fits.PrimaryHDU(data=bf_data_rebin, header=bf_header))
-        hdu_rebin[0].header['CDELT1'] = bf_delta_rebin
-        hdu_rebin[0].header['CD1_1'] = bf_delta_rebin
-        hdu_rebin[0].header['CRPIX1'] = bf_header['CRPIX1']
-        hdu_rebin[0].header['CRVAL1'] = lamda_rebin[0]
-        hdu_rebin[0].header['DC-FLAG'] = 0
-        hdu_rebin.writeto(bestfit_template.strip('.fits') + '_rebin.fits')
-
-    return bestfit_template.strip('.fits') + '_rebin.fits'
-
-
-def remove_absorp_lines(bin_sci, ppxf_bestfit, em_bin_sci):
-    """
-    """
-
-    if os.path.exists(em_bin_sci.format(1)):
-        print('Emission spectra already exists')
-        return
-
-    from pyraf import iraf
-
-    iraf.images()
-
-    for i in range(len(glob.glob(bin_sci.format('*')))):
-        bin_file = bin_sci.format(i)
-        assert os.path.exists(bin_file), 'Input spectra {} does not exist'.format(bin_file)
-        bestfit_template = ppxf_bestfit.format(i)
-        assert os.path.exists(bestfit_template), 'Bestfit spectra {} does not exist'.format(bestfit_template)
-        # bestfit_template_rebin = rebin_log_to_lin(bestfit_template)
-        # assert os.path.exists(bestfit_template_rebin), 'Rebinned bestfit spectra {} does not exist'.format(bestfit_template_rebin)
-
-        # Create files with just absorption/just emission spectra (via operations with ppxf bestfit template spectra)
-        em_bin_file = em_bin_sci.format(i)
-
-        if not os.path.exists(em_bin_file):
-            iraf.imarith(bin_file, '-', bestfit_template, em_bin_file)
-            assert os.path.exists(em_bin_file), 'Imarith failed, {} was not created'.format(em_bin_file)
-            # if not os.path.exists(bin_file_ablines):
-            # iraf.imarith(bin_file, '-', bestfit_template_rebin, bin_file_ablines)
-            # assert os.path.exists(bin_file_ablines), 'Imarith failed, {} was not created'.format(bin_file_ablines)
-
-
-def make_template():
-    ssp_dir = '/Users/kwebb/idl/cappellari/ppxf/spectra/'
-    ssp_list = ['bc2003_hr_m22_salp_ssp.145', 'bc2003_hr_m32_salp_ssp.145', 'bc2003_hr_m42_salp_ssp.130',
-                'bc2003_hr_m52_salp_ssp.70', 'bc2003_hr_m62_salp_ssp.70', 'bc2003_hr_m72_salp_ssp.70']
-
-    ssp0 = pd.read_table('{}/{}'.format(ssp_dir, ssp_list[0]), sep='  ', skiprows=6, engine='python',
-                         usecols=[0, 1, 2, 3, 4, 5],
-                         names=["lambda", "flux0", "flux1", "flux2", "flux3", "flux4"])
-    ssp1 = pd.read_table('{}/{}'.format(ssp_dir, ssp_list[1]), sep='  ', skiprows=6, engine='python',
-                         usecols=[1, 2, 3, 4, 5],
-                         names=["flux5", "flux6", "flux7", "flux8", "flux9"])
-    ssp2 = pd.read_table('{}/{}'.format(ssp_dir, ssp_list[2]), sep='  ', skiprows=6, engine='python',
-                         usecols=[1, 2, 3, 4, 5, 6, 7],
-                         names=["flux10", "flux11", "flux12", "flux13", "flux14", "flux15", "flux16"])
-    ssp3 = pd.read_table('{}/{}'.format(ssp_dir, ssp_list[3]), sep='  ', skiprows=6, engine='python',
-                         usecols=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
-                         names=["flux17", "flux18", "flux19", "flux20", "flux21", "flux22", "flux23", "flux24",
-                                "flux25", "flux26", "flux27", "flux28"])
-    ssp4 = pd.read_table('{}/{}'.format(ssp_dir, ssp_list[4]), sep='  ', skiprows=6, engine='python',
-                         usecols=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
-                         names=["flux29", "flux30", "flux31", "flux32", "flux33", "flux34", "flux35", "flux36",
-                                "flux37", "flux38", "flux39", "flux40"])
-    ssp5 = pd.read_table('{}/{}'.format(ssp_dir, ssp_list[5]), sep='  ', skiprows=6, engine='python',
-                         usecols=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
-                         names=["flux41", "flux42", "flux43", "flux44", "flux45", "flux46", "flux47", "flux48",
-                                "flux49", "flux50", "flux51", "flux52"])
-
-    ssp = pd.concat([ssp0["flux0"], ssp0["flux1"], ssp0["flux2"], ssp0["flux3"], ssp0["flux4"],
-                     ssp1, ssp2, ssp3, ssp4, ssp5], axis=1)
-
-    return ssp
-
-
-def clean_spec_30(bin_sci):
-    bad_region = [27, 55]  # use splot to determine this region, the '$' will cahnge scale from wavelength to pixels
-
-    # Use splot to remove the continuum from the spectra - 't' then '-' then 'q' then 'i' and choose output file name
-    # To get the continuum (which I will use to fill in the bad region) subtract the continuum removed spectra
-    # from the original spectra. i.e. (spectra) - (spectra - continuum) = continuum
-
-    bin_spec = bin_sci.format(30)
-    bin_spec_features = bin_spec.split('bin')[0] + 'features_bin' + bin_spec.split('bin')[1]  # my chosen file name
-    bin_spec_orig = bin_spec.split('bin')[0] + 'orig_bin' + bin_spec.split('bin')[1]  # save original under new name
-
-    if os.path.isfile(bin_spec_orig):
-        print('Spectra {} has already been cleaned'.format(bin_spec))
-        return
-
-    with fits.open(bin_spec) as spec_hdu:
-        spec_data = spec_hdu[0].data
-        spec_hdr = spec_hdu[0].header
-
-    with fits.open(bin_spec_features) as feat_hdu:
-        feat_data = feat_hdu[0].data
-
-    continuum_data = np.subtract(spec_data, feat_data)
-
-    # now replace bad region in spectra with that of the values of the continuum
-    clean_data = spec_data
-    clean_data[bad_region[0]:bad_region[1]] = continuum_data[bad_region[0]:bad_region[1]]
-
-    # write into a new fits image the clean data
-    clean_hdu = fits.PrimaryHDU()
-    clean_hdu.data = clean_data
-    clean_hdu.header = spec_hdr
-    clean_hdu.writeto(bin_spec, clobber=True)
-
-    orig_hdu = fits.PrimaryHDU()
-    orig_hdu.data = spec_data
-    orig_hdu.header = spec_hdr
-    orig_hdu.writeto(bin_spec_orig, clobber=True)
-
-
 def read_emsao_output(emaso_input):
     emsao_vel = []
     with open(emaso_input) as infile:
         for line in infile:
             emsao_vel.append(float(line.split()[3]))
     return emsao_vel
-
-
-def gauss_function(x, a, x0, sigma, b):
-    return a * np.exp(-(x - x0) ** 2 / (2 * sigma ** 2)) + b
-
-
-def gauss_fit(data, lni):
-    x = np.linspace(0, len(lni) - 2, len(lni) - 1)
-    y = data[lni[0]:lni[-1]]
-
-    amp = np.max(y) - np.min(y)
-    x0 = np.argmax(y)
-    sigma = 2.
-    b = np.min(y)
-
-    popt, pcov = curve_fit(gauss_function, x, y, p0=[amp, x0, sigma, b])
-    gauss = gauss_function(x, popt[0], popt[1], popt[2], popt[3])
-
-    return np.subtract(gauss, np.min(gauss))
-
-
-def remove_emission_lines(bin_sci, abs_bin_sci, ppxf_bestfit):
-    """
-    """
-
-    if os.path.exists(abs_bin_sci.format(1)):
-        print('Absorption spectra already exists')
-        return
-
-    for j in range(len(glob.glob(bin_sci.format('*')))):
-
-        with fits.open(bin_sci.format(j)) as hdu:
-            odata = hdu[0].data
-            ohdr = hdu[0].header
-
-        bestfit = fits.getdata(ppxf_bestfit.format(j))
-
-        # Find the range of values in wavelength
-        crval3 = ohdr['CRVAL1']
-        crpix3 = ohdr['CRPIX1']
-        cd33 = ohdr['CD1_1']
-        npix = ohdr['NAXIS1']
-        wmin = crval3 + (1. - crpix3) * cd33
-        wmax = crval3 + (npix - crpix3) * cd33
-        # Log bin the spectra to match the best fit absorption template
-        galaxy, logLam1, velscale = util.log_rebin([wmin, wmax], odata)
-
-        # Hgamma 4340.47, Hbeta 4861.33, OIII [4958.92, 5006.84]
-        lwave = [4340.47, 4861.33, 4958.92, 5006.84]
-
-        # find the index of the emission lines
-        iHg = (np.abs(np.exp(logLam1) - lwave[0])).argmin()
-        iHb = (np.abs(np.exp(logLam1) - lwave[1])).argmin()
-        iOIIIa = (np.abs(np.exp(logLam1) - lwave[2])).argmin()
-        iOIIIb = (np.abs(np.exp(logLam1) - lwave[2])).argmin()
-
-        # There are BOTH absorption and emission features about the wavelength of Hgamma and Hbeta, so we need
-        # to use a specialized fitting function (convolved Guassian and Lorentzian -> pVoight) to remove the
-        # emission lines
-        xHg, abs_fit_Hg = fit_pvoight(galaxy, iHg, bestfit)
-        xHb, abs_fit_Hb = fit_pvoight(galaxy, iHb, bestfit)
-
-        # There are only emission features about the OIII doublet so we only fit the emission line with a Gaussian
-        xOIIIa, abs_fit_OIIIa = fit_gauss(galaxy, iOIIIa, bestfit)
-        xOIIIb, abs_fit_OIIIb = fit_gauss(galaxy, iOIIIb, bestfit)
-
-        # Add all the cutout spectra together
-        abs_fit = []
-        for xx in np.exp(logLam1):
-            if xx in xHg:
-                abs_fit.append(abs_fit_Hg[np.where(xHg == xx)][0])
-            elif xx in xHb:
-                abs_fit.append(abs_fit_Hb[np.where(xHb == xx)][0])
-            elif xx in xOIIIa:
-                abs_fit.append(abs_fit_OIIIa[np.where(xOIIIa == xx)][0])
-            elif xx in xOIIIb:
-                abs_fit.append(abs_fit_OIIIb[np.where(xOIIIb == xx)][0])
-            else:
-                abs_fit.append(galaxy[np.where(np.exp(logLam1) == xx)][0])
-
-        plt.plot(np.exp(logLam1), galaxy, '-k', label="spectra")
-        plt.plot(np.exp(logLam1), bestfit, '--r', label="bestfit absorption line")
-        plt.plot(np.exp(logLam1), abs_fit, '-g', label="fit of bestfit spectra")
-        #plt.legend()
-        plt.show()
-
-        abs_hdu = fits.PrimaryHDU()
-        abs_hdu.data = abs_fit
-        abs_hdu.header = ohdr
-        abs_hdu.writeto(abs_bin_sci.format(j))
-
-
-
-def fit_pvoight(galaxy, iline, bestfit):
-
-    # Chop the spectra around the index of the emission line
-    w = 100
-    cutout = galaxy[iline - w / 2:iline + w / 2]
-
-    # Find the peak within this cutout, emission line may be shifted from where it is expected to be
-    iline2 = np.where(galaxy == np.max(cutout))[0][0]  # This is the index of the real emission line
-    x = np.exp(logLam1)[iline2 - w / 2:iline2 + w / 2]
-    cutout2 = galaxy[iline2 - w / 2:iline2 + w / 2]
-
-    #   plt.plot(np.exp(logLam1)[iline - w / 2:iline + w / 2], cutout, '--b', label="expected location of emission line")
-    #   plt.plot(x, cutout2, '-r', label="location of emission line")
-    #   plt.legend()
-    #   plt.show()
-
-    # To fit the spectra to a pVoight (absorption) and a Guassian (emission) we first want to determine what the
-    # optimal parameters for the absorption is by using the best fit absorption template
-    bfcutout = bestfit[iline2 - w / 2:iline2 + w / 2]
-
-    b_init = np.mean([np.mean(bfcutout[0:int(len(bfcutout) / 4)]),
-                      np.mean(bfcutout[int(3 * len(bfcutout) / 4):-1])])
-    a_init = b_init - np.min(bfcutout)
-    x0_init = x[np.argmin(bfcutout)]
-
-    # Fit the absorption spectra to a pVoight function (weighted sum of a Gaussian and Lorentzian function)
-
-    poptbf, pcovbf = curve_fit(pvoigt, x, bfcutout, p0=[a_init, 5., x0_init, b_init, 0.8])
-    bf_voi = pvoigt(x, poptbf[0], poptbf[1], poptbf[2], poptbf[3], poptbf[4])
-    global bf_voi  # do this to access this function in the ab_em_fcn method
-
-    #   plt.plot(x, bfcutout, '--b', label="bestfit absorption line")
-    #   plt.plot(x, cutout2, '-r', label="spectra")
-    #   plt.plot(x, bf_voi, '-g', label="fit of bestfit spectra")
-    #   plt.legend()
-    #   plt.show()
-
-    # Now fit the cutout region to a Gaussian function and and the bf_voi pVoight function
-    a_em = np.max(cutout2) - poptbf[1]
-    b_em = poptbf[1]
-
-    popt, pcov = curve_fit(ab_em_fcn, x, cutout2, p0=[a_em, 2., poptbf[3], b_em])
-    em_fit = gaussian(x, popt[0], popt[1], popt[2], popt[3])
-    abs_fit = np.subtract(cutout2, em_fit)
-
-    #   plt.plot(x, bfcutout, '--b', label="bestfit absorption line")
-    #   plt.plot(x, cutout2, '-r', label="spectra")
-    #   plt.plot(x, spec_fit, '--k', label="fit of spectra")
-    #   plt.plot(x, em_fit, '-.g', label="emission spectra")
-    #   plt.plot(x, abs_fit, '-b', label="absorption spectra")
-    #   plt.legend()
-    #   plt.show()
-
-    return x, abs_fit
-
-
-def fit_gauss(galaxy, iline, bestfit):
-
-    w = 90
-    cutout = galaxy[iline - w / 2:iline + w / 2]
-
-    # Find the peak within this cutout, emission line may be shifted from where it is expected to be
-    iline2 = np.where(galaxy == np.max(cutout))[0][0]  # This is the index of the real emission line
-    x = np.exp(logLam1)[iline2 - w / 2:iline2 + w / 2]
-    cutout2 = galaxy[iline2 - w / 2:iline2 + w / 2]
-
-    b_init = np.mean([np.mean(cutout2[0:int(len(cutout2) / 4)]), np.mean(cutout2[int(3 * len(cutout2) / 4):-1])])
-    a_init = np.max(cutout2) - b_init
-    x0_init = x[np.argmax(cutout2)]
-
-    bfcutout = bestfit[iline2 - w / 2:iline2 + w / 2]
-    poptbf, pcovbf = curve_fit(linear, x, bfcutout, p0=[-0.1, b_init])
-    bf_lin = linear(x, poptbf[0], poptbf[1])
-    global bf_lin
-
-    popt, pcov = curve_fit(gaus_cont, x, cutout2, p0=[a_init, 5., x0_init])
-    spec_fit = gaus_cont(x, popt[0], popt[1], popt[2])
-
-    #   plt.plot(x, cutout2, '-r', label="spectra")
-    #   plt.plot(x, bf_lin, '-k', label="spectra")
-    #   plt.plot(x, spec_fit, '-g', label="spectra")
-    #   plt.show()
-
-    em_fit = gaussian(x, popt[0], 0., popt[1], popt[2])
-    abs_fit = np.subtract(cutout2, em_fit)
-
-    #   plt.plot(x, cutout2, '-r', label="spectra")
-    #   plt.plot(x, em_fit, '-g', label="fit of bestfit spectra")
-    #   plt.plot(x, abs_fit, '-k', label="fit of spectra")
-    #   plt.legend()
-    #   plt.show()
-
-    return x, abs_fit
-
-
-def lorentz(x, a, w, x0, b):
-    return a / (1 + ((x - x0) / (w / 2)) ** 2) + b
-
-
-def gaussian(x, a, w, x0, b):
-    return a * np.exp(-(x - x0) ** 2 / (2 * w ** 2)) + b
-
-
-def pvoigt(x, a, w, x0, b, frac):
-    return (1 - frac) * gaussian(x, a, w, x0, b) + frac * lorentz(x, a, w, x0, b)
-
-
-def ab_em_fcn(x, a, w, x0, b):
-    return gaussian(x, a, w, x0, b) + bf_voi
-
-
-def gaus_cont(x, a, w, x0):
-    return a * np.exp(-(x - x0) ** 2 / (2 * w ** 2)) + bf_lin
-
-
-def linear(x, m, b):
-    return m * x + b
 
 
 if __name__ == '__main__':
@@ -1333,9 +959,11 @@ if __name__ == '__main__':
     # make_table(IMAGE_CUBE, SCI_EXT, VAR_EXT, XYSN_FILE)
     # voronoi_binning(XYSN_FILE, V2B_FILE, V2B_XY_FILE)
 
-    #   combine_spectra(V2B_FILE, IMAGE_CUBE, BIN_SCI, FLUX_SCI, BIN_VAR, FLUX_VAR)
+    # combine_spectra(V2B_FILE, IMAGE_CUBE, BIN_SCI, FLUX_SCI, BIN_VAR, FLUX_VAR)
     # Calculate average flux
-    #   scopy_flux(FLUX_SCI, FLUX_SCOPY_FITS, FLUX_SCOPY_RANGE, FLUX_SCOPY_FILE)
+    # scopy_flux(FLUX_SCI, FLUX_SCOPY_FITS, FLUX_SCOPY_RANGE, FLUX_SCOPY_FILE)
+
+    # clean_spec_30(BIN_SCI)
 
     # To determine optimal penalty (BIAS) first run with BIAS=0 then preform monte carlo simulation
     # See information in ppxf.py (or the readme which comes with the ppxf download) for more details
@@ -1352,8 +980,8 @@ if __name__ == '__main__':
     #   plot_velfield_setup(ppxf_vel, V2B_XY_FILE, FLUX_SCOPY_FILE)
 
     # Make spectre of just emission and just absorption lines
-    remove_emission_lines(BIN_SCI, ABS_BIN_SCI, PPXF_BESTFIT)
-    #   remove_absorp_lines(BIN_SCI, PPXF_BESTFIT, EM_BIN_SCI)
+    #   remove_lines.remove_emission_lines(BIN_SCI, ABS_BIN_SCI, PPXF_BESTFIT, plot=False)
+    #   remove_lines.remove_absorp_lines(BIN_SCI, PPXF_BESTFIT, EM_BIN_SCI)
 
     # Run rv fxcor
     #   fxcor(BIN_SCI, TEMPLATE_SPECTRA, FXCOR_BIN_LIST, FXCOR_FILE)
@@ -1371,11 +999,10 @@ if __name__ == '__main__':
     #   plot_velfield_setup(abs_fxcor_vel, V2B_XY_FILE, FLUX_SCOPY_FILE)
 
     # Run rvsao xcsao
-    #   rvsao_xcsao(ABS_BIN_SCI, PPXF_BESTFIT, TEMPLATE_SPECTRA, XCSAO_FILE)
-    #   rvsao_xcsao2(ABS_BIN_SCI, TEMPLATE_SPECTRA, XCSAO_FILE, XCSAO_BIN_LIST)
-    #   xcsao_vel = pd.read_table(XCSAO_FILE, sep=r"\s*", engine='python', usecols=[3], names=["vrel"], squeeze=True).values
-    #   plot_velfield_setup(xcsao_vel, V2B_XY_FILE, FLUX_SCOPY_FILE)
-    #   rvsao_emsao(EM_BIN_SCI, EMSAO_BIN_LIST, EMSAO_FILE)
+    rvsao(ABS_BIN_SCI, 'xcsao', TEMPLATE_SPECTRA, XCSAO_FILE, XCSAO_BIN_LIST)
+    xcsao_vel = pd.read_table(XCSAO_FILE, sep=r"\s*", engine='python', usecols=[3], names=["vrel"], squeeze=True).values
+    plot_velfield_setup(xcsao_vel, V2B_XY_FILE, FLUX_SCOPY_FILE)
+    #   rvsao(EM_BIN_SCI, 'emsao', TEMPLATE_SPECTRA, EMSAO_FILE, EMSAO_BIN_LIST)
     #   emsao_vel = read_emsao_output(EMSAO_FILE)
     #   plot_velfield_setup(emsao_vel, V2B_XY_FILE, FLUX_SCOPY_FILE)
 
