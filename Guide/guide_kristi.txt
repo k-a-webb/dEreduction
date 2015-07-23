@@ -467,6 +467,13 @@ Also in this step I produce flux fits files, where the average (rather than the 
 
 The combined spectra (flux summed) will be what you input into pPXF.
 
+————— CLEANING NOISE (recommended)
+
+In some cases noise is apparent in the spectra of the bins - it’s obvious when you splot the spectra. This can sometimes cause errors when eliminating the emission lines in pPXF (and xcsao?). I recommend inspecting each spectra with splot before running the kinematic analysis, but even if you don’t any anamolous noise will be apparent in the final plot so I’m sure you’ll figure it out. 
+I removed the noise by replacing the noisy section with the continuum fit. I made a fits files of the continuum removed features of the particular spaxel with splot (’t’ to do the continuum fit, ‘-‘ to remove the continuum, ‘q’ to proceed, ‘i’ to save the result to a fits file). Use this to determine the continuum fit and replace the noisy points with the continnum points. Perhaps not the beeesssstttt method, but it works well for my purposes. Exact details can be found in the ipython notebook ‘nothing_in_particular.ipynb’, but I’ll warn you that this file contains no sense of organization whatsoever. 
+
+With S/N of 20 I found noise in spaxel 54, and when applying the wavelength shift correction the noise moved to spaxel 30. Just an example.
+
 
 pPXF
 ————
@@ -568,13 +575,10 @@ The velocity shift is just informative, I do nothing with it. The shift applied 
 
 I use this method also to determine which of the reduction methods is the best - i.e. the best method requires the smallest shift. 
 
+I have all of the files associated with this analysis (including the adapted preprocessing script) in the folder name ‘wavelength_shift_check’.
+
+
+
+
 
 —— Notes
-
-in doall_sci_20:
-	- cleaned noise in bin 54
-
-in doall_sci_20_shift:
-	- cleaned noise in bin 30
-
-
