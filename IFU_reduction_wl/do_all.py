@@ -988,6 +988,8 @@ def ppxf_kinematics_gas(bin_sci, ppxf_file, ppxf_bestfit, template_fits, templat
     with fits.open(bin_sci.format(0)) as gal_hdu:
         gal_data = gal_hdu[0].data
         gal_hdr = gal_hdu[0].header
+    wmin = gal_hdr['CRVAL1'] + (1. - gal_hdr['CRPIX1']) * gal_hdr['CD1_1']
+    wmax = gal_hdr['CRVAL1'] + (gal_hdr['NAXIS1'] - gal_hdr['CRPIX1']) * gal_hdr['CD1_1']
 
     # Only use the wavelength range in common between galaxy and stellar library.
     #
@@ -995,12 +997,17 @@ def ppxf_kinematics_gas(bin_sci, ppxf_file, ppxf_bestfit, template_fits, templat
     #   galaxy = t[mask].field('flux') / np.median(t[mask].field('flux'))  # Normalize spectrum to avoid numerical issues
     #   wave = t[mask].field('wavelength')
     #
-    wmin = gal_hdr['CRVAL1'] + (1. - gal_hdr['CRPIX1']) * gal_hdr['CD1_1']
-    wmax = gal_hdr['CRVAL1'] + (gal_hdr['NAXIS1'] - gal_hdr['CRPIX1']) * gal_hdr['CD1_1']
-    lin_bin = np.linspace(wmin, wmax, len(gal_data))
-    mask = (lin_bin > lam_range[0]) & (lin_bin < lam_range[1])
-    galaxy = gal_data[mask] / np.median(gal_data[mask])  # Normalize spectrum to avoid numerical issues
-    wave = lin_bin[mask]
+
+    #   wmin = gal_hdr['CRVAL1'] + (1. - gal_hdr['CRPIX1']) * gal_hdr['CD1_1']
+    #   wmax = gal_hdr['CRVAL1'] + (gal_hdr['NAXIS1'] - gal_hdr['CRPIX1']) * gal_hdr['CD1_1']
+    #   lin_bin = np.linspace(wmin, wmax, len(gal_data))
+    #   mask = (lin_bin > lam_range[0]) & (lin_bin < lam_range[1])
+    #   galaxy = gal_data[mask] / np.median(gal_data[mask])  # Normalize spectrum to avoid numerical issues
+    #   wave = lin_bin[mask] *** NO, should be log binned
+
+    galaxy, logLam1, velscale = util.log_rebin(lam_range, gal_data)
+    wave = np.exp(logLam1)
+    galaxy = galaxy / np.median(galaxy)  # Normalize spectrum to avoid numerical issues
 
     # The noise level is chosen to give Chi^2/DOF=1 without regularization (REGUL=0).
     # A constant error is not a bad approximation in the fitted wavelength
@@ -1012,25 +1019,47 @@ def ppxf_kinematics_gas(bin_sci, ppxf_file, ppxf_bestfit, template_fits, templat
     # and we convert it below to km/s
     #
     c = 299792.458  # speed of light in km/s
-    velscale = np.log(wave[1] / wave[0]) * c
+    #   velscale = np.log(wave[1] / wave[0]) * c
     #   FWHM_gal = 2.76  # SDSS has an instrumental resolution FWHM of 2.76A.
     FWHM_gal = 2.3  # GMOS IFU has an instrumental resolution FWHM of 2.3 A
 
     #------------------- Setup templates -----------------------
 
-    stars_templates, lamRange_temp, logLam_temp = setup_spectral_library(velscale, FWHM_gal)
+    #   stars_templates, lamRange_temp, logLam_temp = setup_spectral_library(velscale, FWHM_gal)
+
+    template_spectra = glob.glob(template_fits)
+    assert len(template_spectra) > 0, 'Template spectra not found: {}'.format(template_fits)
+
+    with fits.open(template_spectra[0]) as temp_hdu:
+        ssp = temp_hdu[0].data
+        h2 = temp_hdu[0].header
+    lamRange2 = h2['CRVAL1'] + np.array([0., h2['CDELT1'] * (h2['NAXIS1'] - 1)])
+    sspNew, logLam2, velscale = util.log_rebin(lamRange2, ssp, velscale=velscale)
+    stars_templates = np.empty((sspNew.size, len(template_spectra)))
+    FWHM_tem = 2.54
+
+    # FWHM_dif = np.sqrt(FWHM_gal ** 2 - template_resolution ** 2)
+    FWHM_dif = np.sqrt(FWHM_tem ** 2 - FWHM_gal ** 2)
+    sigma = FWHM_dif / 2.355 / h2['CDELT1']  # SIGMA DIFFERENCE IN PIXELS, 1.078435697220085
 
     # The stellar templates are reshaped into a 2-dim array with each spectrum
     # as a column, however we save the original array dimensions, which are
     # needed to specify the regularization dimensions
     #
     reg_dim = stars_templates.shape[1:]
-    stars_templates = stars_templates.reshape(stars_templates.shape[0], -1)
+    #   stars_templates = stars_templates.reshape(stars_templates.shape[0], -1)
+
+    for j in range(len(template_spectra)):
+        with fits.open(template_spectra[j]) as temp_hdu_j:
+            ssp_j = temp_hdu_j[0].data
+        ssp_j = ndimage.gaussian_filter1d(ssp_j, sigma)
+        sspNew, logLam2, velscale = util.log_rebin(lamRange2, ssp_j, velscale=velscale)
+        stars_templates[:, j] = sspNew / np.median(sspNew)  # Normalizes templates
 
     # See the pPXF documentation for the keyword REGUL,
     # for an explanation of the following two lines
     #
-    stars_templates /= np.median(stars_templates)  # Normalizes stellar templates by a scalar
+    #   stars_templates /= np.median(stars_templates)  # Normalizes stellar templates by a scalar
     regul_err = 0.004  # Desired regularization error
 
     # Construct a set of Gaussian emission line templates.
@@ -1038,8 +1067,8 @@ def ppxf_kinematics_gas(bin_sci, ppxf_file, ppxf_bestfit, template_fits, templat
     #
     z = np.exp(vel_init / c) - 1  # Relation between velocity and redshift in pPXF
     #
-    lamRange_gal = np.array([np.min(wave), np.max(wave)]) / (1 + z)
-    gas_templates, line_names, line_wave = util.emission_lines(logLam_temp, lamRange_gal, FWHM_gal)
+    lamRange_gal = np.array([wmin, wmax]) / (1 + z)
+    gas_templates, line_names, line_wave = util.emission_lines(logLam2, lamRange_gal, FWHM_gal)
 
     # Combines the stellar and gaseous templates into a single array
     # during the PPXF fit they will be assigned a different kinematic
@@ -1059,7 +1088,8 @@ def ppxf_kinematics_gas(bin_sci, ppxf_file, ppxf_bestfit, template_fits, templat
     # in PPXF_KINEMATICS_EXAMPLE_SAURON.
     #
     c = 299792.458
-    dv = (np.log(lamRange_temp[0]) - np.log(wave[0])) * c  # km/s
+    #   dv = (np.log(lamRange2[0]) - np.log(wave[0])) * c  # km/s
+    dv = (logLam2[0] - logLam1[0]) * c  # km/s
     vel = c * z  # Initial estimate of the galaxy velocity in km/s
 
     # Here the actual fit starts. The best fit is plotted on the screen.
@@ -1441,11 +1471,11 @@ if __name__ == '__main__':
     #   rvsao(EM_BIN_SCI, 'emsao', TEMPLATE_SPECTRA, EMSAO_FILE, EMSAO_BIN_LIST)
 
 
-    PPXF_FILE = os.path.join(PPXF_PATH, 'ppxf_output_sn{}_absspec_2.txt'.format(TARGET_SN))
-    PPXF_BESTFIT = os.path.join(PPXF_PATH, 'bestfit_{}_absspec.fits')
-    #ppxf_kinematics_gas(BIN_SCI, PPXF_FILE, PPXF_BESTFIT, TEMPLATE_FITS, TEMPLATE_RESOLUTION, LAM_RANGE,
-    #                       VEL_INIT, SIG_INIT, bias=0.6)
-    ppxf_two_components_example(BIN_SCI, TEMPLATE_FITS, LAM_RANGE, VEL_INIT, SIG_INIT, bias=0.6)
+    PPXF_FILE = os.path.join(PPXF_PATH, 'ppxf_output_sn{}_absspec_3.txt'.format(TARGET_SN))
+    PPXF_BESTFIT = os.path.join(PPXF_PATH, 'bestfit_{}_absspec_2.fits')
+    ppxf_kinematics_gas(BIN_SCI, PPXF_FILE, PPXF_BESTFIT, TEMPLATE_FITS, TEMPLATE_RESOLUTION, LAM_RANGE,
+                           VEL_INIT, SIG_INIT, bias=0.6)
+    # ppxf_two_components_example(BIN_SCI, TEMPLATE_FITS, LAM_RANGE, VEL_INIT, SIG_INIT, bias=0.6)
     #ppxf_vel, ppxf_sig, h3, h4, ppxf_dvel, ppxf_dsig, dh3, dh4 = np.loadtxt(PPXF_FILE, unpack=True)
     #plot_velfield_setup(ppxf_vel, V2B_XY_FILE, FLUX_SCOPY_FILE)
 
