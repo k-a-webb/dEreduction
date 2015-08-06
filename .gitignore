@@ -21,9 +21,23 @@ IFU_reduction_wl/*.log
 IFU_reduction_wl/*.fit
 
 IFU_reduction_gwen/
-
+IFU_reduction/idl_proc_reprod_gwen/
+IFU_reduction/Preprocessing/
 
 IFU_reduction_q35/*.fits
+IFU_reduction_q35/*.lis
+IFU_reduction_q35/*.txt
+
+Guide/GN-2005B-DD-5.xml
+Guide/guide.txt
+Guide/idl_log.txt
+
+*.jpg
+*.fits
+*.pyc
+*.tif
+
+Papers/
 
 
 .CFUserTextEncoding
