@@ -9,6 +9,22 @@ IFU_reduction/*.xml
 IFU_reduction_examples/
 IFU_reduction/proc
 
+IFU_reduction_wl/*.fits
+IFU_reduction_wl/doall*
+IFU_reduction_wl/preprocessing_files/
+IFU_reduction_wl/cubing_files
+IFU_reduction_wl/Gwen*
+IFU_reduction_wl/scrop_proc
+IFU_reduction_wl/ulyss_tests
+IFU_reduction_wl/*.ipynb
+IFU_reduction_wl/*.log
+IFU_reduction_wl/*.fit
+
+IFU_reduction_gwen/
+
+
+IFU_reduction_q35/*.fits
+
 
 .CFUserTextEncoding
 .DS_Store
@@ -53,4 +69,13 @@ pyraf/
 software/
 uparm/
 ur/
-
+.Xdefaults
+.Xresources
+.astropy/
+.cups/
+.ipynb_checkpoints/
+.ipython/
+.matplotlib/
+.swt/
+.teal/
+.viminfo
