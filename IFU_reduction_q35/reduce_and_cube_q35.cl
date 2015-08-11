@@ -1,126 +1,118 @@
 # Written by Kristi Webb Aug 2015 for Gemini GMOS IFU program GN-2008A-Q-35
 
-## 2008-03-22
-# N20080322S0049  GN-2008A-Q-35-27  22:43:43.1  0.99931883812     HD102328
-# N20080322S0050  GN-2008A-Q-35-28  22:48:09.1  179.998117924     CuAr
-# N20080322S0051  GN-2008A-Q-35-28  22:53:30.1  79.9988541603     GCALflat
-# N20080322S0052  GN-2008A-Q-35-28  22:57:22.1  119.998653889     HD102328
-# N20080322S0054  GN-2008A-Q-35-27  23:22:44.1  0.999619960785    HD102328
-# N20080322S0660  GN-CAL20080322-1  07:56:52.1  0.00050687789917  Bias
-# N20080322S0661  GN-CAL20080322-1  07:59:07.1  0.000533819198608 Bias
-# N20080322S0663  GN-CAL20080322-1  08:03:36.1  0.000507116317749 Bias
-# N20080322S0664  GN-CAL20080322-1  08:05:51.1  15.5886979103     Bias
-
-## 2008-06-02
-# N20080602S0018  GN-2008A-Q-35-14  21:40:46.4  9.99924898148     HECJ125931.9+275140
-# N20080602S0019  GN-2008A-Q-35-14  21:43:35.4  59.999145031      HECJ125931.9+275140
-# N20080602S0020  GN-2008A-Q-35-14  22:07:22.4  59.9988231659     HECJ125931.9+275140
-# N20080602S0021  GN-2008A-Q-35-13  22:11:56.4  2604.97747803     HECJ125931.9+275140
-# N20080602S0022  GN-2008A-Q-35-13  22:57:42.4  2604.97733712     HECJ125931.9+275140
-# N20080602S0023  GN-2008A-Q-35-13  23:43:38.4  179.998532057     CuAr
-# N20080602S0024  GN-2008A-Q-35-13  23:48:59.4  79.9990489483     GCALflat
-# N20080602S0041  GN-2008A-Q-35-25  01:34:38.4  0.999320030212    HD140283
-# N20080602S0042  GN-2008A-Q-35-25  01:36:43.4  0.999633073807    HD140283
-# N20080602S0043  GN-2008A-Q-35-26  01:39:57.4  119.998664856     HD140283
-# N20080602S0044  GN-2008A-Q-35-26  01:44:27.4  79.9990029335     GCALflat
-# N20080602S0045  GN-2008A-Q-35-26  01:48:08.4  179.998157978     CuAr
-# N20080602S0061  GN-2008A-Q-35-9   04:32:21.4  4.99959516525     EG131
-# N20080602S0062  GN-2008A-Q-35-9   04:34:41.4  9.99940800667     EG131
-# N20080602S0063  GN-2008A-Q-35-10  04:38:46.4  179.998449087     CuAr
-# N20080602S0064  GN-2008A-Q-35-10  04:44:07.4  79.9989459515     GCALflat
-# N20080602S0065  GN-2008A-Q-35-10  04:47:58.4  179.998100042     EG131
-# N20080602S0077  GN-2008A-Q-35-8   05:19:48.4  119.998550892     Twilight
-# N20080602S0078  GN-2008A-Q-35-8   05:25:33.4  19.9991369247     Twilight
-# N20080602S0079  GN-2008A-Q-35-8   05:29:34.4  59.9991738796     Twilight
-# N20080602S0080  GN-2008A-Q-35-8   05:34:52.4  119.998646021     Twilight
-# N20080602S0148  GN-CAL20080602-3  06:22:43.4  0.00051212310791  Bias
-# N20080602S0149  GN-CAL20080602-3  06:24:58.4  0.000524997711182 Bias
-# N20080602S0150  GN-CAL20080602-3  06:27:13.4  0.000524997711182 Bias
-# N20080602S0151  GN-CAL20080602-3  06:29:27.4  15.5887138844     Bias
-# N20080602S0152  GN-CAL20080602-3  06:31:43.4  0.000519037246704 Bias
-
-## 2008-06-03
-# N20080603S0117  GN-2008A-Q-35-33  21:46:02.4  19.9994850159     HECJ125931.9+275140
-# N20080603S0118  GN-2008A-Q-35-33  21:49:12.4  59.9989929199     HECJ125931.9+275140
-# N20080603S0119  GN-2008A-Q-35-33  21:52:01.4  59.9991810322     HECJ125931.9+275140
-# N20080603S0120  GN-2008A-Q-35-13  21:55:29.4  79.9991121292     GCALflat
-# N20080603S0121  GN-2008A-Q-35-13  21:59:10.4  179.998332977     CuAr
-# N20080603S0122  GN-2008A-Q-35-13  22:04:42.4  2604.98021698     HECJ125931.9+275140
-# N20080603S0123  GN-2008A-Q-35-13  22:50:28.4  2604.97828197     HECJ125931.9+275140
-# N20080603S0124  GN-2008A-Q-35-25  23:42:42.4  0.999313831329    HD140283
-# N20080603S0125  GN-2008A-Q-35-25  23:44:28.4  0.999634981155    HD140283
-# N20080603S0126  GN-2008A-Q-35-26  23:47:53.4  179.998287916     CuAr
-# N20080603S0127  GN-2008A-Q-35-26  23:53:14.4  79.9993751049     GCALflat
-# N20080603S0128  GN-2008A-Q-35-26  23:57:05.4  119.998781919     HD140283
-
-# 2008-06-07
-# N20080607S0241  GN-2008A-Q-35-7   21:29:38.4  9.99923801422     HECJ130035.4+275633
-# N20080607S0242  GN-2008A-Q-35-7   21:32:45.4  59.9990439415     HECJ130035.4+275633
-# N20080607S0243  GN-2008A-Q-35-7   21:36:18.4  119.998232841     HECJ130035.4+275633
-# N20080607S0244  GN-2008A-Q-35-1   21:41:24.4  2604.97600293     HECJ130035.4+275633
-# N20080607S0245  GN-2008A-Q-35-1   22:27:11.4  2604.97624612     HECJ130035.4+275633
-# N20080607S0246  GN-2008A-Q-35-1   23:13:07.4  179.998077154     CuAr
-# N20080607S0247  GN-2008A-Q-35-1   23:18:28.4  79.9988939762     GCALflat
-# N20080607S0248  GN-2008A-Q-35-1   23:22:28.4  2604.97583222     HECJ130035.4+275633
-# N20080607S0249  GN-2008A-Q-35-1   00:08:24.4  79.9989080429     GCALflat
-# N20080607S0250  GN-2008A-Q-35-1   00:12:05.4  179.998396158     CuAr
-# N20080607S0480  GN-2008A-Q-85-117 04:43:25.4  3.451             MT507
-# N20080607S0481  GN-2008A-Q-35-36  04:49:03.4  0.999321937561    HD201891
-# N20080607S0482  GN-2008A-Q-35-36  04:51:30.4  0.999627113342    HD201891
-# N20080607S0483  GN-2008A-Q-35-36  04:54:09.4  0.999490022659    HD201891
-# N20080607S0484  GN-2008A-Q-35-36  04:56:02.4  0.999494075775    HD201891
-# N20080607S0485  GN-2008A-Q-35-37  04:58:41.4  119.998605013     HD201891
-# N20080607S0486  GN-2008A-Q-35-37  05:03:12.4  79.9989500046     GCALflat
-# N20080607S0487  GN-2008A-Q-35-37  05:06:53.4  179.998332024     CuAr
-# N20080607S0488  GN-2008A-Q-35-37  05:12:32.4  119.998594046     HD201891
-# N20080607S0489  GN-2008A-Q-35-37  05:17:03.4  179.998008966     CuAr
-# N20080607S0490  GN-2008A-Q-35-37  05:22:24.4  79.9989571571     GCALflat
-# N20080607S0494  GN-2008A-Q-35-8   05:36:05.4  119.998837948     Twilight
-# N20080607S0517  GN-CAL20080607-7  05:49:23.4  15.5887041092     Bias
-# N20080607S0518  GN-CAL20080607-7  05:51:38.4  0.000499963760376 Bias
-# N20080607S0519  GN-CAL20080607-7  05:53:53.4  0.00049090385437  Bias
-# N20080607S0520  GN-CAL20080607-7  05:56:08.4  0.000524997711182 Bias
-# N20080607S0521  GN-CAL20080607-7  05:58:23.4  15.5887041092     Bias
-
-## 2008-06-21
-# N20080621S0355  GN-CAL20080621-7  05:38:25.6  15.5886881351     Bias
-# N20080621S0356  GN-CAL20080621-7  05:40:41.6  0.000502824783325 Bias
-# N20080621S0357  GN-CAL20080621-7  05:42:56.6  15.5887138844     Bias
-# N20080621S0358  GN-CAL20080621-7  05:45:11.6  15.5887210369     Bias
-# N20080621S0359  GN-CAL20080621-7  05:47:27.6  0.000514984130859 Bias
-
-## 2008-06-22
-# N20080622S0044  GN-2008A-Q-35-7   20:40:50.0  59.9988660812     HECJ130035.4+275633
-# N20080622S0045  GN-2008A-Q-35-7   20:46:29.0  119.998421907     HECJ130035.4+275633
-# N20080622S0046  GN-2008A-Q-35-7   21:18:37.0  119.999143124     HECJ130035.4+275633
-# N20080622S0047  GN-2008A-Q-35-1   21:23:54.0  2214.37756014     HECJ130035.4+275633
-# N20080622S0049  GN-2008A-Q-35-1   22:09:17.0  79.9990739822     GCALflat
-# N20080622S0050  GN-2008A-Q-35-1   22:12:58.0  179.998253822     CuAr
-
-## 2008-07-01
-# N20080701S0088  GN-2008A-Q-35-7   20:08:22.7  119.998411179     HECJ130035.4+275633
-# N20080701S0089  GN-2008A-Q-35-7   20:12:47.7  119.998231888     HECJ130035.4+275633
-# N20080701S0090  GN-2008A-Q-35-1   20:16:55.7  79.9989881516     GCALflat
-# N20080701S0091  GN-2008A-Q-35-1   20:20:37.7  179.998068094     CuAr
-# N20080701S0092  GN-2008A-Q-35-1   20:26:08.7  2604.97592711     HECJ130035.4+275633
-
-## 2008-07-02
-# N20080702S0041  GN-2008A-Q-35-34  19:37:40.7  0.99963593483     HD140283
-# N20080702S0042  GN-2008A-Q-35-34  19:39:51.7  0.999627113342    HD140283
-# N20080702S0043  GN-2008A-Q-35-34  19:41:33.7  0.999490976334    HD140283
-# N20080702S0044  GN-2008A-Q-35-35  19:43:51.7  119.998806        HD140283
-# N20080702S0045  GN-2008A-Q-35-35  19:48:22.7  79.9994249344     GCALflat
-# N20080702S0046  GN-2008A-Q-35-35  19:52:03.7  179.998364925     CuAr
-# N20080702S0047  GN-2008A-Q-35-35  19:57:38.7  179.998686075     CuAr
-# N20080702S0048  GN-2008A-Q-35-35  20:02:59.7  79.9991090298     GCALflat
-# N20080702S0049  GN-2008A-Q-35-35  20:06:51.7  119.999145985     HD140283
-
-## 2008-07-03
-# N20080703S0233  GN-CAL20080703-7  05:55:42.7  15.5887420177     Bias
-# N20080703S0234  GN-CAL20080703-7  05:57:57.7  0.000494956970215 Bias
-# N20080703S0235  GN-CAL20080703-7  06:00:12.7  0.000516891479492 Bias
-# N20080703S0236  GN-CAL20080703-7  06:02:27.7  0.000504016876221 Bias
-# N20080703S0237  GN-CAL20080703-7  06:04:41.7  0.000521898269653 Bias
+    # 03-22
+        # N20080322S0049	HD102328		acq		    OBJECT	0.99931883812	MIRROR		4750.0
+        # N20080322S0050	CuAr			progCal		ARC	    179.998117924	B600+_G5303	4780.0  Noisy, but looks ok
+        # N20080322S0051	GCALflat		partnerCal	FLAT	79.9988541603	B600+_G5303	4780.0  Source is very faint
+        # N20080322S0052	HD102328		progCal		OBJECT	119.998653889	B600+_G5303	4780.0  Source is very faint
+        # N20080322S0054	HD102328		acq		    OBJECT	0.99961996078	MIRROR		4750.0
+        # N20080322S0660	Bias			dayCal		BIAS	0.00050687789	MIRROR		6300.0
+        # N20080322S0661	Bias			dayCal		BIAS	0.00053381919	MIRROR		6300.0
+        # N20080322S0663	Bias			dayCal		BIAS	0.00050711631	MIRROR		6300.0
+        # N20080322S0664	Bias			dayCal		BIAS	15.5886979103	MIRROR		6300.0
+    # 06-02
+        # N20080602S0018	HECJ125931.9+275140	acq		OBJECT	9.99924898148	MIRROR		4750.0
+        # N20080602S0019	HECJ125931.9+275140	acq		OBJECT	59.999145031	MIRROR		4750.0
+        # N20080602S0020	HECJ125931.9+275140	acq		OBJECT	59.9988231659	MIRROR		4750.0
+        # N20080602S0021	HECJ125931.9+275140	science	OBJECT	2604.97747803	B600+_G5303	4820.0
+        # N20080602S0022	HECJ125931.9+275140	science	OBJECT	2604.97733712	B600+_G5303	4820.0
+        # N20080602S0023	CuAr			progCal		ARC	    179.998532057	B600+_G5303	4820.0
+        # N20080602S0024	GCALflat		partnerCal	FLAT	79.9990489483	B600+_G5303	4820.0
+        # N20080602S0041	HD140283		acqCal		OBJECT	0.99932003021	MIRROR		4750.0
+        # N20080602S0042	HD140283		acqCal		OBJECT	0.99963307380	MIRROR		4750.0
+        # N20080602S0043	HD140283		progCal		OBJECT	119.998664856	B600+_G5303	4820.0
+        # N20080602S0044	GCALflat		partnerCal	FLAT	79.9990029335	B600+_G5303	4820.0
+        # N20080602S0045	CuAr			progCal		ARC	    179.998157978	B600+_G5303	4820.0
+        # N20080602S0061	EG131			acqCal		OBJECT	4.99959516525	MIRROR		4750.0
+        # N20080602S0062	EG131			acqCal		OBJECT	9.99940800667	MIRROR		4750.0
+        # N20080602S0063	CuAr			partnerCal	ARC	    179.998449087	B600+_G5303	4820.0
+        # N20080602S0064	GCALflat		partnerCal	FLAT	79.9989459515	B600+_G5303	4820.0
+        # N20080602S0065	EG131			partnerCal	OBJECT	179.998100042	B600+_G5303	4820.0
+        # N20080602S0077	Twilight		dayCal		OBJECT	119.998550892	B600+_G5303	4820.0
+        # N20080602S0078	Twilight		dayCal		OBJECT	19.9991369247	B600+_G5303	4820.0
+        # N20080602S0079	Twilight		dayCal		OBJECT	59.9991738796	B600+_G5303	4820.0
+        # N20080602S0080	Twilight		dayCal		OBJECT	119.998646021	B600+_G5303	4820.0
+        # N20080602S0148	Bias			dayCal		BIAS	0.00051212310	B600+_G5303	6300.0
+        # N20080602S0149	Bias			dayCal		BIAS	0.00052499771	B600+_G5303	6300.0
+        # N20080602S0150	Bias			dayCal		BIAS	0.00052499771	B600+_G5303	6300.0
+        # N20080602S0151	Bias			dayCal		BIAS	15.5887138844	B600+_G5303	6300.0
+        # N20080602S0152	Bias			dayCal		BIAS	0.00051903724	B600+_G5303	6300.0
+    # 06-03
+        # N20080603S0117	HECJ125931.9+275140	acq		OBJECT	19.9994850159	MIRROR		4750.0
+        # N20080603S0118	HECJ125931.9+275140	acq		OBJECT	59.9989929199	MIRROR		4750.0
+        # N20080603S0119	HECJ125931.9+275140	acq		OBJECT	59.9991810322	MIRROR		4750.0
+        # N20080603S0120	GCALflat		partnerCal	FLAT	79.9991121292	B600+_G5303	4780.0
+        # N20080603S0121	CuAr			progCal		ARC	    179.998332977	B600+_G5303	4780.0
+        # N20080603S0122	HECJ125931.9+275140	science	OBJECT	2604.98021698	B600+_G5303	4780.0   Source is very faint
+        # N20080603S0123	HECJ125931.9+275140	science	OBJECT	2604.97828197	B600+_G5303	4780.0
+        # N20080603S0124	HD140283		acqCal		OBJECT	0.99931383132	MIRROR		4750.0
+        # N20080603S0125	HD140283		acqCal		OBJECT	0.99963498115	MIRROR		4750.0
+        # N20080603S0126	CuAr			progCal		ARC 	179.998287916	B600+_G5303	4780.0
+        # N20080603S0127	GCALflat		partnerCal	FLAT	79.9993751049	B600+_G5303	4780.0
+        # N20080603S0128	HD140283		progCal		OBJECT	119.998781919	B600+_G5303	4780.0
+    # 06-07
+        # N20080607S0241	HECJ130035.4+275633	acq		OBJECT	9.99923801422	MIRROR		4750.0
+        # N20080607S0242	HECJ130035.4+275633	acq		OBJECT	59.9990439415	MIRROR		4750.0
+        # N20080607S0243	HECJ130035.4+275633	acq		OBJECT	119.998232841	MIRROR		4750.0
+        # N20080607S0244	HECJ130035.4+275633	science	OBJECT	2604.97600293	B600+_G5303	4820.0
+        # N20080607S0245	HECJ130035.4+275633	science	OBJECT	2604.97624612	B600+_G5303	4820.0
+        # N20080607S0246	CuAr			progCal		ARC 	179.998077154	B600+_G5303	4820.0
+        # N20080607S0247	GCALflat		partnerCal	FLAT	79.9988939762	B600+_G5303	4820.0
+        # N20080607S0248	HECJ130035.4+275633	science	OBJECT	2604.97583222	B600+_G5303	4780.0  IQ issue
+        # N20080607S0249	GCALflat		partnerCal	FLAT	79.9989080429	B600+_G5303	4780.0
+        # N20080607S0250	CuAr			progCal		ARC 	179.998396158	B600+_G5303	4780.0
+        # N20080607S0480	MT507			science		OBJECT	3.451	    	NO_GRATING	20900.0
+        # N20080607S0481	HD201891		acqCal		OBJECT	0.999321937561	MIRROR		4750.0
+        # N20080607S0482	HD201891		acqCal		OBJECT	0.999627113342	MIRROR		4750.0  Not guiding, wrong offset
+        # N20080607S0483	HD201891		acqCal		OBJECT	0.999490022659	MIRROR		4750.0
+        # N20080607S0484	HD201891		acqCal		OBJECT	0.999494075775	MIRROR		4750.0
+        # N20080607S0485	HD201891		progCal		OBJECT	119.998605013	B600+_G5303	4820.0
+        # N20080607S0486	GCALflat		partnerCal	FLAT	79.9989500046	B600+_G5303	4820.0
+        # N20080607S0487	CuAr			progCal		ARC 	179.998332024	B600+_G5303	4820.0
+        # N20080607S0488	HD201891		progCal		OBJECT	119.998594046	B600+_G5303	4780.0  some clouds, not great
+        # N20080607S0489	CuAr			progCal		ARC 	179.998008966	B600+_G5303	4780.0
+        # N20080607S0490	GCALflat		partnerCal	FLAT	79.9989571571	B600+_G5303	4780.0
+        # N20080607S0494	Twilight		dayCal		OBJECT	119.998837948	B600+_G5303	4780.0
+        # N20080607S0517	Bias			dayCal		BIAS	15.5887041092	B600+_G5303	6300.0
+        # N20080607S0518	Bias			dayCal		BIAS	0.00049996376	B600+_G5303	6300.0
+        # N20080607S0519	Bias			dayCal		BIAS	0.00049090385	B600+_G5303	6300.0
+        # N20080607S0520	Bias			dayCal		BIAS	0.00052499771	B600+_G5303	6300.0
+        # N20080607S0521	Bias			dayCal		BIAS	15.5887041092	B600+_G5303	6300.0
+    # 06-21
+        # N20080621S0355	Bias			dayCal		BIAS	15.5886881351	B600+_G5303	6300.0
+        # N20080621S0356	Bias			dayCal		BIAS	0.00050282478	B600+_G5303	6300.0
+        # N20080621S0357	Bias			dayCal		BIAS	15.5887138844	B600+_G5303	6300.0
+        # N20080621S0358	Bias			dayCal		BIAS	15.5887210369	B600+_G5303	6300.0
+        # N20080621S0359	Bias			dayCal		BIAS	0.00051498413	B600+_G5303	6300.0
+    # 06-22
+        # N20080622S0044	HECJ130035.4+275633	acq		OBJECT	59.9988660812	MIRROR		4750.0
+        # N20080622S0045	HECJ130035.4+275633	acq		OBJECT	119.998421907	MIRROR		4750.0  entered wrong offsets
+        # N20080622S0046	HECJ130035.4+275633	acq		OBJECT	119.999143124	MIRROR		4750.0
+        # N20080622S0047	HECJ130035.4+275633	science	OBJECT	2214.37756014	B600+_G5303	4780.0
+        # N20080622S0049	GCALflat		partnerCal	FLAT	79.9990739822	B600+_G5303	4780.0
+        # N20080622S0050	CuAr			progCal		ARC	    179.998253822	B600+_G5303	4780.0  lost guiding at 85%
+    # 07-01
+        # N20080701S0088	HECJ130035.4+275633	acq		OBJECT	119.998411179	MIRROR		4750.0
+        # N20080701S0089	HECJ130035.4+275633	acq		OBJECT	119.998231888	MIRROR		4750.0
+        # N20080701S0090	GCALflat		partnerCal	FLAT	79.9989881516	B600+_G5303	4780.0
+        # N20080701S0091	CuAr			progCal		ARC	    179.998068094	B600+_G5303	4780.0
+        # N20080701S0092	HECJ130035.4+275633	science	OBJECT	2604.97592711	B600+_G5303	4780.0
+    # 07-02
+        # N20080702S0041	HD140283		acqCal		OBJECT	0.99963593483	MIRROR		4750.0
+        # N20080702S0042	HD140283		acqCal		OBJECT	0.99962711334	MIRROR		4750.0
+        # N20080702S0043	HD140283		acqCal		OBJECT	0.99949097633	MIRROR		4750.0
+        # N20080702S0044	HD140283		progCal		OBJECT	119.998806  	B600+_G5303	4820.0
+        # N20080702S0045	GCALflat		partnerCal	FLAT	79.9994249344	B600+_G5303	4820.0
+        # N20080702S0046	CuAr			progCal		ARC	    179.998364925	B600+_G5303	4820.0
+        # N20080702S0047	CuAr			progCal		ARC	    179.998686075	B600+_G5303	4780.0
+        # N20080702S0048	GCALflat		partnerCal	FLAT	79.9991090298	B600+_G5303	4780.0
+        # N20080702S0049	HD140283		progCal		OBJECT	119.999145985	B600+_G5303	4780.0
+    # 07-03
+        # N20080703S0233	Bias			dayCal		BIAS	15.5887420177	R150+_G5306	6300.0
+        # N20080703S0234	Bias			dayCal		BIAS	0.00049495697	R150+_G5306	6300.0
+        # N20080703S0235	Bias			dayCal		BIAS	0.00051689147	R150+_G5306	6300.0
+        # N20080703S0236	Bias			dayCal		BIAS	0.00050401687	R150+_G5306	6300.0
+        # N20080703S0237	Bias			dayCal		BIAS	0.00052189826	R150+_G5306	6300.0
 
 
 ## Aliases
@@ -135,45 +127,24 @@ set jgmos=/Users/kwebb/iraf/extern/ifudrgmos/gmos/
 directory.nc=1
 set stdimage=imtgmos
 
+reset gemini = /Users/kwebb/iraf/extern/ifudrgmos/
+#task gemifudr.pkg = gemini$gemini.cl
+redefine gemini.pkg = gemini$gemini.cl
+
+# James' version of gemfix does not carry through the variance plane, use IRAF standard
+task gemfix=/Users/kwebb/ur/ureka1.5.1/variants/common/iraf/gemini/gemtools/gemfix.cl
+
 ## Scripts
 ## -------
 rv
 onedspec
 gemini
-nmisc
+#nmisc
 gmos
 #pyfu
 
-## James' scripts
-task gbias=jgmos$gbias.cl
-task gbpm=jgmos$gbpm.cl
-task gdisplay=jgmos$gdisplay.cl
-task gfapsum=jgmos$gfapsum.cl
-task gstransform=jgmos$gstransform.cl
-task gbias=jgmos$gbias.cl
-task gswavelength=jgmos$gswavelength.cl
-task gfextract=jgmos$gfextract.cl
-task gfapsum=jgmos$gfapsum.cl
-#task gireduce=jgmos$gireduce.cl            # Do not use James' version, unresolved error
-task gffindblocks=jgmos$gffindblocks.cl
-task gfreduce=jgmos$gfreduce.cl
-#task gfresponse=jgmos$gfresponse.cl        # can't figure out how to use, needs wavtraname
-task gfscatsub=jgmos$gfscatsub.cl
-task gfskysub=jgmos$gfskysub.cl
-task gftransform=jgmos$gftransform.cl       # Run in IRAF, not pyraf, weird error with scilistout variable
-task gfuntransform=jgmos$gfuntransform.par
-#task gmosaic=jgmos$gmosaic.cl              # issue with imexpr, use IRAF version
-task gprepare=jgmos$gprepare.cl
-task gqecorr=jgmos$gqecorr.cl
-task gsappwave=jgmos$gsappwave.cl
-task gscalibrate=jgmos$gscalibrate.cl
-task gscrrej=jgmos$gscrrej.cl
-task gsscatsub=jgmos$gsscatsub.cl
-task gsstandard=jgmos$gsstandard.cl
-
 task mkmbpm=mygmos$mkmbpm.cl                # no standard
 task gfshift=mygmos$gfshift.cl              # no standard
-task gkeywpars=mygmos$gkeywpars.cl
 task gfxcor=mygmos$gfxcor.cl
 
 # in pyraf
@@ -388,8 +359,6 @@ ifuproc_gqecorr.fwidth=2.
     # --------------------------------------------------------------
 
         ## Biases - make list for each observation date, combine
-#            gemlist N20080322S 660,661,663,664 > bias0322.lis
-#            gbias @bias0322.lis gN20080322S0660_bias.fits rawpath=rawdir$ fl_vardq+ fl_inter-
 #            gemlist N20080602S 148-152 > bias0602.lis
 #            gbias @bias0602.lis gN20080602S0148_bias.fits rawpath=rawdir$ fl_vardq+ fl_inter-
 #            gemlist N20080607S 517-521 > bias0607.lis
@@ -399,62 +368,102 @@ ifuproc_gqecorr.fwidth=2.
 #            gemlist N20080703S 233-237 > bias0703.lis
 #            gbias @bias0703.lis gN20080703S0233_bias.fits rawpath=rawdir$ fl_vardq+ fl_inter-
 
-
-        ## Twilight - bias subtract
-#            gemlist N20080602S 77-80 > twi0602.lis
-#            gfreduce @twi0602.lis fl_extract- fl_gsappwave- fl_wavtran- fl_skysub- fl_over+ fl_trim+ fl_vardq+ fl_bias+ \
-#                fl_addmdf+ bias=gN20080602S0148_bias.fits
-#            gemlist N20080607S 494 > twi0607.lis
-#            gfreduce @twi0607.lis fl_extract- fl_gsappwave- fl_wavtran- fl_skysub- fl_over+ fl_trim+ fl_vardq+ fl_bias+ \
-#                fl_addmdf+ bias=gN20080607S0517_bias.fits
-
         ## Lick indices, flux standards, flats, CuAr arcs - bias subtract
 
-#            gemlist N20080322S 49-52,54 > bs_0322.lis
+#            gemlist N20080322S 50-52 > bs_0322.lis
 #            gfreduce @bs_0322.lis fl_extract- fl_gsappwave- fl_wavtran- fl_skysub- fl_over+ fl_trim+ fl_vardq+ fl_bias+ \
-#                fl_addmdf+ bias=gN20080322S0660_bias.fits
+#                fl_addmdf+ bias=gN20080602S0148_bias.fits
 
-#            gemlist N20080602S 23,24,41-45,61-65 > bs_0602.lis
+#            gemlist N20080602S 23,24,43-45,63-65 > bs_0602.lis
+#            imdel g@bs_0602.lis,rg@bs_0602.lis
 #            gfreduce @bs_0602.lis fl_extract- fl_gsappwave- fl_wavtran- fl_skysub- fl_over+ fl_trim+ fl_vardq+ fl_bias+ \
 #                fl_addmdf+ bias=gN20080602S0148_bias.fits
 
-#            gemlist N20080603S 120,121,124-128 > bs_0603.lis
+#            gemlist N20080603S 120,121,126-128 > bs_0603.lis
+#            imdel g@bs_0603.lis,rg@bs_0603.lis
 #            gfreduce @bs_0603.lis fl_extract- fl_gsappwave- fl_wavtran- fl_skysub- fl_over+ fl_trim+ fl_vardq+ fl_bias+ \
 #                fl_addmdf+ bias=gN20080602S0148_bias.fits
 
-#            gemlist N20080607S 246,247,249,250,480-490 > bs_0607.lis
+#            gemlist N20080607S 246,247,249,250,485-490 > bs_0607.lis
+#            imdel g@bs_0607.lis,rg@bs_0607.lis
 #            gfreduce @bs_0607.lis fl_extract- fl_gsappwave- fl_wavtran- fl_skysub- fl_over+ fl_trim+ fl_vardq+ fl_bias+ \
 #                fl_addmdf+ bias=gN20080607S0517_bias.fits
 
-#            gemlist N20080701S 91,90 > bs_0622.lis
-#            gfreduce @bs_0622.lis fl_extract- fl_gsappwave- fl_wavtran- fl_skysub- fl_over+ fl_trim+ fl_vardq+ fl_bias+ \
-#                fl_addmdf+ bias=gN20080621S0355_bias.fits
+            gemlist N20080622S 50,49 > bs_0622.lis
+            imdel g@bs_0622.lis,rg@bs_0622.lis
+            gfreduce @bs_0622.lis fl_extract- fl_gsappwave- fl_wavtran- fl_skysub- fl_over+ fl_trim+ fl_vardq+ fl_bias+ \
+                fl_addmdf+ bias=gN20080621S0355_bias.fits
 
-#            gemlist N20080702S 41-49 > bs_0702.lis
-#            gfreduce @bs_0702.lis fl_extract- fl_gsappwave- fl_wavtran- fl_skysub- fl_over+ fl_trim+ fl_vardq+ fl_bias+ \
-#                fl_addmdf+ bias=gN20080703S0233_bias.fits
+            gemlist N20080701S 90,91 > bs_0701.lis
+            imdel g@bs_0701.lis,rg@bs_0701.lis
+            gfreduce @bs_0701.lis fl_extract- fl_gsappwave- fl_wavtran- fl_skysub- fl_over+ fl_trim+ fl_vardq+ fl_bias+ \
+                fl_addmdf+ bias=gN20080703S0233_bias.fits
+
+            gemlist N20080702S 44-49 > bs_0702.lis
+            imdel g@bs_0702.lis,rg@bs_0702.lis
+            gfreduce @bs_0702.lis fl_extract- fl_gsappwave- fl_wavtran- fl_skysub- fl_over+ fl_trim+ fl_vardq+ fl_bias+ \
+                fl_addmdf+ bias=gN20080703S0233_bias.fits
 
 
         ## GALAXY science images - bias subtract
-#            gemlist N20080602S 18-22 > gal1_0602.lis
+            gemlist N20080602S 21-22 > gal1_0602.lis
 #            gfreduce @gal1_0602.lis fl_extract- fl_gsappwave- fl_wavtran- fl_skysub- fl_over+ fl_trim+ fl_vardq+ fl_bias+ \
 #                fl_addmdf+ bias=gN20080602S0148_bias.fits
 
-#            gemlist N20080603S 117-119,122,123 > gal1_0603.lis
+            gemlist N20080603S 122,123 > gal1_0603.lis
 #            gfreduce @gal1_0603.lis fl_extract- fl_gsappwave- fl_wavtran- fl_skysub- fl_over+ fl_trim+ fl_vardq+ fl_bias+ \
 #                fl_addmdf+ bias=gN20080602S0148_bias.fits
 
-#            gemlist N20080607S 241-245,248 > gal2_0607.lis
+            gemlist N20080607S 244-245,248 > gal2_0607.lis
 #            gfreduce @gal2_0607.lis fl_extract- fl_gsappwave- fl_wavtran- fl_skysub- fl_over+ fl_trim+ fl_vardq+ fl_bias+ \
 #                fl_addmdf+ bias=gN20080607S0517_bias.fits
 
-#            gemlist N20080622S 44-47 > gal2_0622.lis
+            gemlist N20080622S 47 > gal2_0622.lis
 #            gfreduce @gal2_0622.lis fl_extract- fl_gsappwave- fl_wavtran- fl_skysub- fl_over+ fl_trim+ fl_vardq+ fl_bias+ \
 #                fl_addmdf+ bias=gN20080621S0355_bias.fits
 
-#            gemlist N20080701S 88,89,92 > gal2_0701.lis
-#            gfreduce @gal2_0701.lis fl_extract- fl_gsappwave- fl_wavtran- fl_skysub- fl_over+ fl_trim+ fl_vardq+ fl_bias+ \
+            gemlist N20080701S 92 > gal2_0701.lis
+            imdel g@gal2_0701.lis,rg@gal2_0701.lis
+            gfreduce @gal2_0701.lis fl_extract- fl_gsappwave- fl_wavtran- fl_skysub- fl_over+ fl_trim+ fl_vardq+ fl_bias+ \
+                fl_addmdf+ bias=gN20080703S0233_bias.fits
+
+
+        # 03-22
+            gemlist N20080322S 50-52 > spc_0322.lis
+#            gfreduce @spc_0322.lis fl_extract- fl_gsappwave- fl_wavtran- fl_skysub- fl_over+ fl_trim+ fl_vardq+ fl_bias+ \
+#                fl_addmdf+ bias=gN20080602S0148_bias.fits
+
+        # 06-02
+            gemlist N20080602S 21-24,43-45,63-65 > spc_0602.lis
+#            gfreduce @spc_0602.lis fl_extract- fl_gsappwave- fl_wavtran- fl_skysub- fl_over+ fl_trim+ fl_vardq+ fl_bias+ \
+#                fl_addmdf+ bias=gN20080602S0148_bias.fits
+
+        # 06-03
+            gemlist N20080603S 120-123,126-128 > spc_0603.lis
+#            gfreduce @spc_0603.lis fl_extract- fl_gsappwave- fl_wavtran- fl_skysub- fl_over+ fl_trim+ fl_vardq+ fl_bias+ \
+#                fl_addmdf+ bias=gN20080602S0148_bias.fits
+
+        # 06-07
+            gemlist N20080607S 244-250,485-490 > spc_0607.lis
+#            gfreduce @spc_0607.lis fl_extract- fl_gsappwave- fl_wavtran- fl_skysub- fl_over+ fl_trim+ fl_vardq+ fl_bias+ \
+#                fl_addmdf+ bias=gN20080607S0517_bias.fits
+
+        # 06-22
+            gemlist N20080622S 47,49,50 > spc_0622.lis
+#            gfreduce @spc_0622.lis fl_extract- fl_gsappwave- fl_wavtran- fl_skysub- fl_over+ fl_trim+ fl_vardq+ fl_bias+ \
+#                fl_addmdf+ bias=gN20080621S0355_bias.fits
+
+        # 07-01
+            gemlist N20080701S 90-92 > spc_0701.lis
+#            gfreduce @spc_0701.lis fl_extract- fl_gsappwave- fl_wavtran- fl_skysub- fl_over+ fl_trim+ fl_vardq+ fl_bias+ \
 #                fl_addmdf+ bias=gN20080703S0233_bias.fits
+
+        # 07-02
+            gemlist N20080702S 44-49 > spc_0702.lis
+#            gfreduce @spc_0702.lis fl_extract- fl_gsappwave- fl_wavtran- fl_skysub- fl_over+ fl_trim+ fl_vardq+ fl_bias+ \
+#                fl_addmdf+ bias=gN20080703S0233_bias.fits
+
+
 
 
     # Process the standards, EG131, and Lick Indices, HD102328, HD140283, HD201891
@@ -462,144 +471,49 @@ ifuproc_gqecorr.fwidth=2.
 
         ## inputs: image, flat(s), arc(s)
 
-        # GCal flats:
-            # N20080322S0051 03-22
-            # N20080602S0024,N20080602S0044,N20080602S0064 06-02
-            # N20080603S0120,N20080603S0127 06-03
-            # N20080607S0247,N20080607S0249,N20080607S0486,N20080607S0490 06-07
-            # N20080622S0049 06-22
-            # N20080702S0045,N20080702S0048 07-02
-
-        # Lick indices
-        # HD102328
-            # N20080322S0049,N20080322S0052,N20080322S0054 03-22
-            # N20080702S0041,N20080702S0042,N20080702S0043,N20080702S0044,N20080702S0049 07-02
-        # HD140283
-            # N20080602S0041,N20080602S0042,N20080602S0043 06-02
-            # N20080603S0124,N20080603S0125,N20080603S0128 06-03
-        # HD201891
-            # N20080607S0481,N20080607S0482,N20080607S0483,N20080607S0484,N20080607S0485,N20080607S0488 06-07
-
-        # Flux standards:
-        # EG131
-            # N20080602S0061,N20080602S0062,N20080602S0065 06-02
-
-        # CuAr arcs:
-            # N20080322S0050 03-22
-            # N20080602S0023,N20080602S0045,N20080602S0063 06-02
-            # N20080603S0121,N20080603S0126 06-03
-            # N20080607S0246,N20080607S0250,N20080607S0487,N20080607S0489 06-07
-            # N20080622S0050 06-22
-            # N20080701S0091 07-01
-            # N20080702S0047,N20080702S0048 07-02
-print ('>>> here now')
-        # 03-22
-#        ifuproc_gqecorr rgN20080322S0049 rgN20080322S0051 rgN20080322S0050 twilight=rgN20080602S0077 fl_inter=no \
+    # 03-22
+#        ifuproc_gqecorr rgN20080322S0052 rgN20080322S0051 rgN20080322S0050 twilight="" fl_inter=no \
 #            bkgmask=s0135_blkreg.dat fl_crspec- fl_qecorr+ fl_apsum+
-#        ifuproc_gqecorr rgN20080322S0052 rgN20080322S0051 rgN20080322S0050 twilight=rgN20080602S0077 fl_inter=no \
-#            bkgmask=s0135_blkreg.dat fl_crspec- fl_qecorr+ fl_apsum+
-#        ifuproc_gqecorr rgN20080322S0054 rgN20080322S0051 rgN20080322S0050 twilight=rgN20080602S0077 fl_inter=no \
-#            bkgmask=s0135_blkreg.dat fl_crspec- fl_qecorr+ fl_apsum+
-
-        # Run all the standards through ifuproc_qecorr via the script proc_sci which just iterates multiple science
-        # files through given the same flats,arcs,twilights. Optional shift and calibration are turned off here.
-
-        proc_sci rgN20080322S0049,rgN20080322S0052,rgN20080322S0054 flat=rgN20080322S0051 arc=rgN20080322S0050 \
-            twilight=rgN20080602S0077
-
-        # 06-02
-#        ifuproc_gqecorr rgN20080602S0041 rgN20080602S0024,rgN20080602S0044,rgN20080602S0064 \
-#            rgN20080602S0023,rgN20080602S0045,rgN20080602S0063 twilight=rgN20080602S0077 fl_inter=no \
-#            bkgmask=s0135_blkreg.dat fl_crspec- fl_qecorr+ fl_apsum+
-#        ifuproc_gqecorr rgN20080602S0042 rgN20080602S0024,rgN20080602S0044,rgN20080602S0064 \
-#            rgN20080602S0023,rgN20080602S0045,rgN20080602S0063 twilight=rgN20080602S0077 fl_inter=no \
-#            bkgmask=s0135_blkreg.dat fl_crspec- fl_qecorr+ fl_apsum+
-#        ifuproc_gqecorr rgN20080602S0043 rgN20080602S0024,rgN20080602S0044,rgN20080602S0064 \
-#            rgN20080602S0023,rgN20080602S0045,rgN20080602S0063 twilight=rgN20080602S0077 fl_inter=no \
-#            bkgmask=s0135_blkreg.dat fl_crspec- fl_qecorr+ fl_apsum+
-#        ifuproc_gqecorr rgN20080602S0061 rgN20080602S0024,rgN20080602S0044,rgN20080602S0064 \
-#            rgN20080602S0023,rgN20080602S0045,rgN20080602S0063 twilight=rgN20080602S0077 fl_inter=no \
-#            bkgmask=s0135_blkreg.dat fl_crspec- fl_qecorr+ fl_apsum+
-#        ifuproc_gqecorr rgN20080602S0062 rgN20080602S0024,rgN20080602S0044,rgN20080602S0064 \
-#            rgN20080602S0023,rgN20080602S0045,rgN20080602S0063 twilight=rgN20080602S0077 fl_inter=no \
-#            bkgmask=s0135_blkreg.dat fl_crspec- fl_qecorr+ fl_apsum+
-#        ifuproc_gqecorr rgN20080602S0065 rgN20080602S0024,rgN20080602S0044,rgN20080602S0064 \
-#            rgN20080602S0023,rgN20080602S0045,rgN20080602S0063 twilight=rgN20080602S0077 fl_inter=no \
-#            bkgmask=s0135_blkreg.dat fl_crspec- fl_qecorr+ fl_apsum+
-
-        # 06-03
-#        ifuproc_gqecorr rgN20080603S0124 rgN20080603S0120,rgN20080603S0127 rgN20080603S0121,rgN20080603S0126 \
-#            twilight=rgN20080602S0077 fl_inter=no bkgmask=s0135_blkreg.dat fl_crspec- fl_qecorr+ fl_apsum+
-#        ifuproc_gqecorr rgN20080603S0125 rgN20080603S0120,rgN20080603S0127 rgN20080603S0121,rgN20080603S0126 \
-#            twilight=rgN20080602S0077 fl_inter=no bkgmask=s0135_blkreg.dat fl_crspec- fl_qecorr+ fl_apsum+
-#        ifuproc_gqecorr rgN20080603S0128 rgN20080603S0120,rgN20080603S0127 rgN20080603S0121,rgN20080603S0126 \
-#            twilight=rgN20080602S0077 fl_inter=no bkgmask=s0135_blkreg.dat fl_crspec- fl_qecorr+ fl_apsum+
-
-        # 06-07
-#        ifuproc_gqecorr rgN20080607S0481 rgN20080607S0247,rgN20080607S0249,rgN20080607S0486,rgN20080607S0490 \
-#            rgN20080607S0246,rgN20080607S0250,rgN20080607S0487,rgN20080607S0489 twilight=rgN20080607S0494 fl_inter=no \
-#            bkgmask=s0135_blkreg.dat fl_crspec- fl_qecorr+ fl_apsum+
-#        ifuproc_gqecorr rgN20080607S0482 rgN20080607S0247,rgN20080607S0249,rgN20080607S0486,rgN20080607S0490 \
-#            rgN20080607S0246,rgN20080607S0250,rgN20080607S0487,rgN20080607S0489 twilight=rgN20080607S0494 fl_inter=no \
-#            bkgmask=s0135_blkreg.dat fl_crspec- fl_qecorr+ fl_apsum+
-#        ifuproc_gqecorr rgN20080607S0483 rgN20080607S0247,rgN20080607S0249,rgN20080607S0486,rgN20080607S0490 \
-#            rgN20080607S0246,rgN20080607S0250,rgN20080607S0487,rgN20080607S0489 twilight=rgN20080607S0494 fl_inter=no \
-#            bkgmask=s0135_blkreg.dat fl_crspec- fl_qecorr+ fl_apsum+
-#        ifuproc_gqecorr rgN20080607S0484 rgN20080607S0247,rgN20080607S0249,rgN20080607S0486,rgN20080607S0490 \
-#            rgN20080607S0246,rgN20080607S0250,rgN20080607S0487,rgN20080607S0489 twilight=rgN20080607S0494 fl_inter=no \
-#            bkgmask=s0135_blkreg.dat fl_crspec- fl_qecorr+ fl_apsum+
-#        ifuproc_gqecorr rgN20080607S0485 rgN20080607S0247,rgN20080607S0249,rgN20080607S0486,rgN20080607S0490 \
-#            rgN20080607S0246,rgN20080607S0250,rgN20080607S0487,rgN20080607S0489 twilight=rgN20080607S0494 fl_inter=no \
-#            bkgmask=s0135_blkreg.dat fl_crspec- fl_qecorr+ fl_apsum+
-#        ifuproc_gqecorr rgN20080607S0488 rgN20080607S0247,rgN20080607S0249,rgN20080607S0486,rgN20080607S0490 \
-#            rgN20080607S0246,rgN20080607S0250,rgN20080607S0487,rgN20080607S0489 twilight=rgN20080607S0494 fl_inter=no \
-#            bkgmask=s0135_blkreg.dat fl_crspec- fl_qecorr+ fl_apsum+
-
-        # 07-02
-#        ifuproc_gqecorr rgN20080702S0041 rgN20080702S0045,rgN20080702S0048 rgN20080702S0047,rgN20080702S0048 \
-#            twilight=rgN20080602S0077 fl_inter=no bkgmask=s0135_blkreg.dat fl_crspec- fl_qecorr+ fl_apsum+
-#        ifuproc_gqecorr rgN20080702S0042 rgN20080702S0045,rgN20080702S0048 rgN20080702S0047,rgN20080702S0048 \
-#            twilight=rgN20080602S0077 fl_inter=no bkgmask=s0135_blkreg.dat fl_crspec- fl_qecorr+ fl_apsum+
-#        ifuproc_gqecorr rgN20080702S0043 rgN20080702S0045,rgN20080702S0048 rgN20080702S0047,rgN20080702S0048 \
-#            twilight=rgN20080602S0077 fl_inter=no bkgmask=s0135_blkreg.dat fl_crspec- fl_qecorr+ fl_apsum+
-#        ifuproc_gqecorr rgN20080702S0044 rgN20080702S0045,rgN20080702S0048 rgN20080702S0047,rgN20080702S0048 \
-#            twilight=rgN20080602S0077 fl_inter=no bkgmask=s0135_blkreg.dat fl_crspec- fl_qecorr+ fl_apsum+
-#        ifuproc_gqecorr rgN20080702S0049 rgN20080702S0045,rgN20080702S0048 rgN20080702S0047,rgN20080702S0048 \
-#            twilight=rgN20080602S0077 fl_inter=no bkgmask=s0135_blkreg.dat fl_crspec- fl_qecorr+ fl_apsum+
-
 
         ## Visually confirm proper reconstructed spectra
-        gfdisplay steqpxbprgN20080702S0049.fits ver=1 z1=0 z2=1.e8
+#        gfdisplay steqpxbprgN20080322S0052.fits ver=1 z1=0 z2=1.e8
 
         ## Sum the stellar spectra
-
-#        gfapsum steqpxbprgN20080322S0049.fits fl_inter-
 #        gfapsum steqpxbprgN20080322S0052.fits fl_inter-
-#        gfapsum steqpxbprgN20080322S0054.fits fl_inter-
-#        gfapsum steqpxbprgN20080602S0041.fits fl_inter-
-#        gfapsum steqpxbprgN20080602S0042.fits fl_inter-
+
+    # 06-02
+        ifuproc_gqecorr rgN20080602S0043 rgN20080602S0044 rgN20080602S0045 twilight="" fl_inter=no \
+            bkgmask=s0135_blkreg.dat fl_crspec- fl_qecorr+ fl_apsum+
 #        gfapsum steqpxbprgN20080602S0043.fits fl_inter-
-#        gfapsum steqpxbprgN20080602S0061.fits fl_inter-
-#        gfapsum steqpxbprgN20080602S0062.fits fl_inter-
+        ifuproc_gqecorr rgN20080602S0065 rgN20080602S0064 rgN20080602S0063 twilight="" fl_inter=no \
+            bkgmask=s0135_blkreg.dat fl_crspec- fl_qecorr+ fl_apsum+
 #        gfapsum steqpxbprgN20080602S0065.fits fl_inter-
-#        gfapsum steqpxbprgN20080603S0124.fits fl_inter-
-#        gfapsum steqpxbprgN20080603S0125.fits fl_inter-
+
+    # 06-03
+        ifuproc_gqecorr rgN20080603S0128 rgN20080603S0127 rgN20080603S0126 \
+            fl_inter- bkgmask=s0135_blkreg.dat fl_crspec- fl_qecorr+ fl_apsum+ twilight=""
 #        gfapsum steqpxbprgN20080603S0128.fits fl_inter-
-#        gfapsum steqpxbprgN20080607S0481.fits fl_inter-
-#        gfapsum steqpxbprgN20080607S0482.fits fl_inter-
-#        gfapsum steqpxbprgN20080607S0483.fits fl_inter-
-#        gfapsum steqpxbprgN20080607S0484.fits fl_inter-
+
+    # 06-07
+        ifuproc_gqecorr rgN20080607S0485 rgN20080607S0486 rgN20080607S0487 twilight="" fl_inter=no \
+            bkgmask=s0135_blkreg.dat fl_crspec- fl_qecorr+ fl_apsum+
 #        gfapsum steqpxbprgN20080607S0485.fits fl_inter-
+        ifuproc_gqecorr rgN20080607S0488 rgN20080607S0489 rgN20080607S0490 twilight="" fl_inter=no \
+            bkgmask=s0135_blkreg.dat fl_crspec- fl_qecorr+ fl_apsum+
 #        gfapsum steqpxbprgN20080607S0488.fits fl_inter-
-#        gfapsum steqpxbprgN20080702S0041.fits fl_inter-
-#        gfapsum steqpxbprgN20080702S0042.fits fl_inter-
-#        gfapsum steqpxbprgN20080702S0043.fits fl_inter-
+
+    # 07-02
+        ifuproc_gqecorr rgN20080702S0044 N20080702S0045 rgN20080702S0046 \
+            fl_inter- bkgmask=s0135_blkreg.dat fl_crspec- fl_qecorr+ fl_apsum+ twilight=""
 #        gfapsum steqpxbprgN20080702S0044.fits fl_inter-
+        ifuproc_gqecorr rgN20080702S0049 rgN20080702S0048 rgN20080702S0047 \
+            fl_inter- bkgmask=s0135_blkreg.dat fl_crspec- fl_qecorr+ fl_apsum+ twilight=""
 #        gfapsum steqpxbprgN20080702S0049.fits fl_inter-
+
 
         ## Combine the flux standards to calculate the flux calibration correction function
 
-#        gscombine asteqpxbprgN20080602S0061.fits,asteqpxbprgN20080602S0062.fits,asteqpxbprgN20080602S0065.fits \
+#        gscombine asteqpxbprgN20080322S0052.fits,asteqpxbprgN20080602S0043.fits,asteqpxbprgN20080602S0065.fits,asteqpxbprgN20080603S0128.fits,asteqpxbprgN20080607S0485.fits,asteqpxbprgN20080607S0488.fits,asteqpxbprgN20080702S0044.fits,asteqpxbprgN20080702S0049.fits \
 #            EG131_wl.fits logfile="gmos.log" combine="average" scale="mean" fl_vardq-
 
         ## Establish  spectrophotometric  calibration  for GMOS spectra
@@ -611,7 +525,7 @@ print ('>>> here now')
 #            sfunction="sens_EG131_wl" sfile="std_EG131_wl"
 
         ## Visually inspect
-        splot sens_jamesiraf_wl
+#        splot sens_EG131_wl
 
 
     # Measure velocity difference between the two output slits using arcs - only done once
@@ -627,12 +541,12 @@ print ('>>> here now')
         #   tselect tergN20051205S0008.fits[mdf] slit2.fits "NO >= 751"
         #   tstat slit1.fits,slit2.fits SHIFT lowlim=-1000.0 highlim=1000.
 
-        ## slit1.fits  SHIFT
-        ##  749     0.01689319103      0.019838         0.012        -0.023         0.112
-        ## slit2.fits  SHIFT
-        ##  747      0.1320923696     0.0360886         0.134         0.034         0.204
-        ##=0.132-0.017
-        ##0.115
+            ## slit1.fits  SHIFT
+            ##  749     0.01689319103      0.019838         0.012        -0.023         0.112
+            ## slit2.fits  SHIFT
+            ##  747      0.1320923696     0.0360886         0.134         0.034         0.204
+            ##=0.132-0.017
+            ##0.115
 
         #### calculate the shift - subtract the difference with gfshit and confirm the new shift ~0
         #   gfshift tergN20051205S0008.fits stergN20051205S0008.fits shift2=-0.115
@@ -642,52 +556,48 @@ print ('>>> here now')
         #   tselect stergN20051205S0008.fits[mdf] slit2.fits "NO >= 751"
         #   tstat slit1.fits,slit2.fits SHIFT lowlim=-1000.0 highlim=1000.
 
-        ## slit1.fits  SHIFT
-        ##  749     0.01689319103      0.019838         0.012        -0.023         0.112
-        ## slit2.fits  SHIFT
-        ##  747     0.02548995992     0.0365223         0.028        -0.073         0.098
+            ## slit1.fits  SHIFT
+            ##  749     0.01689319103      0.019838         0.012        -0.023         0.112
+            ## slit2.fits  SHIFT
+            ##  747     0.02548995992     0.0365223         0.028        -0.073         0.098
 
 #        calc_shift(ergN20080322S0050.fits, shift.fits)
-#        calc_shift(ergN20080602S0023.fits, shift.fits)
 #        calc_shift(ergN20080602S0045.fits, shift.fits)
 #        calc_shift(ergN20080602S0063.fits, shift.fits)
-#        calc_shift(ergN20080603S0121.fits, shift.fits)
 #        calc_shift(ergN20080603S0126.fits, shift.fits)
-#        calc_shift(ergN20080607S0246.fits, shift.fits)
-#        calc_shift(ergN20080607S0250.fits, shift.fits)
 #        calc_shift(ergN20080607S0487.fits, shift.fits)
-#        calc_shift(ergN20080607S0489.fits, shift.fits)
-#        calc_shift(ergN20080622S0050.fits, shift.fits)
-#        calc_shift(ergN20080701S0091.fits, shift.fits)
+#        calc_shift(ergN20080607S0490.fits, shift.fits)
+#        calc_shift(ergN20080702S0046.fits, shift.fits)
 #        calc_shift(ergN20080702S0047.fits, shift.fits)
-#        calc_shift(ergN20080702S0048.fits, shift.fits)
 
 
     # Process the science
     # -------------------
 
-    # Science images
-    # HECJ125931.9+275140
-        # N20080602S0018,N20080602S0019,N20080602S0020,N20080602S0021,N20080602S0022 06-02
-        # N20080603S0117,N20080603S0118,N20080603S0119,N20080603S0122,N20080603S0123 06-03
-    # HECJ130035.4+275633
-        # N20080607S0241,N20080607S0242,N20080607S0243,N20080607S0244,N20080607S0245 06-07
-        # N20080622S0044,N20080622S0045,N20080622S0046,N20080622S0047 06-22
-        # N20080701S0088,N20080701S0089,N20080701S0092 07-01
+    # 06-02
+#        proc_sci N20080602S0021,N20080602S0022 flat=rgN20080602S0024 arc=rgN20080602S0023 twilight="" \
+#            sens="sens_EG131_wl" shift=-0. fl_calib+ fl_shift+
 
-        ## HECJ125931
+#        gfshift steqpxbprgN20051205S0006.fits hsteqpxbprgN20051205S0006.fits shift2=-0.
+#        gscalibrate steqpxbprgN20051205S0006.fits extinction=gmos$calib/mkoextinct.dat fl_ext+ fl_vardq+ \
+#            sfunction="sens_EG131_wl"
+#        gfdisplay csteqpxbprgN20051205S0006.fits ver=1 z2=500 z1=0
 
-#            ifuproc_gqecorr rgN20080602S0018 rgN20080602S0024,rgN20080602S0044,rgN20080602S0064 \
-#                rgN20080602S0023,rgN20080602S0045,rgN20080602S0063 twilight=rgN20080602S0077 bkgmask=s0007_blkreg.dat \
-#                fl_crspec+ fl_qecorr+ fl_skysub- fl_inter-
-#            gfshift steqpxbprgN20051205S0006.fits hsteqpxbprgN20051205S0006.fits shift2=-0.112312670372
-#            gscalibrate steqpxbprgN20051205S0006.fits extinction=gmos$calib/mkoextinct.dat fl_ext+ fl_vardq+ \
-#                sfunction="sens_EG131_wl"
-#            gfdisplay csteqpxbprgN20051205S0006.fits ver=1 z2=500 z1=0
+    # 06-03
+#        proc_sci rgN20080603S0122,rgN20080603S0123 flat=rgN20080603S0120 arc=rgN20080603S0121 twilight="" \
+#            sens="sens_EG131_wl" shift=-0. fl_calib+ fl_shift+
 
-#            proc_sci rgN20080602S0018 flat=rgN20080602S0024,rgN20080602S0044,rgN20080602S0064
-#                arc=rgN20080602S0023,rgN20080602S0045,rgN20080602S0063 twilight=rgN20080602S0077 \
-#                sens="sens_EG131_wl" shift=-0.112312670372 fl_calib+ fl_shift+
+    # 06-07
+#        proc_sci rgN20080607S0244,rgN20080607S0245 flat=rgN20080607S0247 arc=rgN20080607S0246 twilight="" \
+#            sens="sens_EG131_wl" shift=-0. fl_calib+ fl_shift+
+
+    # 06-22
+#        proc_sci rgN20080622S0047 flat=rgN20080622S0049 arc=rgN20080622S0050 twilight="" \
+#            sens="sens_EG131_wl" shift=-0. fl_calib+ fl_shift+
+
+    # 07-01
+#        proc_sci rgN20080701S0092 flat=rgN20080701S0090 arc=rgN20080701S0091 twilight="" \
+#            sens="sens_EG131_wl" shift=-0. fl_calib+ fl_shift+
 
 
 
@@ -721,16 +631,27 @@ print ('>>> here now')
 # DO THIS
 
     ## Resample to 3D with (minimal) atmospheric dispersion correction:
-#    gfcube ("csteqpxbprgN20051205S0006.fits", fl_atm+, fl_flux+, fl_var+, fl_dq+)
-#    gfcube ("csteqpxbprgN20051222S0108.fits", fl_atm+, fl_flux+, fl_var+, fl_dq+)
-#    gfcube ("csteqpxbprgN20051222S0112.fits", fl_atm+, fl_flux+, fl_var+, fl_dq+)
-#    gfcube ("csteqpxbprgN20051223S0121.fits", fl_atm+, fl_flux+, fl_var+, fl_dq+)
+#    gfcube ("chsteqpxbprgN20080602S0021.fits", fl_atm+, fl_flux+, fl_var+, fl_dq+)
+#    gfcube ("chsteqpxbprgN20080602S0022.fits", fl_atm+, fl_flux+, fl_var+, fl_dq+)
+#    gfcube ("chsteqpxbprgN20080603S0122.fits", fl_atm+, fl_flux+, fl_var+, fl_dq+)
+#    gfcube ("chsteqpxbprgN20080603S0123.fits", fl_atm+, fl_flux+, fl_var+, fl_dq+)
+#    gfcube ("chsteqpxbprgN20080607S0244.fits", fl_atm+, fl_flux+, fl_var+, fl_dq+)
+#    gfcube ("chsteqpxbprgN20080607S0245.fits", fl_atm+, fl_flux+, fl_var+, fl_dq+)
+#    gfcube ("chsteqpxbprgN20080622S0047.fits", fl_atm+, fl_flux+, fl_var+, fl_dq+)
+#    gfcube ("chsteqpxbprgN20080701S0092.fits", fl_atm+, fl_flux+, fl_var+, fl_dq+)
 
     ## # Mosaic the datacubes:
-#    pyfalign dcsteqpxbprgN20051205S0006,dcsteqpxbprgN20051222S0108,dcsteqpxbprgN20051222S0112,dcsteqpxbprgN20051223S0121 \
+    # HECJ125931.9+275140
+#    pyfalign dchsteqpxbprgN20080602S0021,dchsteqpxbprgN20080602S0022,dchsteqpxbprgN20080603S0122,dchsteqpxbprgN20080603S0123 \
 #       method="correlate"
-#    pyfmosaic dcsteqpxbprgN20051205S0006,dcsteqpxbprgN20051222S0108,dcsteqpxbprgN20051222S0112,dcsteqpxbprgN20051223S0121 \
-#        dcsteqpxbprgN20051205S0006_add separate- var+
+#    pyfmosaic dchsteqpxbprgN20080602S0021,dchsteqpxbprgN20080602S0022,dchsteqpxbprgN20080603S0122,dchsteqpxbprgN20080603S0123 \
+#        HECJ125931_cube separate- var+
+
+    # HECJ130035.4+275633
+#    pyfalign dchsteqpxbprgN20080607S0244,chsteqpxbprgN20080607S0245,dchsteqpxbprgN20080622S0047,dchsteqpxbprgN20080701S0092 \
+#       method="correlate"
+#    pyfmosaic dchsteqpxbprgN20080607S0244,chsteqpxbprgN20080607S0245,dchsteqpxbprgN20080622S0047,dchsteqpxbprgN20080701S0092 \
+#        HECJ130035_cube separate- var+
 
 # I STOP HERE - agian this is something James does that I don't
 
@@ -756,50 +677,3 @@ print ('>>> here now')
             ## degradation, with FWHM differences within 0.1-0.3 pix in both directions that look consistent with noise.
         #    pyfmosaic dcsteqpxbprgN20051205S0006,dcsteqpxbprgN20051222S0108,dcsteqpxbprgN20051222S0112,dcsteqpxbprgN20051223S0121 \
         #        dcsteqpxbprgN20051205S0006_add separate-
-
-
-#### Gwen's method for making cubes
-# ---------------------------------
-
-    ## This is achieved with the task call 'call_cube.cl' which takes input (original file name, file extension number)
-
-    ## Make sure to comment out 'gfcube' task in this script is already gfcube'd
-#    make_cube.prefix="steqpxbprg"
-#    make_cube ("N20051205S0006.fits", 006)
-#    make_cube ("N20051222S0108.fits", 108)
-#    make_cube ("N20051222S0112.fits", 112)
-#    make_cube ("N20051223S0121.fits", 122)
-
-## The output of this program is the fully shifted and combines cube - with both integer and decimal shifts.
-## You may want to consider at this point cropping the final cubes in the spatial plane to remove the blank
-##    sections added in the shift.
-
-#    mkdir tmp_cal       # Make temporary folders to organise output - only if it does not exist already
-
-#    align_cubes.prefix="steqpxbprg"         ## 'mdc' prefix will be added in where appropriate
-#    align_cubes ("N20051205S0006", "006")
-#    align_cubes ("N20051222S0108", "108")
-#    align_cubes ("N20051222S0112", "112")
-#    align_cubes ("N20051223S0121", "122")
-
-    ## Combine the data cubes
-#    dele calib_cubes_decimal.lis
-#    print("amdcsteqpxbprgN20051205S0006_decimal.fits",>> "calib_cubes_decimal.lis")
-#    print("amdcsteqpxbprgN20051222S0108_decimal.fits",>> "calib_cubes_decimal.lis")
-#    print("amdcsteqpxbprgN20051222S0112_decimal.fits",>> "calib_cubes_decimal.lis")
-#    print("amdcsteqpxbprgN20051223S0121_decimal.fits",>> "calib_cubes_decimal.lis")
-
-#    dele calib_cubes_integer.lis
-#    print("amdcsteqpxbprgN20051205S0006_integer.fits",>> "calib_cubes_integer.lis")
-#    print("amdcsteqpxbprgN20051222S0108_integer.fits",>> "calib_cubes_integer.lis")
-#    print("amdcsteqpxbprgN20051222S0112_integer.fits",>> "calib_cubes_integer.lis")
-#    print("amdcsteqpxbprgN20051223S0121_integer.fits",>> "calib_cubes_integer.lis")
-
-    ## First the decimal shifts
-#    gscombine_new @calib_cubes_decimal.lis IC225_cal_decimal.fits logfile="gmos.log" combine="average" lthresh=-9999 fl_vard+
-    ## The integer shifts
-#    gscombine_new @calib_cubes_integer.lis IC225_cal_integer.fits logfile="gmos.log" combine="average" lthresh=-9999 fl_vard+
-
-## To make 2D 'maps' fo the galaxy - use scrop to obtain a cube within the desired wavelength range, and then use
-##    imcombine with 'project=yes' to flatten the cube inta a 2D image.
-
