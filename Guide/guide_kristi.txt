@@ -11,7 +11,8 @@ I make an effort to reproduce her results but using the standard IRAF gmos tasks
     Contents:
 	- Preprocessing and cubing
 	    - preprocessing - Gwen’s method
-	    - preprocessing - My method
+	    - preprocessing - My method 1 (with twilights)
+	    - preprocessing - My method 2 (without twilights)
 	    - cubing and flattening - Gwen’s method
 	    - cubing and flattening - my method
 
@@ -81,7 +82,20 @@ She notes in her guide that all steps are automated except for the velocity shif
 	- ‘q’ save and quit
 
 
-MY METHOD —————
+MY METHOD ————— 
+
+In order to determine the best reduction method, a comparison was made to find the minimized wavelength shift between the two IFU slits. The various methods tested were: Gwen’s original method as detailed in her script ‘preliminary_reduction.cl’, a reproduction of Gwen’s method using her version of scripts and IRAF tasks, using James’ reduction method with Bryan’s IRAF tasks (which require the original ifuproc), James’ method with the standard IRAF tasks, and James’ method with James’ IRAF tasks (which include an improved method of flat- fielding in gfresponse). The comparison between the methods is shown in ‘wavelength shift.txt’. Also see the section “Check if velocity shift between CCDs” for more information.
+
+The best method was James’ reduction method with James’ IRAF tasks (ie without twilights, with new nonpublic gfresponse, and modified ifuproc_gqecorr to include wavtraname param in gfresponse), so this was used to preform the reduction. As we expect James’ methods in his tasks will be included in the next update of the gmos tasks we do not worry about whether others cannot reproduce our results. I will explain two different reduction methods, however, to analyze IC225, as it may be useful information for someone. They are not that different though.
+
+	- The main differences in the reduction (old way and new way) is the order of the steps (as can be seen by the differing 
+	  file prefixes) as well as preforming the overscan subtraction right away, calculating the VAR and DQ plane and carrying
+	  them through the reduction stages, writing the BPM from the GMOS IFU provided BPM files rather than specifying
+	  specific regions, and using the updated versions of the IRAF tasks. I also use gemfix (with addbpm) rather than nmisc
+	  as it seemed to provide better results
+
+
+IC225, WITH twilights
 
 		INPUT:  raw IFU data: /net/sbfmaps/Volumes/Science/bmiller/bdisk/bmiller/GN-2005B-DD-5/raw/
 			updated ifuproc: iraf/scripts/gmos/ifuproc_gqecorr.cl
@@ -92,20 +106,24 @@ MY METHOD —————
 			bad pixel mask files: iraf/scripts/gmos/bpms/gn_bpm_ccd1_*.pl
 			extinction file: iraf/scripts/gmos/calib/mkoextinct.dat
 			* potentially missing other things?
-		OUTPUT: output of preprocessing: csteqpxbprgN20051205S0006.fits, csteqpxbprgN20051222S0108.fits, 
-						 csteqpxbprgN20051222S0112.fits, csteqpxbprgN20051223S0121.fits
-			3D cube by james’ method: dcsteqpxbprgN20051205S0006_add.fits
+		OUTPUT: output of preprocessing: chsteqpxbprgN20051205S0006.fits, chsteqpxbprgN20051222S0108.fits, 
+						 chsteqpxbprgN20051222S0112.fits, chsteqpxbprgN20051223S0121.fits
+			3D cube by james’ method: dchsteqpxbprgN20051205S0006_add.fits
 
 The reduction method I use is similar to that of James, with the inclusion of an updated version of ‘ifuproc.cl’ (instead of repeating the same steps for the standard and sciece, the ifuproc task is used). The updated ‘ifuproc’ is ‘ifuproc_gqecorr.cl’ where the steps have been rearranged to allow for the input to meet the necessary parameters to run the IRAF standard ‘gqecorr.cl’ rather than Bryan’s version of the task.
 
 The preproccessing script (and for the cubing) is named ‘reduce_and_cube.cl’.
 
-	- I’m not sure why Gwen specifies the wavelength parameters ‘dw=.91 nw=1301 w1=4186’ but I preserve these in my own code. 
-          This results in a wavelength range of [4186:5369.91]
+	- I’m not sure why Gwen specifies the wavelength parameters ‘dw=.91 nw=1301 w1=4186’ but I preserve these in my own code. *
+	  ** Just for this reduction method, it carries over from Gwen spectral binning her data. 
+          This results in a wavelength range of [4186:5369.91], 1300 pixels apced 0.91 A apart
 
-As we wanted to be able to preform the analysis with the standard IRAF tasks (rather than the tasks developed by Bryan) for the purpose of reproducability, it was necessary to rearrange the reduction steps in ‘ifuproc.cl’ as the ’gqecorr.cl’ input cannot be mosaiced. Parameters, such as ‘gsigma’ in Bryan’s gfextract, which were not included in the standard tasks were removed. Extensive testing was preformed to ensure that the these parameters were not necessary and could be removed without significantly altering the final product.
+As we wanted to be able to preform the analysis with the standard IRAF tasks (rather than the tasks developed by Bryan/James) for the purpose of reproducability, it was necessary to rearrange the reduction steps in ‘ifuproc.cl’ as the ’gqecorr.cl’ input cannot be mosaiced. Parameters, such as ‘gsigma’ in Bryan’s gfextract, which were not included in the standard tasks were removed. Extensive testing was preformed to ensure that the these parameters were not necessary and could be removed without significantly altering the final product.
 
 This updated version of ifuproc was named ‘ifuproc_gqecorr.cl’. 
+
+	- parameter ‘wavtraname’ in James’ updated gfresponse is NOT included as it is not available in the IRAf 
+	  standard package
 
 	- The parameter ‘gsigma’ in gfextract (and thus gfreduce) is a smoothing term for the noise in the region
 	  where the CCDs overlap. This results in a decrease in the noise on the right of the spectrum. This is 
@@ -125,17 +143,45 @@ This updated version of ifuproc was named ‘ifuproc_gqecorr.cl’.
 	- The wavelength calibration function (sens_{whatever}.fits) as output by gsstandard was produced by 
 	  running the task interactively and ensuring that the data points were not on spectral lines. Although
 	  the function I produced was very similar to that of Gwen’s, it was not the exact same shape. 
-	**** Test to see if this has a significant effect
 
-In order to determine the best reduction method, a comparison was made to find the minimized wavelength shift between the two IFU slits. The various methods tested were: Gwen’s original method as detailed in her script ‘preliminary_reduction.cl’, a reproduction of Gwen’s method using her version of scripts and IRAF tasks, using James’ reduction method with Bryan’s IRAF tasks (which require the original ifuproc), James’ method with the standard IRAF tasks, and James’ method with James’ IRAF tasks (which include an improved method of flat- fielding). The comparison between the methods is shown in ‘wavelength shift.txt’. Also see the section “Check if velocity shift between CCDs” for more information.
 
-The best method was James’ reduction method with James’ IRAF tasks, so this was used to preform the reduction. As we expect James’ methods in his tasks will be included in the next update of the gmos tasks we do not worry about whether others cannot reproduce our results. The only task of James’ that I did not use was ‘gfresponse.cl’ as it is currently not capable of handling twilights.
+IC225 WITHOUT twilights
 
-	- The main differences in the reduction is the order of the steps (as can be seen by the differing file
-	  prefixes) as well as preforming the overscan subtraction right away, calculating the VAR and DQ plane
-	  and carrying them through the reduction stages, writing the BPM from the GMOS IFU provided BPM files 
-	  rather than specifying specific regions, and using the updated versions of the IRAF tasks. I also use 
-	  gemfix (with addbpm) rather than nmisc as it seemed to provide better results.
+		INPUT:  raw IFU data: /net/sbfmaps/Volumes/Science/bmiller/bdisk/bmiller/GN-2005B-DD-5/raw/
+			updated ifuproc: iraf/scripts/gmos/ifuproc_gqecorr.cl
+			James’ IRAF scripts: iraf/extern/ifudrgmos/gmos/
+			James’ Python scripts: iraf/extern/pyfu-0.8.1/
+			Gwen’s gscombine: iraf/scripts/gwen/gscombine.cl
+			chip gap files: iraf/scripts/gmos/data/chipgaps.dat
+			bad pixel mask files: iraf/scripts/gmos/bpms/gn_bpm_ccd1_*.pl
+			extinction file: iraf/scripts/gmos/calib/mkoextinct.dat
+			* potentially missing other things?
+		OUTPUT: output of preprocessing: chsteqpxbprgN20051205S0006.fits, chsteqpxbprgN20051222S0108.fits, 
+						 chsteqpxbprgN20051222S0112.fits, chsteqpxbprgN20051223S0121.fits
+			3D cube by james’ method: dchsteqpxbprgN20051205S0006_add.fits
+
+The reduction for this method is handled by the script ‘reduce_and_cube_vJT.cl’ and a slightly modified ‘ifuproc_gqecorr.cl’ which includes the ‘wavtraname=arc’ parameter necessary for James’ version of gfresponse. We find this method is the best as it minimizes the slight velocity difference between the two slits measured before the correction. However, the difference between the above method and this method was only a velocity shift of 0.11, so I think either method would be acceptible (see ‘wavelength_shift.txt for more numbers).
+
+	- parameter ‘wavtraname’ in James’ updated gfresponse is NOT included as it is not available in the IRAf 
+	  standard package
+
+	- We no longer specify/overide the wavelength range nor scale, which leaves the default range as ~4115 - ~5415.927 A
+	  (it varies slightly between exposures). However, there is significant noise at both bounds that vary for each final
+	  cube that we crop out. This is necessary as the alignment step prior to makeing the final mosaic will fail in it’s 
+	  cross-correlation if there is significant noise contamination. In our case this is true, and our signal is ~0.5 counts 
+	  and our noise features can be quite large, ~-1000 counts.
+
+	- I have explored cropping the cubes with Pythin, but had some issues recreating the MEF file necessary for the input
+	  of the PyFu package, so instead I use Gwen’s ‘scrop.cl’ to preform this step which works quite nicely.
+
+		- dchsteqpxbprgN20051205S0006 4123 - 5404
+		- dchsteqpxbprgN20051222S0108 4176 - 5450
+		- dchsteqpxbprgN20051222S0112 4126 - 5408
+		- dchsteqpxbprgN20051223S0121 4166 - 5450
+
+	- Final wavelength rage is 4123.61-5450.16
+
+	- Other details are the same as noted above.
 
 
 CUBING AND FLATTENING
@@ -559,13 +605,13 @@ CHECK IF VELOCITY SHIFT BETWEEN CCDS
 
 In the plots we want to ensure the ‘rotation’ feature we can see (i.e. the velocity difference at the top of the galaxy and the bottom) is not a feature of a shift in the wavelength correction between the CCDs. So let’s go back to the preprocessing and calculated the velocity/pixel shift needed to correct for the difference in the correction. I do this with the script ‘wavelength_shift_check/reduce_and_cube_with_shift.cl’ which basically just includes the task ‘gfshift’ to apply the shift. In order to calculate the shift needed for each galaxy image, refer to the ‘Measure velocity difference between…’ section in the script. It’s the example Gwen has in her script actually. I’ll highlight the steps. 
 
-Transform the first arc, make sure to use Bryan’s version of gftransform and in IRAF (pyraf gives a wird error with one of the variables)
+Transform the first arc, make sure to use Bryan’s version of gftransform and in IRAF (pyraf gives a weird error with one of the variables)
    cl > gftransform ergN20051205S0008.fits wavtraname=ergN20051205S0008
-Determine the correction, use Gwen’s version of gfxcor in pyraf (iraf gives a weird error, convenient eh?). Continue in pyraf.
+Determine the correction, use Gwen’s version of gfxcor in pyraf (iraf gives a weird error, convenient eh?). Continue in pyraf. Make sure to load fxcor in whatever terminal (in noao. rv.)
    ——> gfxcor tergN20051205S0008.fits obs=Gemini-North
 Separate out the regions of the two CCDs
-   ——> tselect tergN20051205S0008.fits[mdf] slit1.fits "NO <= 750"
-   ——> tselect tergN20051205S0008.fits[mdf] slit2.fits "NO >= 751"
+   ——> tselect tergN20051205S0008.fits[mdf] s008_1.fits "NO <= 750"
+   ——> tselect tergN20051205S0008.fits[mdf] s008_2.fits "NO >= 751"
 Calculate the difference, first in pixels then in relative velocity
    ——> tstat s008_1.fits,s008_2.fits SHIFT lowlim=-9999.0 highlim=15.
    ——> tstat s008_1.fits,s008_2.fits VREL lowlim=-9999.0 highlim=10.
