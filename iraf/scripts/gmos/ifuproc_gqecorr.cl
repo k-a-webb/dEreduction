@@ -4,6 +4,10 @@ procedure ifuproc_gqecorr (image,flat,arc)
 # James' as well as use gqecorr rather than qecorr
 # assumes that the input images are bias and overscan subtracted with gfreduce
 
+# Currently capable of handling up to 4 flats and 2 arcs.
+# This is currently designed to work with James Turner's version of gfresponse which includes the varianle
+# 'wavtraname'. For sue with the iraf standard package, remove this variable declaration.
+
 string image     {"",prompt="Input object spectra"}
 string flat      {"",prompt="List of flats"}
 string arc       {"",prompt="List of arcs"}
@@ -23,6 +27,7 @@ bool   fl_xshift {no,prompt="Run gspecshift?"}
 bool   fl_crspec {yes,prompt="Run GSCRSPEC to clean cosmic rays?"}
 bool   fl_qecorr {yes,prompt="Run QECORR for QE corrections?"}
 bool   fl_skysub {yes,prompt="Subtract sky?"}
+bool   fl_apsum  {yes,prompt="Sum the stellar spectra?"}
 bool   fl_inter  {yes,prompt="Interactive?"}
 real   fwidth    {4.,prompt="Feature width (FWHM) in pixels"}
 real   gmsigma   {0.6,min=0.0,prompt="Gaussian sigma for CCD2 smoothing"}
@@ -42,12 +47,12 @@ begin
 string l_image,l_flat,l_arc,l_twilight,l_weights
 string l_mbpm,l_umbpm,l_bpm[3],l_bpmgaps,l_ccdsum,l_bkgmask,l_sky
 string inst,detect,dettype,detsec,ccdsec,ccdsum,obsmode
-string pre,flatlis,fflat,arclis,img,earc[2]
+string pre,flatlis,fflat,arclis,img,earc[2],l_flat_one[4]
 real l_xoffset,l_yoffset,l_apwidth
 real l_fwidth,l_gasigma,l_gmsigma
 real l_wshift
 bool l_fl_inter,l_fl_xshift,l_recenter,l_resize,l_trace
-bool l_fl_crspec,l_fl_qecorr,l_fl_skysub
+bool l_fl_crspec,l_fl_qecorr,l_fl_skysub,l_fl_apsum
 real l_w1,l_w2,l_dw
 int l_gap12,l_gap23,nxpix,nypix,l_torder
 int xbin,ybin,l_iarc,l_nw
@@ -63,7 +68,7 @@ l_bpmgaps=bpmgaps ; l_bkgmask=bkgmask
 l_xoffset=xoffset ; l_yoffset=0.0
 l_fl_xshift=fl_xshift ; l_fl_inter=fl_inter
 l_fwidth=fwidth ; l_gasigma=gasigma ; l_gmsigma=gmsigma
-l_fl_crspec=fl_crspec ; l_fl_qecorr=fl_qecorr ; l_fl_skysub=fl_skysub
+l_fl_crspec=fl_crspec ; l_fl_qecorr=fl_qecorr ; l_fl_skysub=fl_skysub ; l_fl_apsum=fl_apsum
 l_weights=weights ; l_iarc=iarc
 l_w1=w1 ; l_w2=w2 ; l_dw=dw ; l_nw=nw
 l_wshift=wshift
@@ -106,11 +111,23 @@ cache("fparse","imgets")      # commented out as gspecshift was unrecognised
 	
 #### Not including commented out gmosaic and x offset
 
+
+flatlis=mktemp("tmpflats")
+files(l_flat,sort-, > flatlis)
+count(flatlis) | scan(nflat)
+
+
 print ('>>>>> Making bad pixel mask')
 ## Make bad pixel mask if cannot access the default 'mbpm.fits'
 ## Use the unmosaiced bad pixel mask with addbpm - l_umbpm
-	if (!access(l_mbpm)) {
-		mkmbpm (l_mbpm, l_flat, bpm1=l_bpm[1], bpm2=l_bpm[2], bpm3=l_bpm[3], umbpm=l_umbpm,\
+	if (!imaccess(l_mbpm)) {
+        ii=0
+        scanfile = flatlis
+        while(fscan(scanfile,img) != EOF) {
+		    ii+=1
+            l_flat_one[ii] = img
+        }
+		mkmbpm (l_mbpm, l_flat_one[1], bpm1=l_bpm[1], bpm2=l_bpm[2], bpm3=l_bpm[3], umbpm=l_umbpm,\
 			   bpmgaps=l_bpmgaps, fl_wrbox=l_fl_wrbox)
  	}
 
@@ -124,10 +141,6 @@ print ('>>>>> Flat - first processing')
 	} else {
 		pre = "p"
 	}
-
-	flatlis=mktemp("tmpflats")
-	files(l_flat,sort-, > flatlis)
-	count(flatlis) | scan(nflat)
 	
 	l_oflat = ""
 
@@ -158,9 +171,9 @@ print ('>>>>> Flat - first processing')
 
 	if (nflat > 1) {		
 		gemcombine("@"//flatlis, l_aflat, combine="average", reject="avsigclip",\
-				   offsets="none", scale="none", zero="none", weight="none")
+				   offsets="none", scale="none", zero="none", weight="none", fl_vardq+)
 	}
-	
+
 	if (!imaccess("p"//l_aflat)) {
 		addbpm(l_aflat, l_umbpm)
 		gemfix(l_aflat, "p"//l_aflat, method="fit1d", bitmask=1, order=15, fl_inter-)
@@ -194,7 +207,7 @@ print ('>>>>> Flat - first processing')
 	
 # Twilight processing - optional, may not have a significant affect if included
 # -------------------	
-print ('>>>>>> Twilight - first processing')
+print ('>>>>> Twilight - first processing')
 	
 	if (l_twilight != "" && !imaccess(pre//l_twilight)) {
 	
@@ -232,7 +245,7 @@ print ('>>>>> Arc processing')
 		if (!imaccess("e"//img)) {
 			gfreduce(img, fl_addmdf-, fl_trim-, fl_bias-, fl_wavtran-, fl_skysub-, fl_gscrrej-,\
 					 rawpath="", fl_inter=no, trace-, recenter-, ref="ep"//l_aflat, fl_over-,\
-					 weights=l_weights, xoffset=l_xoffset, fl_extract+, fl_gsappwave+)
+					 weights=l_weights, xoffset=l_xoffset, fl_extract+, fl_gsappwave+, fl_vardq+)
 		}			 
 		gswavelength("e"//img, fwidth=(1.7*l_fwidth), cradius=(1.2*1.7*l_fwidth),\
 					 nlost=10, fl_inter=l_fl_inter, low_reject=2.5, high_reject=2.5, verbose-)
@@ -284,7 +297,7 @@ print ('>>>>> Determining response function')
 		}
 		
 		l_sky = ""
-		if (l_twilight != "") {		
+		if (l_twilight != "") {
  			if (!imaccess("e"//pre//l_twilight)) {
 				gfreduce (pre//l_twilight, fl_addmdf-, fl_trim-, fl_bias-, fl_wavtran-, fl_skysub-, \
 						  fl_over-, fl_gscrrej-, fl_fluxcal-, rawpath="", fl_inter=l_fl_inter, \
@@ -299,10 +312,10 @@ print ('>>>>> Determining response function')
 					  fl_over-, fl_gscrrej-, fl_fluxcal-, rawpath="", fl_inter=l_fl_inter, \
 					  weights=l_weights, fl_extract+, fl_gsappwave+, fl_vardq+, xoffset=l_xoffset)
 		}
-		
+
 		## Apply fibre throughput correction			
-		gfresponse("e"//pre//l_aflat, l_oflat, skyimage=l_sky, order=95,\
-				   fl_inter=l_fl_inter, fl_fit-) #### removed iorder=750, sorder=5
+		gfresponse("e"//pre//l_aflat, l_oflat, skyimage=l_sky, order=95, fl_inter=l_fl_inter, fl_fit-, wavtraname=earc[l_iarc])
+		    #### removed iorder=750, sorder=5
 		if (gfresponse.status != 0) {
 			goto error
 		}
@@ -363,6 +376,10 @@ print ('>>>>> Science processing')
             	goto error
         	}
 		}
+    }
+
+    if (fl_apsum && !imaccess("asteqpx"//pre//l_image)) {
+        gfapsum("steqpx"//pre//l_image, fl_inter-)
     }
 
 print ('>>>>> IFUPROC DONE <<<<<')
