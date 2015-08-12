@@ -28,7 +28,7 @@ bool   fl_crspec {yes,prompt="Run GSCRSPEC to clean cosmic rays?"}
 bool   fl_qecorr {yes,prompt="Run QECORR for QE corrections?"}
 bool   fl_skysub {yes,prompt="Subtract sky?"}
 bool   fl_apsum  {yes,prompt="Sum the stellar spectra?"}
-bool   fl_inter  {yes,prompt="Interactive?"}
+bool   fl_inter  {no,prompt="Interactive?"}
 real   fwidth    {4.,prompt="Feature width (FWHM) in pixels"}
 real   gmsigma   {0.6,min=0.0,prompt="Gaussian sigma for CCD2 smoothing"}
 real   gasigma   {0.0,prompt="Gaussian sigma for arc smoothing"}
@@ -183,7 +183,7 @@ print ('>>>>> Flat - first processing')
 	if (!imaccess("ep"//l_aflat)) { 
 		gfreduce("p"//l_aflat, fl_addmdf-, fl_trim-, fl_bias-, fl_wavtran-, fl_skysub-,\
 				 fl_over-, fl_gscrrej-, fl_fluxcal-, rawpath="", weights=l_weights,\
-				 fl_extract+, fl_gsappwave+, fl_vardq+, xoffset=l_xoffset, fl_inter-)#=l_fl_inter)
+				 fl_extract+, fl_gsappwave+, fl_vardq+, xoffset=l_xoffset, fl_inter=l_fl_inter)
 	}
 		
 	if (!imaccess(pre//l_aflat)) {
@@ -244,7 +244,7 @@ print ('>>>>> Arc processing')
 		ii+=1
 		if (!imaccess("e"//img)) {
 			gfreduce(img, fl_addmdf-, fl_trim-, fl_bias-, fl_wavtran-, fl_skysub-, fl_gscrrej-,\
-					 rawpath="", fl_inter=no, trace-, recenter-, ref="ep"//l_aflat, fl_over-,\
+					 rawpath="", fl_inter-, trace-, recenter-, ref="ep"//l_aflat, fl_over-,\
 					 weights=l_weights, xoffset=l_xoffset, fl_extract+, fl_gsappwave+, fl_vardq+)
 		}			 
 		gswavelength("e"//img, fwidth=(1.7*l_fwidth), cradius=(1.2*1.7*l_fwidth),\
@@ -359,7 +359,7 @@ print ('>>>>> Science processing')
 		
 		## Apply correction for differences in QE variation to science data
 		if (!imaccess("px"//pre//l_image)) {
-			gemfix ("x"//pre//l_image, "px"//pre//l_image, method='fixpix', bitmask=8, fl_inter-)
+			gemfix ("x"//pre//l_image, "px"//pre//l_image, method="fit1d", bitmask=8, fl_inter-)
 		}
 
 		if (!imaccess("qpx"//pre//l_image)) {
