@@ -126,7 +126,7 @@ def fit_spectra(bin_sci_j, ppxf_bestfit_j, plot=False):
         plt.legend()
         plt.show()
 
-    return abs_fit, odata - abs_fit
+    return abs_fit, galaxy - abs_fit
 
 
 def fit_gaussian_pvoightcont(galaxy, iline, bestfit, log_bins):
