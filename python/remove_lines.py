@@ -9,7 +9,7 @@ import ppxf_util as util
 from matplotlib import pyplot as plt
 
 
-def remove_absorp_lines(bin_sci, ppxf_bestfit, em_bin_sci, plot=False):
+def fit_emission_spectra(bin_sci, ppxf_bestfit, em_bin_sci, plot=False):
     """
     """
 
@@ -23,7 +23,7 @@ def remove_absorp_lines(bin_sci, ppxf_bestfit, em_bin_sci, plot=False):
             ems_hdu.writeto(em_bin_sci.format(j))
 
 
-def remove_emission_lines(bin_sci, abs_bin_sci, ppxf_bestfit, plot=False):
+def fit_absorp_spectra(bin_sci, ppxf_bestfit, abs_bin_sci, plot=False):
     """
     """
 
@@ -52,6 +52,7 @@ def fit_spectra(bin_sci_j, ppxf_bestfit_j, plot=False):
     bestfit = fits.getdata(ppxf_bestfit_j)
 
     lamRange = ohdr['CRVAL1'] + np.array([1. - ohdr['CRPIX1'], ohdr['NAXIS1'] - ohdr['CRPIX1']]) * ohdr['CD1_1']
+    x = np.linspace(lamRange[0], lamRange[1], ohdr['NAXIS1'])
 
     # Log bin the spectra to match the best fit absorption template
     galaxy, logLam1, velscale = util.log_rebin(lamRange, odata)
@@ -70,27 +71,23 @@ def fit_spectra(bin_sci_j, ppxf_bestfit_j, plot=False):
     # There are BOTH absorption and emission features about the wavelength of Hgamma and Hbeta, so we need
     # to use a specialized fitting function (convolved Guassian and Lorentzian -> pVoight) to remove the
     # emission lines
-    popt_Hg, pcov_Hg = fit_gaussian_pvoightcont(galaxy, iHg, bestfit, log_bins)
-    popt_Hb, pcov_Hb = fit_gaussian_pvoightcont(galaxy, iHb, bestfit, log_bins)
+    popt_Hg, pcov_Hg = fit_ems_pvoightcont(log_bins, galaxy, x, odata, iHg, bestfit)
+    popt_Hb, pcov_Hb = fit_ems_pvoightcont(log_bins, galaxy, x, odata, iHb, bestfit)
 
     # There are only emission features about the OIII doublet so we only fit the emission line with a Gaussian
-    popt_OIII, pcov_OIII = fit_gaussian_lorentz_lincont(galaxy, iOIII, bestfit, log_bins, 5042, [5039, 5045])
-    popt_OIIIb, pcov_OIIIb = fit_gaussian_lorentz_lincont(galaxy, iOIIIb, bestfit, log_bins, 5042, [5039, 5045])
+    popt_OIII, pcov_OIII = fit_ems_lincont(x, odata, iOIII, bestfit, x[954], [x[952], x[956]])
+    popt_OIIIb, pcov_OIIIb = fit_ems_lincont(x, odata, iOIIIb, bestfit)
 
-    x = np.linspace(lamRange[0], lamRange[1], ohdr['NAXIS1'])
-
-    em_fit = gaussian(x, popt_Hg[0], popt_Hg[1], popt_Hg[2], popt_Hg[3]) + \
-             gaussian(x, popt_Hb[0], popt_Hb[1], popt_Hb[2], popt_Hb[3]) + \
-             gaussian(x, popt_OIII[0], popt_OIII[1], popt_OIII[2], 0.) + \
-             lorentz(x, popt_OIII[3], popt_OIII[4], popt_OIII[5], 0.) + \
-             gaussian(x, popt_OIIIb[0], popt_OIIIb[1], popt_OIIIb[2], 0.) + \
-             lorentz(x, popt_OIIIb[3], popt_OIIIb[4], popt_OIIIb[5], 0.)
+    em_fit = gauss_lorentz(x, popt_Hg[0], popt_Hg[1], popt_Hg[2], popt_Hg[3], popt_Hg[4], popt_Hg[5]) + \
+             gauss_lorentz(x, popt_Hb[0], popt_Hb[1], popt_Hb[2], popt_Hb[3], popt_Hb[4], popt_Hb[5]) + \
+             gauss_lorentz(x, popt_OIII[0], popt_OIII[1], popt_OIII[2], popt_OIII[3], popt_OIII[4], popt_OIII[5]) + \
+             gauss_lorentz(x, popt_OIIIb[0], popt_OIIIb[1], popt_OIIIb[2], popt_OIIIb[3], popt_OIIIb[4], popt_OIIIb[5])
 
     abs_fit = odata - em_fit
 
     if plot:
         plt.plot(x, odata, '-k', label="spectra")
-        plt.plot(x, bestfit, '--r', label="bestfit absorption line")
+        # plt.plot(x, bestfit, '--r', label="bestfit absorption line")
         plt.plot(x, abs_fit, '-b', label="absorption spectra - gauss")
         plt.legend()
         plt.show()
@@ -98,93 +95,103 @@ def fit_spectra(bin_sci_j, ppxf_bestfit_j, plot=False):
     return abs_fit, em_fit
 
 
-def fit_ems_pvoightcont(galaxy, iline, bestfit, log_bins):
-    w=100
-    cutout = galaxy[iline - w / 2:iline + w / 2]
+def fit_ems_pvoightcont(log_bins, galaxy, lin_bins, odata, iline, bestfit):
+    """
+    """
+
+    w = 50  # half width of the fitting region
+    cutout_log = galaxy[iline - w:iline + w]
+    cutout_lin = odata[iline - w:iline + w]
 
     # Find the peak within this cutout, emission line may be shifted from where it is expected to be
-    iline2 = np.where(galaxy == np.max(cutout))[0][0]  # This is the index of the real emission line
-    x = log_bins[iline2 - w / 2:iline2 + w / 2]
-    cutout2 = galaxy[iline2 - w / 2:iline2 + w / 2]
+    ipk_log = np.where(galaxy == np.max(cutout_log))[0][0]  # This is the index of the real emission line
+    x_log = log_bins[ipk_log - w:ipk_log + w]
+    cutout_pk_log = galaxy[ipk_log - w:ipk_log + w]
 
-    #plt.plot(log_bins[iline - w / 2:iline + w / 2], cutout, '--b', label="expected location of emission line")
-    #plt.plot(x, cutout2, '-r', label="location of emission line")
-    #plt.legend()
-    #plt.show()
+    ipk_lin = np.where(odata == np.max(cutout_lin))[0][0]
+    x_lin = lin_bins[ipk_lin - w:ipk_lin + w]
+    cutout_pk_lin = odata[ipk_lin - w:ipk_lin + w]
+    x0_lin = x_lin[np.argmax(cutout_pk_lin)]
 
     # To fit the spectra to a pVoight (absorption) and a Guassian (emission) we first want to determine what the
     # optimal parameters for the absorption is by using the best fit absorption template
-    bfcutout = bestfit[iline2 - w / 2:iline2 + w / 2]
+    bfcutout = bestfit[ipk_log - w:ipk_log + w]
 
-    b_init = np.mean([np.mean(bfcutout[0:int(0.25*len(bfcutout))]), np.mean(bfcutout[int(0.75*len(bfcutout)):-1])])
-    a_init = b_init - np.min(bfcutout)
-    x0_init = x[np.argmin(bfcutout)]
+    b_bf = np.mean([np.mean(bfcutout[0:int(0.25 * len(bfcutout))]), np.mean(bfcutout[int(0.75 * len(bfcutout)):-1])])
+    a_bf = b_bf - np.min(bfcutout)
+    x0_bf = x_log[np.argmin(bfcutout)]
 
     # Fit the absorption spectra to a pVoight function (weighted sum of a Gaussian and Lorentzian function)
-    poptbf, pcovbf = curve_fit(pvoight, x, bfcutout, p0=[a_init, 5., x0_init, b_init, 0.8])
-    bf_voi = pvoight(x, poptbf[0], poptbf[1], poptbf[2], poptbf[3], poptbf[4])
+    poptbf, pcovbf = curve_fit(pvoight, x_log, bfcutout, p0=[a_bf, 5., x0_bf, b_bf, 0.8])
 
-    #plt.plot(x, bfcutout, '--b', label="bestfit absorption line")
-    #plt.plot(x, cutout2, '-r', label="spectra")
-    #plt.plot(x, bf_voi, '-g', label="fit of bestfit spectra")
+    # determine the fit in linear space
+    bf_voi = pvoight(x_lin, poptbf[0], poptbf[1], x0_lin, poptbf[3], poptbf[4])
+
+    # plt.plot(x_log, bfcutout, '--b', label="bestfit absorption line")
+    # plt.plot(x_lin, cutout_lin, '-r', label="spectra")
+    #plt.plot(x_lin, bf_voi, '-g', label="fit of bestfit spectra")
     #plt.legend()
     #plt.show()
 
     # Now fit the cutout region to a Gaussian function and and the bf_voi pVoight function
     b_em = poptbf[3]
-    a_em = np.max(cutout2) + np.abs(poptbf[0]) - b_em
-    popt, pcov = curve_fit(fit_emline_over_absline(bf_voi), x, cutout2, p0=[a_em, 2., poptbf[2], a_em, 2., poptbf[2]])
+    a_em = np.max(cutout_pk_lin) - b_em
 
-    em_fit = gauss_lorentz(x, popt[0], popt[1], popt[2], popt[3], popt[4], popt[5])
-    abs_fit = np.subtract(cutout2, em_fit)
+    popt, pcov = curve_fit(fit_emline_over_absline(bf_voi), x_lin, cutout_pk_lin,
+                           p0=[a_em, 2., x0_lin, a_em, 2., x0_lin])
+    em_fit = gauss_lorentz(x_lin, popt[0], popt[1], popt[2], popt[3], popt[4], popt[5])
+    abs_fit = np.subtract(cutout_pk_lin, em_fit)
 
-    #plt.plot(x, bfcutout, '--b', label="bestfit absorption line")
-    #plt.plot(x, cutout2, '-r', label="spectra")
-    #plt.plot(x, em_fit, '-k', label="emission spectra")
-    #plt.plot(x, abs_fit, '-g', label="absorption spectra")
+    #plt.plot(x_log, bfcutout, '--b', label="bestfit absorption line")
+    #plt.plot(x_lin, cutout_pk_lin, '-k', label="spectra")
+    #plt.plot(x_lin, abs_fit, '-r', label="absorption spectra")
     #plt.legend()
+    #plt.ylim(3,10)
     #plt.show()
 
     return popt, pcov
 
 
-def fit_ems_lincont(galaxy, iline, bestfit, log_bins, bad_pt, mask_region):
-    w = 90
-    cutout = galaxy[iline - w / 2:iline + w / 2]
+def fit_ems_lincont(lin_bins, odata, iline, bestfit, bad_pt=0, mask_region=[]):
+    """
+    """
+
+    w = 40  # Half width of fitting region
+    cutout = odata[iline - w:iline + w]
 
     # Find the peak within this cutout, emission line may be shifted from where it is expected to be
-    iline2 = np.where(galaxy == np.max(cutout))[0][0]  # This is the index of the real emission line
-    wline2 = log_bins[iline2]
+    iline2 = np.where(odata == np.max(cutout))[0][0]  # This is the index of the real emission line
+    wline2 = lin_bins[iline2]
 
-    x = log_bins[iline2 - w / 2:iline2 + w / 2]
-    cutout2 = galaxy[iline2 - w / 2:iline2 + w / 2]
+    x = lin_bins[iline2 - w:iline2 + w]
+    cutout2 = odata[iline2 - w:iline2 + w]
 
-    b_init = np.mean([np.mean(cutout2[0:int(len(cutout2) / 4)]), np.mean(cutout2[int(3 * len(cutout2) / 4):-1])])
+    b_init = np.mean([np.mean(cutout2[0:int(0.25 * len(cutout2))]), np.mean(cutout2[int(0.75 * len(cutout2)):-1])])
     a_init = np.max(cutout2) - b_init
 
-    bfcutout = bestfit[iline2 - w / 2:iline2 + w / 2]
+    bfcutout = bestfit[iline2 - w:iline2 + w]
     poptbf, pcovbf = curve_fit(linear, x, bfcutout, p0=[-0.1, b_init])
     bf_lin = linear(x, poptbf[0], poptbf[1])
 
-    if bad_pt in range(int(x[0]), int(x[-1])):  # apply mask to region with weird bump that bugs fitting method
+    if int(bad_pt) in range(int(x[0]), int(x[-1])):  # apply mask to region with weird bump that bugs fitting method
         x_ma = np.ma.masked_inside(x, mask_region[0], mask_region[1])
         # Now get data only for points that are not masked
         x_ma_data = x[~x_ma.mask]
         cutout2_ma_data = cutout2[~x_ma.mask]
         bf_lin_ma_data = bf_lin[~x_ma.mask]
+
         popt, pcov = curve_fit(fit_emline_over_cont(bf_lin_ma_data), x_ma_data, cutout2_ma_data,
                                p0=[a_init, 2., wline2, a_init / 2., 2., wline2])
-
     else:
         popt, pcov = curve_fit(fit_emline_over_cont(bf_lin), x, cutout2,
                                p0=[a_init, 2., wline2, a_init / 2., 2., wline2])
 
-    spec_fit = gauss_lorentz(x, popt[0], popt[1], popt[2], popt[3], popt[4], popt[5]) + bf_lin
     em_fit = gauss_lorentz(x, popt[0], popt[1], popt[2], popt[3], popt[4], popt[5])
     abs_fit = np.subtract(cutout2, em_fit)
 
     # plt.plot(x, cutout2, '-k', label="spectra")
-    #plt.plot(x, abs_fit, '-r', label="absorption spectra")
+    # plt.plot(x, abs_fit, '-r', label="absorption spectra")
+    #plt.ylim(5,10)
     #plt.show()
 
     return popt, pcov
@@ -209,13 +216,16 @@ def linear(x, m, b):
 def fit_emline_over_cont(bf_lin):
     def emline_over_cont(x, a, w, x0, a2, w2, x02):
         return gauss_lorentz(x, a, w, x0, a2, w2, x02) + bf_lin
+
     return emline_over_cont
 
 
 def fit_emline_over_absline(bf_voi):
     def emline_over_absline(x, a, w, x0, a2, w2, x02):
         return gauss_lorentz(x, a, w, x0, a2, w2, x02) + bf_voi
+
     return emline_over_absline
+
 
 def gauss_lorentz(x, a, w, x0, a2, w2, x02):
     return gaussian(x, a, w, x0, 0.) + lorentz(x, a2, w2, x02, 0.)
@@ -223,7 +233,7 @@ def gauss_lorentz(x, a, w, x0, a2, w2, x02):
 
 def clean_spec(bin_spec, feat_spec, bad_region):
     """
-    Replace noisy region with continuum
+    Replace noisy region with continuum, I have found that this in no way improves our analysis of the kinematics
     """
 
     # use splot to determine bad region, the '$' will cahnge scale from wavelength to pixels
@@ -264,3 +274,32 @@ def clean_spec(bin_spec, feat_spec, bad_region):
     orig_hdu.data = spec_data
     orig_hdu.header = spec_hdr
     orig_hdu.writeto(bin_spec_orig, clobber=True)
+
+
+def subtract_besftfit(bin_sci, ppxf_bestfit, em_bin_sci):
+    """
+    """
+
+    for j in range(len(glob.glob(bin_sci.format('*')))):
+        if not os.path.exists(em_bin_sci.format(j)):
+
+            with fits.open(bin_sci.format(j)) as hdu:
+                odata = hdu[0].data
+                ohdr = hdu[0].header
+
+            bestfit = fits.getdata(ppxf_bestfit.format(j))
+
+            lamRange = ohdr['CRVAL1'] + np.array([1. - ohdr['CRPIX1'], ohdr['NAXIS1'] - ohdr['CRPIX1']]) * ohdr['CD1_1']
+
+            # Log bin the spectra to match the best fit absorption template
+            galaxy, logLam, velscale = util.log_rebin(lamRange, odata)
+
+            ems_fit = np.subtract(galaxy, bestfit)
+
+            ems_hdu = fits.PrimaryHDU()
+            ems_hdu.data = ems_fit
+            ems_hdu.header = fits.getheader(bin_sci.format(j), 0)
+            ems_hdu.writeto(em_bin_sci.format(j))
+
+
+
