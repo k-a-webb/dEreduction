@@ -41,6 +41,8 @@ int    nw        {INDEF,prompt="Numbermber of output pixels"}
 int    status    {0,prompt="Exit status (0=good)"}
 struct *scanfile {"",prompt="Internal use only"}
 bool   fl_wrbox  {no,prompt="Mark emission lines in flats?"} # added to be similiar to mosproc, changed default to no
+bool   fl_sepslits {no, prompt="Subtract sky from each slit separately?"}  # For use in final gfreduce to do same as James
+bool   fl_fixgaps {no,prompt="Re-interpolate chip gaps after extraction?"}
 
 begin
 
@@ -56,7 +58,7 @@ bool l_fl_crspec,l_fl_qecorr,l_fl_skysub,l_fl_apsum
 real l_w1,l_w2,l_dw
 int l_gap12,l_gap23,nxpix,nypix,l_torder
 int xbin,ybin,l_iarc,l_nw
-bool l_fl_wrbox
+bool l_fl_wrbox, l_fl_sepslits, l_fl_fixgaps
 
 string tmpbpm,l_oflat,l_aflat
 real dx
@@ -73,7 +75,7 @@ l_weights=weights ; l_iarc=iarc
 l_w1=w1 ; l_w2=w2 ; l_dw=dw ; l_nw=nw
 l_wshift=wshift
 status=0
-l_fl_wrbox=fl_wrbox
+l_fl_wrbox=fl_wrbox ; l_fl_sepslits = fl_sepslits ; l_fl_fixgaps=fl_fixgaps
 
 cache("fparse","imgets")      # commented out as gspecshift was unrecognised
 
@@ -314,7 +316,8 @@ print ('>>>>> Determining response function')
 		}
 
 		## Apply fibre throughput correction			
-		gfresponse("e"//pre//l_aflat, l_oflat, skyimage=l_sky, order=95, fl_inter=l_fl_inter, fl_fit-, wavtraname=earc[l_iarc])
+		gfresponse("e"//pre//l_aflat, l_oflat, skyimage=l_sky, order=95, fl_inter=l_fl_inter, fl_fit-, \
+		    wavtraname=earc[l_iarc])
 		    #### removed iorder=750, sorder=5
 		if (gfresponse.status != 0) {
 			goto error
@@ -340,7 +343,7 @@ print ('>>>>> Science processing')
 	if (!imaccess("steqpx"//pre//l_image)) {
 		if (!imaccess("p"//l_image)) {
 			addbpm(l_image, l_umbpm)
-			gemfix (l_image, "p"//l_image, method="fit1d", bitmask=1, order=5, fl_inter-) #### check if order is appropriate
+			gemfix (l_image, "p"//l_image, method="fit1d", bitmask=1, order=5, fl_inter+) #### check if order is appropriate
 		}
 
 		## Remove scattered light from the scient data
@@ -359,7 +362,7 @@ print ('>>>>> Science processing')
 		
 		## Apply correction for differences in QE variation to science data
 		if (!imaccess("px"//pre//l_image)) {
-			gemfix ("x"//pre//l_image, "px"//pre//l_image, method="fit1d", bitmask=8, fl_inter-)
+			gemfix ("x"//pre//l_image, "px"//pre//l_image, method="fixpix", bitmask=8, fl_inter-)
 		}
 
 		if (!imaccess("qpx"//pre//l_image)) {
@@ -371,7 +374,7 @@ print ('>>>>> Science processing')
 		if (!imaccess("steqpx"//pre//l_image)) {
 			gfreduce ("qpx"//pre//l_image, fl_sky+, fl_flux-, trace-, recenter-, fl_vardq+, fl_inter-,\
 					  reference="ep"//l_aflat, response=l_oflat, wavtraname=earc[1], \
-					  w1=l_w1, w2=l_w2, dw=l_dw, nw=l_nw, rawpath="") #, sepslits+)
+					  w1=l_w1, w2=l_w2, dw=l_dw, nw=l_nw, rawpath="", sepslits=fl_sepslits, fl_fixgaps=l_fl_fixgaps)
 			if (gfreduce.status != 0) {
             	goto error
         	}
