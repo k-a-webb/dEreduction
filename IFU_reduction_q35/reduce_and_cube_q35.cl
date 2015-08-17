@@ -117,48 +117,44 @@
 
 ## Aliases
 ## -------
+
 set dd5=/Users/kwebb/IFU_reduction_q35/proc
-set caldir=dd5$calib/
+set caldir=/Users/kwebb/ur/ureka1.5.1/variants/common/iraf/gemini/gmos/calib/
 set rawdir=/net/sbfmaps/Volumes/Science/bmiller/bdisk/bmiller/coma_acs/GN-2008A-Q-35/raw/
 
 set mygmos=/Users/kwebb/iraf/scripts/gmos/
-set mypyfu=/Users/kwebb/iraf/extern/pyfu-0.8.1/
+set kgmos=/Users/kwebb/iraf/scripts/
 set jgmos=/Users/kwebb/iraf/extern/ifudrgmos/gmos/
 directory.nc=1
 set stdimage=imtgmos
 
 reset gemini = /Users/kwebb/iraf/extern/ifudrgmos/
-#task gemifudr.pkg = gemini$gemini.cl
 redefine gemini.pkg = gemini$gemini.cl
 
-# James' version of gemfix does not carry through the variance plane, use IRAF standard
-task gemfix=/Users/kwebb/ur/ureka1.5.1/variants/common/iraf/gemini/gemtools/gemfix.cl
+# in pyraf
+reset pyfu = "/Users/kwebb/iraf/extern/pyfu-0.8.1/"  # remember the trailing slash!
+task pyfu.pkg = pyfu$pyfu.cl
 
 ## Scripts
 ## -------
 rv
 onedspec
 gemini
-#nmisc
 gmos
-#pyfu
+pyfu
 
 task mkmbpm=mygmos$mkmbpm.cl                # no standard
 task gfshift=mygmos$gfshift.cl              # no standard
+task gkeywpars=mygmos$gkeywpars.cl
 task gfxcor=mygmos$gfxcor.cl
+task ifuproc_gqecorr=mygmos$ifuproc_gqecorr.cl      #### TO USE James' gfresponse include parameter wavtraname, remove if using IRAF std. task
 
-# in pyraf
-#reset pyfu = "/where/you/put/it/pyfu-0.8.1/"  # remember the trailing slash!
-task pyfu.pkg = pyfu$pyfu.cl
-
-task gscombine=/Users/kwebb/iraf/scripts/gwen/gscombine.cl
-task gscombine_new=/Users/kwebb/iraf/scripts/gwen/gscombine_new.cl
-task align_cubes=mygmos$align_cubes.cl
-task make_cube=mygmos$make_cube.cl
-task ifuproc_gqecorr=mygmos$ifuproc_gqecorr.cl
-#task scrop=mygmos$scrop.cl
-task scrop=/Users/kwebb/iraf/scripts/gwen/scrop.cl
+task gscombine=kgmos$gscombine.cl
+task align_cubes=kgmos$align_cubes.cl
+task make_cube=kgmos$make_cube.cl
+task scrop=kgmos$scrop.cl
 task proc_sci=mygmos$proc_sci.cl
+
 
 # Set one-off parameters reproducibly:
 gfreduce.slits="both"
@@ -185,9 +181,9 @@ gfreduce.mdfdir="gmos$data/"
 gfreduce.key_biassec="BIASSEC"
 gfreduce.key_datasec="DATASEC"
 gfreduce.bpmfile="gmos$data/chipgaps.dat"
-#gfreduce.low_rej=3                         # not in bryans script
-#gfreduce.high_rej=3                         # not in bryans script
-#gfreduce.niter=5                         # not in bryans script
+gfreduce.low_rej=3
+gfreduce.high_rej=3
+gfreduce.niter=5
 gfreduce.bias="gN20051204S0227_bias.fits"
 gfreduce.reference=""
 #gfreduce.qe_refim=""
@@ -197,8 +193,8 @@ gfreduce.sfunction=""
 gfreduce.extinction=""
 gfreduce.fl_novlap=yes
 gfreduce.perovlap=10.0
-#gfreduce.nbiascontam="default"                         # not in bryans script
-#gfreduce.biasrows="3:64"                         # not in bryans script
+gfreduce.nbiascontam="default"
+gfreduce.biasrows="6:46"  # for GN, "3:64" for GS
 gfreduce.order=1
 
 gfreduce.line=INDEF
@@ -329,7 +325,7 @@ rvidlines.logfile="rvid.log"
 gfextract.fl_vardq=yes
 
 ## Use bpms for the appropriate binning, mbpm is created from the others
-ifuproc_gqecorr.mbpm="gn_bpm2x1m.fits"
+ifuproc_gqecorr.mbpm="gn_bpm1x1m.fits"
 ifuproc_gqecorr.bpm1="mygmos$bpms/gn_bpm_ccd1_1x1f.pl"
 ifuproc_gqecorr.bpm2="mygmos$bpms/gn_bpm_ccd2_1x1f.pl"
 ifuproc_gqecorr.bpm3="mygmos$bpms/gn_bpm_ccd3_1x1f.pl"
@@ -370,96 +366,32 @@ ifuproc_gqecorr.fwidth=2.
 
         ## Lick indices, flux standards, flats, CuAr arcs - bias subtract
 
-#            gemlist N20080322S 50-52 > bs_0322.lis
-#            gfreduce @bs_0322.lis fl_extract- fl_gsappwave- fl_wavtran- fl_skysub- fl_over+ fl_trim+ fl_vardq+ fl_bias+ \
-#                fl_addmdf+ bias=gN20080602S0148_bias.fits
-
-#            gemlist N20080602S 23,24,43-45,63-65 > bs_0602.lis
-#            imdel g@bs_0602.lis,rg@bs_0602.lis
-#            gfreduce @bs_0602.lis fl_extract- fl_gsappwave- fl_wavtran- fl_skysub- fl_over+ fl_trim+ fl_vardq+ fl_bias+ \
-#                fl_addmdf+ bias=gN20080602S0148_bias.fits
-
-#            gemlist N20080603S 120,121,126-128 > bs_0603.lis
-#            imdel g@bs_0603.lis,rg@bs_0603.lis
-#            gfreduce @bs_0603.lis fl_extract- fl_gsappwave- fl_wavtran- fl_skysub- fl_over+ fl_trim+ fl_vardq+ fl_bias+ \
-#                fl_addmdf+ bias=gN20080602S0148_bias.fits
-
-#            gemlist N20080607S 246,247,249,250,485-490 > bs_0607.lis
-#            imdel g@bs_0607.lis,rg@bs_0607.lis
-#            gfreduce @bs_0607.lis fl_extract- fl_gsappwave- fl_wavtran- fl_skysub- fl_over+ fl_trim+ fl_vardq+ fl_bias+ \
-#                fl_addmdf+ bias=gN20080607S0517_bias.fits
-
-            gemlist N20080622S 50,49 > bs_0622.lis
-            imdel g@bs_0622.lis,rg@bs_0622.lis
-            gfreduce @bs_0622.lis fl_extract- fl_gsappwave- fl_wavtran- fl_skysub- fl_over+ fl_trim+ fl_vardq+ fl_bias+ \
-                fl_addmdf+ bias=gN20080621S0355_bias.fits
-
-            gemlist N20080701S 90,91 > bs_0701.lis
-            imdel g@bs_0701.lis,rg@bs_0701.lis
-            gfreduce @bs_0701.lis fl_extract- fl_gsappwave- fl_wavtran- fl_skysub- fl_over+ fl_trim+ fl_vardq+ fl_bias+ \
-                fl_addmdf+ bias=gN20080703S0233_bias.fits
-
-            gemlist N20080702S 44-49 > bs_0702.lis
-            imdel g@bs_0702.lis,rg@bs_0702.lis
-            gfreduce @bs_0702.lis fl_extract- fl_gsappwave- fl_wavtran- fl_skysub- fl_over+ fl_trim+ fl_vardq+ fl_bias+ \
-                fl_addmdf+ bias=gN20080703S0233_bias.fits
-
-
-        ## GALAXY science images - bias subtract
-            gemlist N20080602S 21-22 > gal1_0602.lis
-#            gfreduce @gal1_0602.lis fl_extract- fl_gsappwave- fl_wavtran- fl_skysub- fl_over+ fl_trim+ fl_vardq+ fl_bias+ \
-#                fl_addmdf+ bias=gN20080602S0148_bias.fits
-
-            gemlist N20080603S 122,123 > gal1_0603.lis
-#            gfreduce @gal1_0603.lis fl_extract- fl_gsappwave- fl_wavtran- fl_skysub- fl_over+ fl_trim+ fl_vardq+ fl_bias+ \
-#                fl_addmdf+ bias=gN20080602S0148_bias.fits
-
-            gemlist N20080607S 244-245,248 > gal2_0607.lis
-#            gfreduce @gal2_0607.lis fl_extract- fl_gsappwave- fl_wavtran- fl_skysub- fl_over+ fl_trim+ fl_vardq+ fl_bias+ \
-#                fl_addmdf+ bias=gN20080607S0517_bias.fits
-
-            gemlist N20080622S 47 > gal2_0622.lis
-#            gfreduce @gal2_0622.lis fl_extract- fl_gsappwave- fl_wavtran- fl_skysub- fl_over+ fl_trim+ fl_vardq+ fl_bias+ \
-#                fl_addmdf+ bias=gN20080621S0355_bias.fits
-
-            gemlist N20080701S 92 > gal2_0701.lis
-            imdel g@gal2_0701.lis,rg@gal2_0701.lis
-            gfreduce @gal2_0701.lis fl_extract- fl_gsappwave- fl_wavtran- fl_skysub- fl_over+ fl_trim+ fl_vardq+ fl_bias+ \
-                fl_addmdf+ bias=gN20080703S0233_bias.fits
-
-
         # 03-22
-            gemlist N20080322S 50-52 > spc_0322.lis
+#            gemlist N20080322S 50-52 > spc_0322.lis
 #            gfreduce @spc_0322.lis fl_extract- fl_gsappwave- fl_wavtran- fl_skysub- fl_over+ fl_trim+ fl_vardq+ fl_bias+ \
 #                fl_addmdf+ bias=gN20080602S0148_bias.fits
-
         # 06-02
-            gemlist N20080602S 21-24,43-45,63-65 > spc_0602.lis
+#            gemlist N20080602S 21-24,43-45,63-65 > spc_0602.lis
 #            gfreduce @spc_0602.lis fl_extract- fl_gsappwave- fl_wavtran- fl_skysub- fl_over+ fl_trim+ fl_vardq+ fl_bias+ \
 #                fl_addmdf+ bias=gN20080602S0148_bias.fits
-
         # 06-03
-            gemlist N20080603S 120-123,126-128 > spc_0603.lis
+#            gemlist N20080603S 120-123,126-128 > spc_0603.lis
 #            gfreduce @spc_0603.lis fl_extract- fl_gsappwave- fl_wavtran- fl_skysub- fl_over+ fl_trim+ fl_vardq+ fl_bias+ \
 #                fl_addmdf+ bias=gN20080602S0148_bias.fits
-
         # 06-07
-            gemlist N20080607S 244-250,485-490 > spc_0607.lis
+#            gemlist N20080607S 244-250,485-490 > spc_0607.lis
 #            gfreduce @spc_0607.lis fl_extract- fl_gsappwave- fl_wavtran- fl_skysub- fl_over+ fl_trim+ fl_vardq+ fl_bias+ \
 #                fl_addmdf+ bias=gN20080607S0517_bias.fits
-
         # 06-22
-            gemlist N20080622S 47,49,50 > spc_0622.lis
+#            gemlist N20080622S 47,49,50 > spc_0622.lis
 #            gfreduce @spc_0622.lis fl_extract- fl_gsappwave- fl_wavtran- fl_skysub- fl_over+ fl_trim+ fl_vardq+ fl_bias+ \
 #                fl_addmdf+ bias=gN20080621S0355_bias.fits
-
         # 07-01
-            gemlist N20080701S 90-92 > spc_0701.lis
+#            gemlist N20080701S 90-92 > spc_0701.lis
 #            gfreduce @spc_0701.lis fl_extract- fl_gsappwave- fl_wavtran- fl_skysub- fl_over+ fl_trim+ fl_vardq+ fl_bias+ \
 #                fl_addmdf+ bias=gN20080703S0233_bias.fits
-
         # 07-02
-            gemlist N20080702S 44-49 > spc_0702.lis
+#            gemlist N20080702S 44-49 > spc_0702.lis
 #            gfreduce @spc_0702.lis fl_extract- fl_gsappwave- fl_wavtran- fl_skysub- fl_over+ fl_trim+ fl_vardq+ fl_bias+ \
 #                fl_addmdf+ bias=gN20080703S0233_bias.fits
 
@@ -472,57 +404,58 @@ ifuproc_gqecorr.fwidth=2.
         ## inputs: image, flat(s), arc(s)
 
     # 03-22
-#        ifuproc_gqecorr rgN20080322S0052 rgN20080322S0051 rgN20080322S0050 twilight="" fl_inter=no \
-#            bkgmask=s0135_blkreg.dat fl_crspec- fl_qecorr+ fl_apsum+
+        ifuproc_gqecorr rgN20080322S0052 rgN20080322S0051 rgN20080322S0050 twilight="" \
+            bkgmask=s0051_blkreg.dat fl_crspec- fl_qecorr+ fl_apsum+ fl_inter-
 
         ## Visually confirm proper reconstructed spectra
 #        gfdisplay steqpxbprgN20080322S0052.fits ver=1 z1=0 z2=1.e8
 
         ## Sum the stellar spectra
-#        gfapsum steqpxbprgN20080322S0052.fits fl_inter-
+        gfapsum steqpxbprgN20080322S0052.fits fl_inter-
 
     # 06-02
         ifuproc_gqecorr rgN20080602S0043 rgN20080602S0044 rgN20080602S0045 twilight="" fl_inter=no \
-            bkgmask=s0135_blkreg.dat fl_crspec- fl_qecorr+ fl_apsum+
-#        gfapsum steqpxbprgN20080602S0043.fits fl_inter-
+            bkgmask=s0044_blkreg.dat fl_crspec- fl_qecorr+ fl_apsum+
+        gfapsum steqpxbprgN20080602S0043.fits fl_inter-
         ifuproc_gqecorr rgN20080602S0065 rgN20080602S0064 rgN20080602S0063 twilight="" fl_inter=no \
-            bkgmask=s0135_blkreg.dat fl_crspec- fl_qecorr+ fl_apsum+
-#        gfapsum steqpxbprgN20080602S0065.fits fl_inter-
+            bkgmask=s0044_blkreg.dat fl_crspec- fl_qecorr+ fl_apsum+
+        gfapsum steqpxbprgN20080602S0065.fits fl_inter-
 
     # 06-03
         ifuproc_gqecorr rgN20080603S0128 rgN20080603S0127 rgN20080603S0126 \
-            fl_inter- bkgmask=s0135_blkreg.dat fl_crspec- fl_qecorr+ fl_apsum+ twilight=""
-#        gfapsum steqpxbprgN20080603S0128.fits fl_inter-
+            fl_inter- bkgmask=s0127_blkreg.dat fl_crspec- fl_qecorr+ fl_apsum+ twilight=""
+        gfapsum steqpxbprgN20080603S0128.fits fl_inter-
 
     # 06-07
         ifuproc_gqecorr rgN20080607S0485 rgN20080607S0486 rgN20080607S0487 twilight="" fl_inter=no \
-            bkgmask=s0135_blkreg.dat fl_crspec- fl_qecorr+ fl_apsum+
-#        gfapsum steqpxbprgN20080607S0485.fits fl_inter-
-        ifuproc_gqecorr rgN20080607S0488 rgN20080607S0489 rgN20080607S0490 twilight="" fl_inter=no \
-            bkgmask=s0135_blkreg.dat fl_crspec- fl_qecorr+ fl_apsum+
-#        gfapsum steqpxbprgN20080607S0488.fits fl_inter-
+            bkgmask=s0486_blkreg.dat fl_crspec- fl_qecorr+ fl_apsum+
+        gfapsum steqpxbprgN20080607S0485.fits fl_inter-
+        ifuproc_gqecorr rgN20080607S0488 rgN20080607S0490 rgN20080607S0489 twilight="" fl_inter=no \
+            bkgmask=s0486_blkreg.dat fl_crspec- fl_qecorr+ fl_apsum+
+        gfapsum steqpxbprgN20080607S0488.fits fl_inter-
 
     # 07-02
-        ifuproc_gqecorr rgN20080702S0044 N20080702S0045 rgN20080702S0046 \
-            fl_inter- bkgmask=s0135_blkreg.dat fl_crspec- fl_qecorr+ fl_apsum+ twilight=""
-#        gfapsum steqpxbprgN20080702S0044.fits fl_inter-
+        ifuproc_gqecorr rgN20080702S0044 rgN20080702S0045 rgN20080702S0046 \
+            fl_inter- bkgmask=s0045_blkreg.dat fl_crspec- fl_qecorr+ fl_apsum+ twilight=""
+        gfapsum steqpxbprgN20080702S0044.fits fl_inter-
         ifuproc_gqecorr rgN20080702S0049 rgN20080702S0048 rgN20080702S0047 \
-            fl_inter- bkgmask=s0135_blkreg.dat fl_crspec- fl_qecorr+ fl_apsum+ twilight=""
-#        gfapsum steqpxbprgN20080702S0049.fits fl_inter-
+            fl_inter- bkgmask=s0045_blkreg.dat fl_crspec- fl_qecorr+ fl_apsum+ twilight=""
+        gfapsum steqpxbprgN20080702S0049.fits fl_inter-
 
 
         ## Combine the flux standards to calculate the flux calibration correction function
 
-#        gscombine asteqpxbprgN20080322S0052.fits,asteqpxbprgN20080602S0043.fits,asteqpxbprgN20080602S0065.fits,asteqpxbprgN20080603S0128.fits,asteqpxbprgN20080607S0485.fits,asteqpxbprgN20080607S0488.fits,asteqpxbprgN20080702S0044.fits,asteqpxbprgN20080702S0049.fits \
-#            EG131_wl.fits logfile="gmos.log" combine="average" scale="mean" fl_vardq-
+        gscombine asteqpxbprgN20080322S0052.fits,asteqpxbprgN20080602S0043.fits,asteqpxbprgN20080602S0065.fits,asteqpxbprgN20080603S0128.fits,asteqpxbprgN20080607S0485.fits,asteqpxbprgN20080607S0488.fits,asteqpxbprgN20080702S0044.fits,asteqpxbprgN20080702S0049.fits \
+            EG131_wl.fits logfile="gmos.log" combine="average" scale="mean" fl_vardq-
 
         ## Establish  spectrophotometric  calibration  for GMOS spectra
             ## correction curve should always be made interactively - avoid regions with strong absorption lines by
             ##       using keystroke commands to delete and add boxes away from the absorption lines
             ##   a: adds new bandpass, aa: make a box, d: deletes boxes closest to cusuror, q: quit
 
-#        gsstandard EG131_wl.fits caldir="onedstds$ctionewcal/" extinction="gmos$calib/mkoextinct.dat" \
-#            sfunction="sens_EG131_wl" sfile="std_EG131_wl"
+#        gsstandard EG131_wl.fits caldir="caldir$" extinction="gmos$calib/mkoextinct.dat" \
+#            sfunction="sens_EG131_wl" sfile="std_EG131_wl" observatory="Gemini-North" fl_inter+ starname="EG131"
+
 
         ## Visually inspect
 #        splot sens_EG131_wl
@@ -574,9 +507,15 @@ ifuproc_gqecorr.fwidth=2.
     # Process the science
     # -------------------
 
+    ## Use the task proc sci which iterates through ifuproc_gqecorr for several sciences with the same flat and arc
+    ## it also includes optional features to apply the wavelength calibration and shift
+
     # 06-02
 #        proc_sci N20080602S0021,N20080602S0022 flat=rgN20080602S0024 arc=rgN20080602S0023 twilight="" \
-#            sens="sens_EG131_wl" shift=-0. fl_calib+ fl_shift+
+#            sens="sens_EG131_wl" shift=-0. fl_calib+ fl_shift+ bkgmask=s0024_blkreg.dat
+
+#        ifuproc_gqecorr rgN20080602S0043 rgN20080602S0044 rgN20080602S0045 twilight="" fl_inter=no \
+#            bkgmask=s0024_blkreg.dat fl_crspec- fl_qecorr+ fl_apsum+
 
 #        gfshift steqpxbprgN20051205S0006.fits hsteqpxbprgN20051205S0006.fits shift2=-0.
 #        gscalibrate steqpxbprgN20051205S0006.fits extinction=gmos$calib/mkoextinct.dat fl_ext+ fl_vardq+ \
@@ -585,19 +524,19 @@ ifuproc_gqecorr.fwidth=2.
 
     # 06-03
 #        proc_sci rgN20080603S0122,rgN20080603S0123 flat=rgN20080603S0120 arc=rgN20080603S0121 twilight="" \
-#            sens="sens_EG131_wl" shift=-0. fl_calib+ fl_shift+
+#            sens="sens_EG131_wl" shift=-0. fl_calib+ fl_shift+ bkgmask=s0123_blkreg.dat
 
     # 06-07
 #        proc_sci rgN20080607S0244,rgN20080607S0245 flat=rgN20080607S0247 arc=rgN20080607S0246 twilight="" \
-#            sens="sens_EG131_wl" shift=-0. fl_calib+ fl_shift+
+#            sens="sens_EG131_wl" shift=-0. fl_calib+ fl_shift+ bkgmask=s0245_blkreg.dat
 
     # 06-22
 #        proc_sci rgN20080622S0047 flat=rgN20080622S0049 arc=rgN20080622S0050 twilight="" \
-#            sens="sens_EG131_wl" shift=-0. fl_calib+ fl_shift+
+#            sens="sens_EG131_wl" shift=-0. fl_calib+ fl_shift+ bkgmask=s0049_blkreg.dat
 
     # 07-01
 #        proc_sci rgN20080701S0092 flat=rgN20080701S0090 arc=rgN20080701S0091 twilight="" \
-#            sens="sens_EG131_wl" shift=-0. fl_calib+ fl_shift+
+#            sens="sens_EG131_wl" shift=-0. fl_calib+ fl_shift+ bkgmask=s0090_blkreg.dat
 
 
 
