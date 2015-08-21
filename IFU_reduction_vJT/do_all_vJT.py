@@ -18,7 +18,7 @@ import remove_lines
 import bin_by_object
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 # import specutils as su
-#import ppxf_IC225_vJT
+import ppxf_tasks
 
 
 """
@@ -117,8 +117,8 @@ VAR_EXT_SCROPD = os.path.join(SCROP_PATH, 'IC225_2D_var_{}_{}.fits'.format(SCROP
 SCI_EXT = os.path.join(DIR_PATH, 'IC225_2D_sci.fits')
 VAR_EXT = os.path.join(DIR_PATH, 'IC225_2D_var.fits')
 
-PROC_PATH = os.path.join(DIR_PATH, 'doall_proc_{}/voronoi_binning/'.format(TARGET_SN))  # , 'region_ocn')
-# PROC_PATH = os.path.join(DIR_PATH, 'doall_proc_{}/spec_binning/'.format(TARGET_SN))  # , 'region_ocn')
+# PROC_PATH = os.path.join(DIR_PATH, 'doall_proc_{}/voronoi_binning/'.format(TARGET_SN))  # , 'region_ocn')
+PROC_PATH = os.path.join(DIR_PATH, 'doall_proc_{}/spec_binning/'.format(TARGET_SN))  # , 'region_ocn')
 # PROC_PATH = os.path.join(DIR_PATH, 'doall_proc_{}/'.format(TARGET_SN))  # , 'region_ocn')
 
 # Organise output of Voronoi binning
@@ -145,6 +145,8 @@ ABS_BIN_SCI = os.path.join(DIR_SCI_COMB, 'abs_bin_sci_{}.fits')
 PPXF_PATH = os.path.join(PROC_PATH, 'ppxf_proc')
 PPXF_FILE = os.path.join(PPXF_PATH, 'ppxf_output_sn{}.txt'.format(TARGET_SN))
 PPXF_BESTFIT = os.path.join(PPXF_PATH, 'bestfit_{}.fits')
+PPXF_FILE_2CMP = os.path.join(PPXF_PATH, 'ppxf_output_sn{}_2cmp_MILES.txt'.format(TARGET_SN))
+PPXF_BESTFIT_2CMP = os.path.join(PPXF_PATH, 'bestfit_{}_2cmp_MILES.fits')
 
 # Organise output of fxcor
 FXCOR_PATH = os.path.join(PROC_PATH, 'fxcor_proc')
@@ -160,6 +162,7 @@ BIN_LIST = os.path.join(RVSAO_PATH, 'bin_sci_sn{}_list.lis'.format(TARGET_SN))
 
 XCSAO_BIN_LIST = os.path.join(RVSAO_PATH, 'abs_bin_sci_sn{}_list.lis'.format(TARGET_SN))
 XCSAO_TEMPLATE = os.path.join(RVSAO_PATH, BIN_SCI.format(TEMPLATE_SPECTRA))
+XCSAO_BADLINES = os.path.join(RVSAO_PATH, 'badlines.dat')
 XCSAO_FILE = os.path.join(RVSAO_PATH, 'xcsao_bin_sci_sn{}_tmpl{}.txt'.format(TARGET_SN, TEMPLATE_SPECTRA))
 EMSAO_FILE = os.path.join(RVSAO_PATH, 'emsao_bin_sci_sn{}_tmpl{}.txt'.format(TARGET_SN, TEMPLATE_SPECTRA))
 EMSAO_BIN_LIST = os.path.join(RVSAO_PATH, 'em_bin_sci_sn{}_list.lis'.format(TARGET_SN))
@@ -168,12 +171,13 @@ EMSAO_BIN_LIST = os.path.join(RVSAO_PATH, 'em_bin_sci_sn{}_list.lis'.format(TARG
 VEL_INIT = 1500.  # initial guess for velocity
 SIG_INIT = 150.  # inital guess of sigma distribution
 LAM_RANGE = [4173.89, 5404.51]  # wavelength range for logarithmic rebinning (full range)
-# template from MILES Library spanning 3540-7410 A, with resolution spectral resolution of 2.54 A (FWHM),
+# template from MILES Library spanning 3540-7410 A, with resolution spectral resolution of 2.5 A (FWHM),
 # sigma~64 km/s, R~2000. From Sanchez-Blazquez, et al. (2006)
 # (http://www.iac.es/proyecto/miles/pages/stellar-libraries/miles-library.php)
-# TEMPLATE_FITS = '/Users/kwebb/idl/cappellari/ppxf/spectra/Mun1.30z*.fits'  # Used by Gwen
-TEMPLATE_FITS = '/Users/kwebb/python/ppxf/MILES_BaSTI_un_1.30_fits/Mun1.30Z*.fits'
-TEMPLATE_RES = 2.54  # FWHM of the template spectra *** IN ANGSTROMS ***
+# TEMPLATE_FITS = '/Users/kwebb/python/ppxf/MILES_BaSTI_un_1.30_fits/Mun1.30Z*.fits'  # Many files
+TEMPLATE_FITS = '/Users/kwebb/python/ppxf/miles_models/Mun1.30*.fits'  # A few of the SSP, less than above, bbut still enough
+FWHM_tem = 2.51  # Vazdekis+10 spectra have a resolution FWHM of 2.51A.
+FWHM_gal = 2.1  # ~2.28 (measured from FWHM of arc) pix * 0.911 A/pix = 2.1 A FWHM
 
 # To create combined (averaged) spectra to determine mean flux of a specific wavelength range to plot
 # YOU DO NOT NEED TO CROP THE SPECTRA HERE, it is just a good idea to check that you measure the same velocity for
@@ -182,24 +186,6 @@ FLUX_SCOPY_RANGE = [4173.89, 5404.51]
 FLUX_SCOPY_FITS_SUFFIX = 'flux_scopy_{}.fits'  # wavelength range combined sci spectra from flux*
 FLUX_SCOPY_FILE = os.path.join(PROC_PATH, 'binned_flux_{}.txt'.format(TARGET_SN))
 FLUX_SCOPY_FITS = os.path.join(DIR_SCI_COMB, FLUX_SCOPY_FITS_SUFFIX)
-
-XYSN_FILE_CN = os.path.join(PROC_PATH, 'y_x_signal_noise_cn.txt')  # output of make_table
-XYSN_FILE_OCN = os.path.join(PROC_PATH, 'y_x_signal_noise_ocn.txt')  # output of make_table
-
-
-def flatten_cube(image_cube, sci_ext, var_ext):
-    """
-    equivalent of last step of preprocessing
-    """
-
-    from pyraf import iraf
-
-    iraf.images()
-
-    if not os.path.exists(sci_ext):
-        iraf.imcombine(image_cube + '[sci]', sci_ext, project="yes")
-    if not os.path.exists(var_ext):
-        iraf.imcombine(image_cube + '[var]', var_ext, project="yes")
 
 
 def scrop_cube(image_cube, scrop_range, cube_scropd):
@@ -288,7 +274,7 @@ def make_table(image_cube, sci_ext, var_ext, xysn_file):
     Read in the pixel values of the science and varience planes of the image cube and make a table of the
     coordinates with the respective signal and noise measurements
     INPUT: SCI_EXT (IC225_2D_sci.fits), VAR_EXT (IC225_2D_var.fits)
-    OUTPUT: XYSN_FILE (x_y_signal_noise.txt)
+    OUTPUT: XYSN_FILE (y_x_signal_noise.txt)
     """
 
     if os.path.exists(xysn_file):
@@ -350,24 +336,25 @@ def voronoi_binning(xysn_file, v2b_file, v2b_xy_file):
 
     y, x, signal, noise = np.loadtxt(xysn_file, unpack=True)  # , skiprows=3)
 
-    # Only select pixels where the signal and noise is nonzero
-
-    ''' CHECK VALIDITY OF THIS '''
-    noise = noise[noise != 0]
-    signal = signal[noise != 0]
-    x = x[noise != 0]
-    y = y[noise != 0]
+    # Only select pixels where the signal and noise is nonzero, this often results in a few missed pixels
+    # around the border of the image. This method is easier than parsing the xysn_file to manually remove pixels with
+    # noise values <= 0.
+    #
+    noise = noise[noise > 0.]
+    signal = signal[noise > 0.]
+    x = x[noise > 0.]
+    y = y[noise > 0.]
 
     # Perform the actual computation. The vectors (binNum, xNode, yNode, xBar, yBar, sn, nPixels, scale)
     # are all generated in *output*
-
+    #
     binNum, xNode, yNode, xBar, yBar, sn, nPixels, scale = voronoi_2d_binning(x, y, signal, noise, TARGET_SN,
                                                                               plot=1, quiet=0)
 
     # Save to a text file the initial coordinates of each pixel together with the corresponding bin number computed
     # by this procedure. binNum uniquely specifies the bins and for this reason it is the only
     # number required for any subsequent calculation on the bins.
-
+    #
     np.savetxt(v2b_file, np.column_stack([x, y, binNum]), header='x  y  binNum', fmt=b'%10.6f %10.6f %8i')
     np.savetxt(v2b_xy_file, np.column_stack([xBar, yBar, xNode, yNode]), header='xBar  yBar  xNode   yNode',
                fmt=b'%10.6f %10.6f %10.6f %10.6f')
@@ -375,7 +362,7 @@ def voronoi_binning(xysn_file, v2b_file, v2b_xy_file):
 
 def combine_spectra(v2b_file, image_cube, bin_sci, flux_sci, bin_var, flux_var):
     """
-    Combine each pixel of the same bin (according to the lists output by bin_spectra) into a single fits file
+    Combine each pixel of the same bin (according to the lists output by voronoi_binning) into a single fits file
     INPUT: V2B_FILE (v2b_output_sn30.txt)
     OUTPUT: DIR_SCI_COMB (comb_fits_sci_{S/N}/bin_sci_{S/N}.fits), DIR_VAR_COMB (comb_fis_var_{S/N}/bin_var_{S/N}.fits)
     """
@@ -383,7 +370,9 @@ def combine_spectra(v2b_file, image_cube, bin_sci, flux_sci, bin_var, flux_var):
     # read in the output of the voronoi binning
     v2b_output = pd.read_table(v2b_file, sep=r"\s*", engine='python', skiprows=1, names=["x", "y", "bin"])
 
-    # for each bin, combine the spectra of the same bin
+    # for each bin, combine the spectra of the same bin via numpy operations to avoiding floating point error in
+    # IRAF which occurs when combining too many spectra
+    #
     for i in range(np.amax(v2b_output['bin'].values) + 1):
         bin_sci_i = bin_sci.format(i)
         bin_var_i = bin_var.format(i)
@@ -476,355 +465,10 @@ def write_imcomb_fits(outdata, outfile, cube_header, cube_header_0):
     outfile_hdu.writeto(outfile, clobber=True)
 
 
-def ppxf_kinematics(bin_sci, ppxf_file, ppxf_bestfit, template_fits, template_resolution, lam_range=[4173., 5404.],
-                    vel_init=1500., sig_init=100., bias=0., plot=False, quiet=True, badPixels=[], clean=False):
-    """
-    Follow the pPXF usage example by Michile Cappellari
-    INPUT: DIR_SCI_COMB (comb_fits_sci_{S/N}/bin_sci_{S/N}.fits), TEMPLATE_* (spectra/Mun1.30z*.fits)
-    OUTPUT: PPXF_FILE (ppxf_output_sn30.txt), OUT_BESTFIT_FITS (ppxf_fits/ppxf_bestfit_sn30.fits)
-    """
-
-    if os.path.exists(ppxf_file):
-        print('File {} already exists'.format(ppxf_file))
-        return
-
-    # Read a galaxy spectrum and define the wavelength range
-    assert len(glob.glob(bin_sci.format('*'))) > 0, 'Binned spectra {} not found'.format(glob.glob(bin_sci.format('*')))
-
-    # hdu = fits.open(in_file[0])
-    # gal_lin = hdu[0].data
-    # h1 = hdu[0].header
-
-    with fits.open(bin_sci.format(0)) as gal_hdu:
-        gal_lin = gal_hdu[0].data
-        gal_hdr = gal_hdu[0].header
-
-    # lamRange1 = h1['CRVAL1'] + np.array([0.,h1['CDELT1']*(h1['NAXIS1']-1)])
-    # FWHM_gal = 4.2 # SAURON has an instrumental resolution FWHM of 4.2A.
-
-    # lamRange1 is now variable lam_range (because I was lazy and didnt put headers into the binned spectra)
-    FWHM_gal = 2.3  # GMOS IFU has an instrumental resolution FWHM of 2.3 A
-
-    # If the galaxy is at a significant redshift (z > 0.03), one would need to apply a large velocity shift in PPXF to
-    # match the template to the galaxy spectrum.This would require a large initial value for the velocity (V > 1e4 km/s)
-    # in the input parameter START = [V,sig]. This can cause PPXF to stop! The solution consists of bringing the galaxy
-    # spectrum roughly to the rest-frame wavelength, before calling PPXF. In practice there is no need to modify the
-    # spectrum before the usual LOG_REBIN, given that a red shift corresponds to a linear shift of the log-rebinned
-    # spectrum. One just needs to compute the wavelength range in the rest-frame and adjust the instrumental resolution
-    # of the galaxy observations. This is done with the following three commented lines:
-    #
-    # z = 1.23 # Initial estimate of the galaxy redshift
-    # lamRange1 = lamRange1/(1+z) # Compute approximate restframe wavelength range
-    # FWHM_gal = FWHM_gal/(1+z)   # Adjust resolution in Angstrom
-
-    # galaxy, logLam1, velscale = util.log_rebin(lamRange1, gal_lin)
-    # galaxy = galaxy/np.median(galaxy) # Normalize spectrum to avoid numerical issues
-    # noise = galaxy*0 + 0.0049           # Assume constant noise per pixel here
-
-    galaxy, logLam1, velscale = util.log_rebin(lam_range, gal_lin)
-    galaxy = galaxy / np.median(galaxy)  # Normalize spectrum to avoid numerical issues
-
-    # Read the list of filenames from the Single Stellar Population library by Vazdekis (1999, ApJ, 513, 224). A subset
-    # of the library is included for this example with permission. See http://purl.org/cappellari/software
-    # for suggestions of more up-to-date stellar libraries.
-
-    # vazdekis = glob.glob(dir + 'Rbi1.30z*.fits')
-    # vazdekis.sort()
-    # FWHM_tem = 1.8 # Vazdekis spectra have a resolution FWHM of 1.8A.
-
-    template_spectra = glob.glob(template_fits)
-    assert len(template_spectra) > 0, 'Template spectra not found: {}'.format(template_fits)
-    FWHM_tem = template_resolution
-
-    # Extract the wavelength range and logarithmically rebin one spectrum to the same velocity scale of the SAURON
-    # galaxy spectrum, to determine the size needed for the array which will contain the template spectra.
-
-    # hdu = fits.open(vazdekis[0])
-    # ssp = hdu[0].data
-    # h2 = hdu[0].header
-    # lamRange2 = h2['CRVAL1'] + np.array([0.,h2['CDELT1']*(h2['NAXIS1']-1)])
-    # sspNew, logLam2, velscale = util.log_rebin(lamRange2, ssp, velscale=velscale)
-    # templates = np.empty((sspNew.size,len(vazdekis)))
-
-    with fits.open(template_spectra[0]) as temp_hdu:
-        ssp = temp_hdu[0].data
-        h2 = temp_hdu[0].header
-    lamRange2 = h2['CRVAL1'] + np.array([0., h2['CDELT1'] * (h2['NAXIS1'] - 1)])
-    sspNew, logLam2, velscale = util.log_rebin(lamRange2, ssp, velscale=velscale)
-    templates = np.empty((sspNew.size, len(template_spectra)))
-
-    # Convolve the whole Vazdekis library of spectral templates with the quadratic difference between the SAURON and the
-    # Vazdekis instrumental resolution. Logarithmically rebin and store each template as a column in the array TEMPLATES
-
-    # Quadratic sigma difference in pixels Vazdekis --> SAURON
-    # The formula below is rigorously valid if the shapes of the instrumental spectral profiles are well approximated
-    # by Gaussians.
-
-    # FROM GWENS IDL SCRIPT ----------------------------------------------------------
-    # Example: BC03 spectra have a resolution of 3A at 5100A, this corresponds to sigma ~ 3.0/5100*3e5/2.35 = 75 km/s.
-    # The GMOS IFU has an instrumental resolution of 2.3 A, this corresponds to sigma ~ 2.3/5100*3e5/2.35 = 56.8 km/s.
-    # The quadratic difference is sigma = sqrt(56.8^2 - 75^2) = undefined
-    # (the above reasoning can be applied if the shape of the instrumental spectral profiles can be well approximated
-    # by a Gaussian).
-    # For the lower resolution models, we must degrade the DATA to fit the models.
-    # Thus: The quadratic difference is sigma = sqrt(75^2 - 56.8^2) = 49.0 km/s
-    # ---------------------------------------------------------------------------------
-
-    # FWHM_dif = np.sqrt(FWHM_gal ** 2 - template_resolution ** 2)
-    FWHM_dif = np.sqrt(FWHM_tem ** 2 - FWHM_gal ** 2)
-    sigma = FWHM_dif / 2.355 / h2['CDELT1']  # SIGMA DIFFERENCE IN PIXELS, 1.078435697220085
-
-    # Logarithmically rebin the whole Mun library of spectra, and store each template as a column in the array TEMPLATES
-
-    # for j in range(len(vazdekis)):
-    # hdu = fits.open(vazdekis[j])
-    # ssp = hdu[0].data
-    # ssp = ndimage.gaussian_filter1d(ssp, sigma)
-    # sspNew, logLam2, velscale = util.log_rebin(lamRange2, ssp, velscale=velscale)
-    # templates[:, j] = sspNew / np.median(sspNew)  # Normalizes templates
-
-    for j in range(len(template_spectra)):
-        with fits.open(template_spectra[j]) as temp_hdu_j:
-            ssp_j = temp_hdu_j[0].data
-        ssp_j = ndimage.gaussian_filter1d(ssp_j, sigma)
-        sspNew, logLam2, velscale = util.log_rebin(lamRange2, ssp_j, velscale=velscale)
-
-        templates[:, j] = sspNew / np.median(sspNew)  # Normalizes templates
-
-    # The galaxy and the template spectra do not have the same starting wavelength. For this reason an extra velocity
-    # shift DV has to be applied to the template to fit the galaxy spectrum. We remove this artificial shift by using
-    # the keyword VSYST in the call to PPXF below, so that all velocities are measured with respect to DV. This assume
-    # the redshift is negligible.In the case of a high-redshift galaxy one should de-redshift its wavelength to the
-    # rest frame before using the line below (see above).
-
-    vel_list = []
-    sig_list = []
-    dV_list = []
-    dsigma_list = []
-
-    h3_list = []
-    h4_list = []
-    dh3_list = []
-    dh4_list = []
-
-    for j in range(len(glob.glob(bin_sci.format('*')))):
-        b_gal = fits.getdata(bin_sci.format(j), 0)
-
-        b_gal = ndimage.gaussian_filter1d(b_gal, sigma)
-
-        galaxy, logLam1, velscale = util.log_rebin(lam_range, b_gal, velscale=velscale)
-        noise = galaxy * 0 + 1  # Assume constant noise per pixel here
-
-        c = 299792.458
-        dv = (logLam2[0] - logLam1[0]) * c  # km/s
-
-        # vel = 1500.  # Initial estimate of the galaxy velocity in km/s
-        z = np.exp(vel_init / c) - 1  # Relation between velocity and redshift in pPXF
-
-        goodPixels = util.determine_goodpixels(logLam1, lamRange2, z)
-        if len(badPixels) > 0:
-            indices = []
-            for idx, pix in enumerate(goodPixels):
-                if pix in badPixels:
-                    indices.append(idx)
-            goodPixels = np.delete(goodPixels, indices)
-
-        # Here the actual fit starts. The best fit is plotted on the screen.
-        # Gas emission lines are excluded from the pPXF fit using the GOODPIXELS keyword.
-
-        start = [vel_init, sig_init]  # (km/s), starting guess for [V,sigma]
-        t = clock()
-
-        pp = ppxf(templates, galaxy, noise, velscale, start, goodpixels=goodPixels, plot=plot, moments=4,
-                  degree=4, vsyst=dv, bias=bias, quiet=False, clean=clean)
-
-        if not quiet:
-            print("Formal errors:")
-            print("     dV    dsigma   dh3      dh4")
-            print("".join("%8.2g" % f for f in pp.error * np.sqrt(pp.chi2)))
-
-        # If the galaxy is at significant redshift z and the wavelength has been de-redshifted with the three lines
-        # "z = 1.23..." near the beginning of this procedure, the best-fitting redshift is now given by the following
-        # commented line (equation 2 of Cappellari et al. 2009, ApJ, 704, L34;
-        # http://adsabs.harvard.edu/abs/2009ApJ...704L..34C)
-        # print, 'Best-fitting redshift z:', (z + 1)*(1 + sol[0]/c) - 1
-
-        # Gwen obtains the velocity and sigma information from the SOL parameter
-        # moments = 4 so sol = [vel, sig, h3, h4]
-        vel_list.append(pp.sol[0])
-        sig_list.append(pp.sol[1])
-        dV_list.append((pp.error * np.sqrt(pp.chi2))[0])
-        dsigma_list.append((pp.error * np.sqrt(pp.chi2))[1])
-
-        h3_list.append(pp.sol[2])
-        h4_list.append(pp.sol[3])
-        dh3_list.append((pp.error * np.sqrt(pp.chi2))[2])
-        dh4_list.append((pp.error * np.sqrt(pp.chi2))[3])
-
-        hdu_best = fits.PrimaryHDU()
-        hdu_best.data = pp.bestfit
-        hdu_best.header['CD1_1'] = gal_hdr['CD1_1']
-        hdu_best.header['CDELT1'] = gal_hdr['CD1_1']
-        hdu_best.header['CRPIX1'] = gal_hdr['CRPIX1']
-        hdu_best.header['CRVAL1'] = gal_hdr['CRVAL1']
-        hdu_best.header['NAXIS1'] = pp.bestfit.size
-        hdu_best.header['CTYPE1'] = 'LINEAR'  # corresponds to sampling of values above
-        hdu_best.header['DC-FLAG'] = '1'  # 0 = linear, 1= log-linear sampling
-        hdu_best.writeto(ppxf_bestfit.format(j), clobber=True)
-
-    print('Elapsed time in PPXF: %.2f s' % (clock() - t))
-
-    np.savetxt(ppxf_file,
-               np.column_stack([vel_list, sig_list, h3_list, h4_list, dV_list, dsigma_list, dh3_list, dh4_list]),
-               fmt=b'%10.6f  %10.6f  %10.6f  %10.6f  %10.6f  %10.6f  %10.6f  %10.6f',
-               header='velocity    sigma       h3           h4         dV          dsigma       dh3         dh4')
-
-    return vel_list
-
-
-def ppxf_simulation(ppxf_bestfit, lam_range, target_sn, bias=0.6, spaxel=0):
-    """
-    2. Perform a fit of your kinematics *without* penalty (PPXF keyword BIAS=0).
-       The solution will be noisy and may be affected by spurious solutions,
-       however this step will allow you to check the expected mean ranges in
-       the Gauss-Hermite parameters [h3,h4] for the galaxy under study;
-
-        see ppxf_output_sn30_bias0.txt
-        mean(h3), std(h3), max(h3) = -0.2555, 0.09090, 0.007468
-         # ignoring endpoints, max(h3[1:-1]) = -0.01376
-        mean(h4), std(h4), max(h4) = -0.07712, 0.1423, 0.136607
-         # ignoring endpoints, max(h4[1,-1]) = 0.13594
-        max(dvel), min(dvel), max(dvel)-np.min(dvel) = 119.2918, 4.08643, 115.20544
-        mean(vel) = 1543.0359
-        max(sig), min(sig) = 180.3, 36.23
-
-
-
-    3. Perform a Monte Carlo simulation of your spectra, following e.g. the
-       included ppxf_simulation_example.pro routine. Adopt as S/N in the simulation
-       the chosen value (S/N)_min and as input [h3,h4] the maximum representative
-       values measured in the non-penalized pPXF fit of the previous step;
-
-    4. Choose as penalty (BIAS) the *largest* value such that, for sigma > 3*velScale,
-       the mean difference between the output [h3,h4] and the input [h3,h4]
-       is well within the rms scatter of the simulated values
-       (see e.g. Fig.2 of Emsellem et al. 2004, MNRAS, 352, 721).
-    """
-
-    # dir = 'spectra/'
-    # file = dir + 'Rbi1.30z+0.00t12.59.fits'
-    # hdu = pyfits.open(file)
-    # ssp = hdu[0].data
-    # h = hdu[0].header
-
-    bestfit_file = ppxf_bestfit.format(spaxel)
-    assert os.path.exists(bestfit_file), 'Best fit spectra not found: {}'.format(bestfit_file)
-
-    with fits.open(bestfit_file) as best_hdu:
-        ssp = best_hdu[0].data
-        h = best_hdu[0].header
-
-    # lamRange = h['CRVAL1'] + np.array([0., h['CDELT1'] * (h['NAXIS1'] - 1)])
-    # star, logLam, velscale = util.log_rebin(lamRange, ssp)
-
-    star, logLam, velscale = util.log_rebin(lam_range, ssp)
-
-    # The finite sampling of the observed spectrum is modeled in detail: the galaxy spectrum is obtained by oversampling
-    # the actual observed spectrum to a high resolution. This represents the true spectrum, which is later resampled
-    # to lower resolution to simulate the observations on the CCD. Similarly, the convolution with a well-sampled LOSVD
-    # is done on the high-resolution spectrum, and later resampled to the observed resolution before fitting with PPXF.
-
-    factor = 10  # Oversampling integer factor for an accurate convolution
-    starNew = ndimage.interpolation.zoom(star, factor, order=1)  # The underlying spectrum, known at high resolution
-    star = rebin(starNew, factor)  # Make sure that the observed spectrum is the integral over the pixels
-
-    # vel = 0.3  # velocity in *pixels* [=V(km/s)/velScale]
-    # h3 = 0.1  # Adopted G-H parameters of the LOSVD
-    # h4 = -0.1
-    # sn = 60.  # Adopted S/N of the Monte Carlo simulation
-    # m = 300  # Number of realizations of the simulation
-    # sigmaV = np.linspace(0.8, 4, m)  # Range of sigma in *pixels* [=sigma(km/s)/velScale]
-
-    print('bestfit {} : velscale = {}'.format(spaxel, velscale))
-    # bestfit 0 : velscale = 57.44245804
-    # max(sig), min(sig) = 164.026343, 11.306016 [km/s] =  2.87765514,  0.19835116 [pix]
-
-    vel = 0.3  # mean vel = 1556.4989, I have no idea why this value is 0.3 ...
-    h3 = -0.003146
-    h4 = -0.003662
-    sn = target_sn
-    m = 300  # Number of realizations of the simulation
-    sigmaV = np.linspace(0.8, 4, m)  # Range of sigma in *pixels* [=sigma(km/s)/velScale]
-    # sigmaV = np.linspace(0.198, 2.877, m)
-
-    result = np.zeros((m, 4))  # This will store the results
-    t = clock()
-    np.random.seed(123)  # for reproducible results
-
-    for j in range(m):
-        sigma = sigmaV[j]
-        dx = int(abs(vel) + 4.0 * sigma)  # Sample the Gaussian and GH at least to vel+4*sigma
-        x = np.linspace(-dx, dx, 2 * dx * factor + 1)  # Evaluate the Gaussian using steps of 1/factor pixels.
-        w = (x - vel) / sigma
-        w2 = w ** 2
-        gauss = np.exp(-0.5 * w2) / (np.sqrt(2. * np.pi) * sigma * factor)  # Normalized total(gauss)=1
-        h3poly = w * (2. * w2 - 3.) / np.sqrt(3.)  # H3(y)
-        h4poly = (w2 * (4. * w2 - 12.) + 3.) / np.sqrt(24.)  # H4(y)
-        losvd = gauss * (1. + h3 * h3poly + h4 * h4poly)
-
-        galaxy = signal.fftconvolve(starNew, losvd, mode="same")  # Convolve the oversampled spectrum
-        galaxy = rebin(galaxy, factor)  # Integrate spectrum into original spectral pixels
-        noise = galaxy / sn  # 1sigma error spectrum
-        galaxy = np.random.normal(galaxy, noise)  # Add noise to the galaxy spectrum
-        start = np.array(
-            [vel + np.random.random(), sigma * np.random.uniform(0.85, 1.15)]) * velscale  # Convert to km/s
-
-        pp = ppxf(star, galaxy, noise, velscale, start, goodpixels=np.arange(dx, galaxy.size - dx),
-                  plot=False, moments=4, bias=bias, quiet=True)
-        result[j, :] = pp.sol
-
-    print('Calculation time: %.2f s' % (clock() - t))
-
-    plt.clf()
-    plt.subplot(221)
-    plt.plot(sigmaV * velscale, result[:, 0] - vel * velscale, '+k')
-    plt.plot(sigmaV * velscale, np.ones(len(sigmaV * velscale)) * np.mean(result[:, 0] - vel * velscale), '-b')
-    plt.plot(sigmaV * velscale, sigmaV * velscale * 0, '-r')
-    plt.ylim(-40, 40)
-    plt.xlabel('$\sigma_{in}\ (km\ s^{-1})$')
-    plt.ylabel('$V - V_{in}\ (km\ s^{-1}$)')
-
-    plt.subplot(222)
-    plt.plot(sigmaV * velscale, result[:, 1] - sigmaV * velscale, '+k')
-    plt.plot(sigmaV * velscale, np.ones(len(sigmaV * velscale)) * np.mean(result[:, 1] - sigmaV * velscale), '-b')
-    plt.plot(sigmaV * velscale, sigmaV * velscale * 0, '-r')
-    plt.ylim(-40, 40)
-    plt.xlabel('$\sigma_{in}\ (km\ s^{-1})$')
-    plt.ylabel('$\sigma - \sigma_{in}\ (km\ s^{-1}$)')
-
-    plt.subplot(223)
-    plt.plot(sigmaV * velscale, result[:, 2], '+k')
-    plt.plot(sigmaV * velscale, sigmaV * velscale * 0 + h3, '-r')
-    plt.plot(sigmaV * velscale, np.ones(len(sigmaV * velscale)) * np.mean(result[:, 2]), '-b')
-    plt.ylim(-0.2 + h3, 0.2 + h3)
-    plt.xlabel('$\sigma_{in}\ (km\ s^{-1})$')
-    plt.ylabel('$h_3$')
-
-    plt.subplot(224)
-    plt.plot(sigmaV * velscale, result[:, 3], '+k')
-    plt.plot(sigmaV * velscale, sigmaV * velscale * 0 + h4, '-r')
-    plt.plot(sigmaV * velscale, np.ones(len(sigmaV * velscale)) * np.mean(result[:, 3]), '-b')
-    plt.ylim(-0.2 + h4, 0.2 + h4)
-    plt.xlabel('$\sigma_{in}\ (km\ s^{-1})$')
-    plt.ylabel('$h_4$')
-
-    plt.tight_layout()
-    plt.show()
-
-
 def scopy_flux(flux_sci, flux_scopy_fits, flux_scopy_range, flux_scopy_file):
     """
-    Combine (average) all spectra (according to bin) in the image for a given spectral range, calculate mean flux
+    Combine (average) all spectra (according to bin) in the image for a given spectral range, calculate mean flux.
+    This is used for 1 mag contours when plotting the velocity fields.
     INPUT: FLUX_SCI, FLUX_SCOPY_FITS, FLUX_SCOPY_RANGE
     OUTPUT: FLUX_SCOPY_FILE
     """
@@ -865,7 +509,8 @@ def fxcor(spec, task, template_spec, spec_list_file, fxcor_output_file, fxcor_ra
     INPUT: BIN_SCI, FXCOR_TEMPLATE
     OUTPUT: FXCOR_BIN_LIST, FXCOR_FILE(s)
 
-    Note: make sure to change the parameters for each function based on desired output/use.
+    Note: make sure you select the parameters for your desired use. Refer to the IRAF rv package help for description
+    of what each parameter is/does
     """
 
     if os.path.exists(fxcor_output_file + '.txt'):
@@ -903,9 +548,11 @@ def fxcor(spec, task, template_spec, spec_list_file, fxcor_output_file, fxcor_ra
 
 
 def rvsao(bin_sci, task, template_spectra, rvsao_file, rvsao_bin_list, interactive="no", linesig=1.5,
-          czguess=0., st_lambda="INDEF", end_lambda="INDEF"):
+          czguess=0., st_lambda="INDEF", end_lambda="INDEF", badlines=None):
     """
     Use the rvsao task emsao or xcsao to measure relative velocity from emission or absoption spectra
+    Note: make sure you select the parameters for your desired use. Refer to the IRAF rvsao package help for description
+    of what each parameter is/does
     """
 
     assert task == 'xcsao' or task == 'emsao', "task is not either 'xcsao' or 'emsao'"
@@ -913,6 +560,10 @@ def rvsao(bin_sci, task, template_spectra, rvsao_file, rvsao_bin_list, interacti
     if os.path.exists(rvsao_file):
         print('File {} already exists'.format(rvsao_file))
         return
+
+    fixbad = "no"
+    if badlines:
+        fixbad = "yes"
 
     bin_list = []
     for i in range(len(glob.glob(bin_sci.format('*')))):  # to ensure order is 0-61 (not 0, 1, 10, 11, etc)
@@ -929,19 +580,23 @@ def rvsao(bin_sci, task, template_spectra, rvsao_file, rvsao_bin_list, interacti
         iraf.xcsao('@{}'.format(rvsao_bin_list), templates=bin_sci.format(template_spectra), report_mode=2,
                    logfiles=rvsao_file, displot=interactive, low_bin=10, top_low=20, top_nrun=80, nrun=211,
                    zeropad="yes", nzpass=1, curmode="no", pkmode=2, s_emchop="no", vel_init="guess", czguess=czguess,
-                   st_lambda=st_lambda, end_lambda=end_lambda)
+                   st_lambda=st_lambda, end_lambda=end_lambda, fixbad=fixbad, badlines=badlines)
 
     elif task == 'emsao':
 
         # Run this interactively as the fit can fail often. Depending on S/N you may have to decrease the linesig
         # to detect the lines, or if lines are matched inconsistently play with the st_lambda, end_lambda parameters
         iraf.emsao('@{}'.format(rvsao_bin_list), logfiles=rvsao_file, displot=interactive, report_mode=2,
-                   contsub_plot="no", st_lambda=st_lambda, end_lambda=end_lambda, vel_init="guess", czguess=czguess,
-                   linesig=linesig)
+                   contsub_plot="no", st_lambda=st_lambda, end_lambda=end_lambda,  # vel_init="guess", czguess=czguess,
+                   linesig=linesig, fixbad=fixbad, badlines=badlines)
         # linesig=0.92, vel_init="guess", czguess=1500,
 
 
 def plot_velfield_setup(vel, v2b_xy_file, flux_scopy_file):
+    """
+    Use default plotting scheme of pPXF to visualize the velocity field with 1 mag flux contours
+    """
+
     assert os.path.exists(v2b_xy_file), 'File {} does not exist'.format(v2b_xy_file)
     assert os.path.exists(flux_scopy_file), 'File {} does not exist'.format(flux_scopy_file)
     assert len(vel) > 0, 'Input velocity does not make sense'
@@ -962,7 +617,8 @@ def plot_velfield_setup(vel, v2b_xy_file, flux_scopy_file):
 def plot_velfield_bybin(vel, v2b_file, vmin=None, vmax=None):
     """
     Read in the velocity and spatial information and plot with a colourbar
-    to change range of colourbar use vmin and max parameters
+    to change range of colourbar use vmin and vmax parameters.
+    Pixels without a bin will be plotted with the mean velocity value.
     """
 
     if vmin is None:
@@ -1005,16 +661,11 @@ def plot_velfield_bybin(vel, v2b_file, vmin=None, vmax=None):
     plt.show()
 
 
-def rebin(x, factor):
-    """
-    Rebin a one-dimensional vector by averaging
-    in groups of "factor" adjacent values
-
-    """
-    return np.mean(x.reshape(-1, factor), axis=1)
-
-
 def read_emsao_output(emaso_input):
+    """
+    the output text file of emsao in report_mode=2 is conveniently difficult to parse as the rows are of variable length
+    """
+
     emsao_vel = []
     with open(emaso_input) as infile:
         for line in infile:
@@ -1023,7 +674,7 @@ def read_emsao_output(emaso_input):
 
 
 def read_xcsao_output(xcsao_input):
-    return pd.read_table(XCSAO_FILE, sep=r"\s*", engine='python', usecols=[3], names=["vrel"], squeeze=True).values
+    return pd.read_table(xcsao_input, sep=r"\s*", engine='python', usecols=[3], names=["vrel"], squeeze=True).values
 
 
 def read_fxcor_output(fxcor_file):
@@ -1032,7 +683,12 @@ def read_fxcor_output(fxcor_file):
 
 
 def crop_table(xysn_file, xysn_file_cropped, x=[25, 45], y=[20, 40]):
+    """
+    This is useful for if you want to completely ignore a particular region. I don't use this for anything though.
+    """
+
     if os.path.exists(xysn_file_cropped):
+        print ('File {} already exists'.format(xysn_file_cropped))
         return
     table = pd.read_table(xysn_file, sep=r"\s*", engine='python', names=["y", "x", "sig", "noise"])
     table_cropped = table.query("{} < x < {}".format(x[0], x[1])).query("{} < y < {}".format(y[0], y[1]))
@@ -1040,231 +696,14 @@ def crop_table(xysn_file, xysn_file_cropped, x=[25, 45], y=[20, 40]):
     table_cropped.to_csv(xysn_file_cropped, sep=" ", header=False, index=False)
 
 
-def ppxf_kinematics_gas(bin_sci, ppxf_file, ppxf_bestfit, template_fits, template_res,
-                        vel_init=1500., sig_init=100., bias=0.6, plot=False, quiet=True):
-    """
-    Follow the pPXF usage example by Michile Cappellari
-    INPUT: DIR_SCI_COMB (comb_fits_sci_{S/N}/bin_sci_{S/N}.fits), TEMPLATE_* (spectra/Mun1.30z*.fits)
-    OUTPUT: PPXF_FILE (ppxf_output_sn30.txt), OUT_BESTFIT_FITS (ppxf_fits/ppxf_bestfit_sn30.fits)
-    """
-
-    if os.path.exists(ppxf_file):
-        print('File {} already exists'.format(ppxf_file))
-        return
-
-    # Read in the galaxy spectrum, logarithmically rebin
-    #
-    assert len(glob.glob(bin_sci.format('*'))) > 0, 'Binned spectra {} not found'.format(glob.glob(bin_sci.format('*')))
-    with fits.open(bin_sci.format(0)) as gal_hdu:
-        gal_data = gal_hdu[0].data
-        gal_hdr = gal_hdu[0].header
-    lamRange1 = gal_hdr['CRVAL1'] + np.array([1. - gal_hdr['CRPIX1'], gal_hdr['NAXIS1'] - gal_hdr['CRPIX1']]) \
-                                    * gal_hdr['CD1_1']
-
-    galaxy, logLam1, velscale = util.log_rebin(lamRange1, gal_data)
-    galaxy = galaxy / np.median(galaxy)  # Normalize spectrum to avoid numerical issues
-    wave = np.exp(logLam1)
-
-    # The noise level is chosen to give Chi^2/DOF=1 without regularization (REGUL=0).
-    # A constant error is not a bad approximation in the fitted wavelength
-    # range and reduces the noise in the fit.
-    #
-    noise = galaxy * 0 + 0.01528  # Assume constant noise per pixel here
-
-    c = 299792.458  # speed of light in km/s
-    FWHM_gal = 2.3  # GMOS IFU has an instrumental resolution FWHM of 2.3 A
-
-    # stars_templates, lamRange_temp, logLam_temp = setup_spectral_library(velscale, FWHM_gal)
-
-    # Read in template galaxy spectra
-    #
-    template_spectra = glob.glob(template_fits)
-    assert len(template_spectra) > 0, 'Template spectra not found: {}'.format(template_fits)
-    with fits.open(template_spectra[0]) as temp_hdu:
-        ssp = temp_hdu[0].data
-        h2 = temp_hdu[0].header
-    lamRange2 = h2['CRVAL1'] + np.array([0., h2['CDELT1'] * (h2['NAXIS1'] - 1)])
-    sspNew, logLam2, velscale = util.log_rebin(lamRange2, ssp, velscale=velscale)
-    stars_templates = np.empty((sspNew.size, len(template_spectra)))
-    FWHM_tem = template_res
-
-    # FWHM_dif = np.sqrt(FWHM_gal ** 2 - template_res ** 2)
-    FWHM_dif = np.sqrt(FWHM_tem ** 2 - FWHM_gal ** 2)
-    sigma = FWHM_dif / 2.355 / h2['CDELT1']  # SIGMA DIFFERENCE IN PIXELS, 1.078435697220085
-
-    for j in range(len(template_spectra)):
-        with fits.open(template_spectra[j]) as temp_hdu_j:
-            ssp_j = temp_hdu_j[0].data
-        ssp_j = ndimage.gaussian_filter1d(ssp_j, sigma)
-        sspNew, logLam2, velscale = util.log_rebin(lamRange2, ssp_j, velscale=velscale)
-        stars_templates[:, j] = sspNew / np.median(sspNew)  # Normalizes templates
-
-    # we save the original array dimensions, which are needed to specify the regularization dimensions
-    #
-    reg_dim = stars_templates.shape[1:]
-
-    # See the pPXF documentation for the keyword REGUL,
-    # for an explanation of the following two lines
-    #
-    regul_err = 0.004  # Desired regularization error
-
-    # Construct a set of Gaussian emission line templates.
-    # Estimate the wavelength fitted range in the rest frame.
-    #
-    z = np.exp(vel_init / c) - 1  # Relation between velocity and redshift in pPXF
-    lamRange_gal = np.array([lamRange1[0], lamRange1[-1]]) / (1 + z)
-    gas_templates, line_names, line_wave = util.emission_lines(logLam2, lamRange_gal, FWHM_gal)
-
-    # Combines the stellar and gaseous templates into a single array
-    # during the PPXF fit they will be assigned a different kinematic COMPONENT value
-    #
-    templates = np.hstack([stars_templates, gas_templates])
-
-
-    # Here the actual fit starts. The best fit is plotted on the screen.
-    #
-    # IMPORTANT: Ideally one would like not to use any polynomial in the fit
-    # as the continuum shape contains important information on the population.
-    # Unfortunately this is often not feasible, due to small calibration
-    # uncertainties in the spectral shape. To avoid affecting the line strength of
-    # the spectral features, we exclude additive polynomials (DEGREE=-1) and only use
-    # multiplicative ones (MDEGREE=10). This is only recommended for population, not
-    # for kinematic extraction, where additive polynomials are always recommended.
-    #
-    # start = [vel, 180.]  # (km/s), starting guess for [V,sigma]
-    start = [vel_init, sig_init]  # (km/s), starting guess for [V,sigma]
-
-    # Assign component=0 to the stellar templates and
-    # component=1 to the gas emission lines templates.
-    # One can easily assign different kinematic components to different gas species
-    # e.g. component=1 for the Balmer series, component=2 for the [OIII] doublet, ...)
-    # Input a negative MOMENTS value to keep fixed the LOSVD of a component.
-    #
-    nTemps = stars_templates.shape[1]
-    nLines = gas_templates.shape[1]
-    component = [0] * nTemps + [1] * nLines
-    moments = [4, 2]  # fit (V,sig,h3,h4) for the stars and (V,sig) for the gas
-    start = [start, start]  # adopt the same starting value for both gas and stars
-
-    bin_sci_list = glob.glob(bin_sci.format('*'))
-
-    pp_sol = np.zeros([moments[0] + moments[1], len(bin_sci_list)])
-    pp_error = np.zeros([moments[0] + moments[1], len(bin_sci_list)])
-
-    print (len(bin_sci_list))
-    # for j in range(1, len(bin_sci_list)):
-    for j in range(4, 8):
-
-        gal_data = fits.getdata(bin_sci.format(j), 0)
-        gal_data_new = ndimage.gaussian_filter1d(gal_data, sigma)
-
-        galaxy, logLam1, velscale = util.log_rebin(lamRange1, gal_data_new, velscale=velscale)
-        noise = galaxy * 0 + 1  # Assume constant noise per pixel here
-
-        # The galaxy and the template spectra do not have the same starting wavelength.
-        # For this reason an extra velocity shift DV has to be applied to the template
-        # to fit the galaxy spectrum. We remove this artificial shift by using the
-        # keyword VSYST in the call to PPXF below, so that all velocities are
-        # measured with respect to DV. This assume the redshift is negligible.
-        # In the case of a high-redshift galaxy one should de-redshift its
-        # wavelength to the rest frame before using the line below as described
-        # in PPXF_KINEMATICS_EXAMPLE_SAURON.
-        #
-        c = 299792.458
-        dv = (logLam2[0] - logLam1[0]) * c  # km/s
-
-        t = clock()
-
-        pp = ppxf(templates, galaxy, noise, velscale, start, plot=plot, moments=moments, degree=-1, mdegree=10,
-                  vsyst=dv, clean=False, regul=1. / regul_err, reg_dim=reg_dim, component=component, bias=bias,
-                  quiet=quiet)
-
-        # Save the velocity, sigma, h3, h4 information for both stellar and gas to a table
-        for k, sol in enumerate(pp.sol[0]):
-            pp_sol[k, j] = pp.sol[0][k]
-            pp_error[k, j] = pp.error[0][k]
-        for k, sol in enumerate(pp.sol[1]):
-            pp_sol[k + len(pp.sol[0]), j] = pp.sol[1][k]
-            pp_error[k + len(pp.error[0]), j] = pp.error[1][k]
-
-        # Plot fit results for stars and gas
-        #
-        if plot:
-            plt.clf()
-            # plt.subplot(211)
-            plt.plot(wave, pp.galaxy, 'k')
-            plt.plot(wave, pp.bestfit, 'b', linewidth=2)
-            plt.xlabel("Observed Wavelength ($\AA$)")
-            plt.ylabel("Relative Flux")
-            plt.ylim([-0.1, 1.3])
-            plt.xlim([np.min(wave), np.max(wave)])
-            plt.plot(wave, pp.galaxy - pp.bestfit, 'd', ms=4, color='LimeGreen', mec='LimeGreen')  # fit residuals
-            plt.axhline(y=-0, linestyle='--', color='k', linewidth=2)
-            stars = pp.matrix[:, :nTemps].dot(pp.weights[:nTemps])
-            plt.plot(wave, stars, 'r', linewidth=2)  # overplot stellar templates alone
-            gas = pp.matrix[:, -nLines:].dot(pp.weights[-nLines:])
-            plt.plot(wave, gas + 0.15, 'b', linewidth=2)  # overplot emission lines alone
-            plt.legend()
-            plt.show()
-
-            # When the two Delta Chi^2 below are the same, the solution is the smoothest
-            # consistent with the observed spectrum.
-            #
-            print('Desired Delta Chi^2: %.4g' % np.sqrt(2 * galaxy.size))
-            print('Current Delta Chi^2: %.4g' % ((pp.chi2 - 1) * galaxy.size))
-            print('Elapsed time in PPXF: %.2f s' % (clock() - t))
-
-            w = np.where(np.array(component) == 1)[0]  # Extract weights of gas emissions
-            print('++++++++++++++++++++++++++++++')
-            print('Gas V=%.4g and sigma=%.2g km/s' % (pp.sol[1][0], pp.sol[1][1]))
-            print('Emission lines peak intensity:')
-            for name, weight, line in zip(line_names, pp.weights[w], pp.matrix[:, w].T):
-                print('%12s: %.3g' % (name, weight * np.max(line)))
-            print('------------------------------')
-
-            # Plot stellar population mass distribution
-
-            # plt.subplot(212)
-            # weights = pp.weights[:np.prod(reg_dim)].reshape(reg_dim) / pp.weights.sum()
-            # plt.imshow(np.rot90(weights), interpolation='nearest', cmap='gist_heat', aspect='auto', origin='upper',
-            # extent=(np.log10(1.0), np.log10(17.7828), -1.9, 0.45))
-            # plt.colorbar()
-            # plt.title("Mass Fraction")
-            # plt.xlabel("log$_{10}$ Age (Gyr)")
-            # plt.ylabel("[M/H]")
-            # plt.tight_layout()
-
-            plt.legend()
-            plt.show()
-
-        if not quiet:
-            print("Formal errors:")
-            print("     dV    dsigma   dh3      dh4")
-            print("".join("%8.2g" % f for f in pp.error * np.sqrt(pp.chi2)))
-
-        hdu_best = fits.PrimaryHDU()
-        hdu_best.data = pp.bestfit
-        hdu_best.header['CD1_1'] = gal_hdr['CD1_1']
-        hdu_best.header['CDELT1'] = gal_hdr['CD1_1']
-        hdu_best.header['CRPIX1'] = gal_hdr['CRPIX1']
-        hdu_best.header['CRVAL1'] = gal_hdr['CRVAL1']
-        hdu_best.header['NAXIS1'] = pp.bestfit.size
-        hdu_best.header['CTYPE1'] = 'LINEAR'  # corresponds to sampling of values above
-        hdu_best.header['DC-FLAG'] = '1'  # 0 = linear, 1= log-linear sampling
-        hdu_best.writeto(ppxf_bestfit.format(j), clobber=True)
-
-    np.savetxt(ppxf_file,
-               np.column_stack(
-                   [pp_sol[0], pp_error[0], pp_sol[1], pp_error[1], pp_sol[2], pp_error[2],
-                    pp_sol[3], pp_error[3], pp_sol[4], pp_error[4], pp_sol[5], pp_error[5]]),
-               fmt=b'%10.4f  %10.4f  %10.4f  %10.4f  %10.4f  %10.4f  %10.4f  %10.4f %10.4f  %10.4f  %10.4f  %10.4f',
-               header='Stellar pop:                                          Gas: \n'
-                      'vel  d_vel  sigma  d_sigma  h3  d_h3  h4  d_h4        vel  d_vel  sigma  d_sigma')
-
-
 def bin_sources(sci_ext, xysn_file, v2b_file, v2b_xy_file, plot=False):
     """
-    Create bins specifically about the three sources we observe in the 2d flatted image
+    Create bins specifically about the three sources we observe in the 2d flatted image. This method was written
+    specifically for observations of IC 225 where three flux sources were seen in the center of the galaxy. We modeled
+    these sources as ellipses, and split the background into equal regions in a pinwheel patters for the velocity
+    field analysis. Keep in mind this method does not take into consideration the S/N of each bin. We chose this pattern
+    because it was close to the Voronoi bin pattern for S/N 40, but when later doing the stellar population history
+    measurements we binned up the backgroung bins again to increase the S/N.
     """
 
     if os.path.exists(v2b_file) & os.path.exists(v2b_xy_file):
@@ -1273,7 +712,7 @@ def bin_sources(sci_ext, xysn_file, v2b_file, v2b_xy_file, plot=False):
 
     data = fits.getdata(sci_ext)
 
-    # Find coordinates of each object
+    # Find centercoordinates of each object (in this case we have three sources)
     c1 = [35.84, 29.03]  # center nucleas
     c2 = [48.47, 25.32]  # off center nucleus
     c3 = [31.16, 17.48]  # blob features
@@ -1294,7 +733,7 @@ def bin_sources(sci_ext, xysn_file, v2b_file, v2b_xy_file, plot=False):
     arr[0:int(cby / 2), int(cbx / 2):cbx] = 2.
     arr[int(cby / 2):cby, int(cbx / 2):cbx] = 4.
 
-    # Cut each of those squares in half
+    # Cut each of those squares in half to create a pinwheel pattern
     m = float(cby) / float(cbx)
     for x in range(int(cbx / 2)):
         for y in range(int(cby / 2)):
@@ -1348,6 +787,10 @@ def bin_sources(sci_ext, xysn_file, v2b_file, v2b_xy_file, plot=False):
         plt.show()
 
     # I have issues here creating the barycentric nodes, so instead i choose to only use the centerpoints already found
+    # It seems that inputting the xNode and yNode into the _cvt_equal_mass function changes the values
+    # This is only useful for obesrving the center of the bins anyway for plotting purposes, and should not affect our
+    # measurements/analysis in the least
+    #
     # cvt=True
     # pixelsize=None
     # plot=True
@@ -1360,6 +803,82 @@ def bin_sources(sci_ext, xysn_file, v2b_file, v2b_xy_file, plot=False):
     yBar = yNode
     np.savetxt(v2b_xy_file, np.column_stack([xBar, yBar, xNode, yNode]), header='xBar  yBar  xNode   yNode',
                fmt=b'%10.6f %10.6f %10.6f %10.6f')
+
+
+def remove_emission_lines(bin_sci, ppxf_bestfit, abs_bin_sci, plot=True, bad_lines=[]):
+    """
+    Fit the absorption spectra with a pVoight function by parameterizing the bestfit template as output from pPXF,
+    fit the emission lines over the absorption features with a sum of a gaussian and lorentz and subtract from the
+    original spectra. Where the emission lines are isolated, just interpolate the continuum values from the best fit
+    template and replace.
+    This requires a very good fit between the galaxy spectra and the bestfit spectra. I recommend running this with
+    plot=True to check for any residuals.
+    """
+
+    for j in range(len(glob.glob(bin_sci.format('*')))):
+
+        bin_sci_j = bin_sci.format(j)
+        ppxf_bestfit_j = ppxf_bestfit.format(j)
+
+        if not os.path.exists(abs_bin_sci.format(j)):
+
+            if plot:
+                print('>>>>> Removing emission lines from spectra {}'.format(j))
+
+            with fits.open(bin_sci_j) as hdu:
+                odata = hdu[0].data
+                ohdr = hdu[0].header
+
+            bestfit = fits.getdata(ppxf_bestfit_j)
+
+            lamRange = ohdr['CRVAL1'] + np.array([1. - ohdr['CRPIX1'], ohdr['NAXIS1'] - ohdr['CRPIX1']]) * ohdr['CD1_1']
+            lin_bins = np.linspace(lamRange[0], lamRange[1], ohdr['NAXIS1'])
+
+            # Log bin the spectra to match the best fit absorption template
+            galaxy, logLam1, velscale = util.log_rebin(lamRange, odata)
+            log_bins = np.exp(logLam1)
+            emlns, lnames, lwave = util.emission_lines(logLam1, lamRange, 2.3)
+
+            # Hgamma 4340.47, Hbeta 4861.33, OIII [4958.92, 5006.84]
+            # lwave = [4340.47, 4861.33, 4958.92, 5006.84]
+
+            # find the index of the emission lines
+            iHg = (np.abs(log_bins - lwave[0])).argmin()
+            iHb = (np.abs(log_bins - lwave[1])).argmin()
+            iOIII = (np.abs(log_bins - lwave[2])).argmin()
+            iOIIIb = (np.abs(log_bins - (lwave[2] - 47.92))).argmin()
+
+            # There are BOTH absorption and emission features about the wavelength of Hgamma and Hbeta, so we need
+            # to use a specialized fitting function (convolved Guassian and Lorentzian -> pVoight) to remove the
+            # emission lines
+            popt_Hg, pcov_Hg = remove_lines.fit_ems_pvoightcont(log_bins, galaxy, lin_bins, odata, iHg, bestfit)
+            popt_Hb, pcov_Hb = remove_lines.fit_ems_pvoightcont(log_bins, galaxy, lin_bins, odata, iHb, bestfit)
+
+            em_fit = remove_lines.gauss_lorentz(lin_bins, popt_Hg[0], popt_Hg[1], popt_Hg[2], popt_Hg[3], popt_Hg[4],
+                                                popt_Hg[5]) + \
+                     remove_lines.gauss_lorentz(lin_bins, popt_Hb[0], popt_Hb[1], popt_Hb[2], popt_Hb[3], popt_Hb[4],
+                                                popt_Hb[5])
+
+            abs_feat_fit = odata - em_fit
+
+            abs_fit = remove_lines.em_chop(lin_bins, abs_feat_fit, iOIII, log_bins, bestfit)
+            abs_fit = remove_lines.em_chop(lin_bins, abs_fit, iOIIIb, log_bins, bestfit)
+
+            for lin in bad_lines:
+                ibad = (np.abs(lin_bins - lin)).argmin()
+                abs_fit = remove_lines.em_chop(lin_bins, abs_fit, ibad, log_bins, bestfit)
+
+            if plot:
+                plt.plot(lin_bins, odata, '-k', label="spectra")
+                # plt.plot(lin_bins, bestfit, '--r', label="bestfit absorption line")
+                plt.plot(lin_bins, abs_fit, '-b', label="absorption spectra")
+                plt.legend()
+                plt.show()
+
+            abs_hdu = fits.PrimaryHDU()
+            abs_hdu.data = abs_fit
+            abs_hdu.header = fits.getheader(bin_sci.format(j), 0)
+            abs_hdu.writeto(abs_bin_sci.format(j))
 
 
 if __name__ == '__main__':
@@ -1400,8 +919,8 @@ if __name__ == '__main__':
     # ## Optional: define bins around the sources instead of using voronoi binning method, built for S/N of ~ 30-50
     #
     # bin_sources(SCI_EXT, XYSN_FILE, SRCBIN_FILE, SRCBIN_XY_FILE) # ELLIPSE VALUES ARE HARDCODED
-    # V2B_FILE = SRCBIN_FILE
-    # V2B_XY_FILE = SRCBIN_XY_FILE
+    V2B_FILE = SRCBIN_FILE
+    V2B_XY_FILE = SRCBIN_XY_FILE
 
     # Combine spectra into thier respective bin, and calculate average flux of each bin (used for plotting):
     #
@@ -1421,18 +940,18 @@ if __name__ == '__main__':
     #
     # PPXF_FILE_BIAS = PPXF_FILE.strip('.txt') + '_bias0.txt'
     # PPXF_BESTFIT_BIAS = PPXF_BESTFIT.strip('.fits') + '_bias0.fits'
-    # ppxf_IC225_vJT.ppxf_kinematics(BIN_SCI, PPXF_FILE_BIAS, PPXF_BESTFIT_BIAS, TEMPLATE_FITS, TEMPLATE_RES, LAM_RANGE,
-    #                                VEL_INIT, SIG_INIT, 0)
-    # ppxf_IC225_vJT.ppxf_simulation(PPXF_BESTFIT_BIAS, LAM_RANGE, TARGET_SN, bias=0.5, spaxel=0)
+    # ppxf_tasks.ppxf_kinematics(BIN_SCI, PPXF_FILE_BIAS, PPXF_BESTFIT_BIAS, TEMPLATE_FITS, FWHM_tem, FWHM_gal,
+    # VEL_INIT, SIG_INIT, 0)
+    # ppxf_tasks.ppxf_simulation(PPXF_BESTFIT_BIAS, TARGET_SN, bias=0.5, spaxel=0)
 
     # Run pPXF to measure stellar population kinematics (from absorption features) and plot results
     # Assign bad pixel range to spurious consistent noise features from imperfect interpolation across the chip gap.
     # If there are strong noise featues which effect the fit that are not constant, use clean=yes instead.
     #
     # badPixels = np.append(np.arange(384., 395.), np.arange(984., 996.))
-    # ppxf_vel = ppxf_IC225_vJT.ppxf_kinematics(BIN_SCI, PPXF_FILE, PPXF_BESTFIT, TEMPLATE_FITS, TEMPLATE_RES, LAM_RANGE,
-    # VEL_INIT, SIG_INIT, bias=0.6, plot=True, badPixels=badPixels, clean=True)
-    # ppxf_vel, ppxf_sig, h3, h4, ppxf_dvel, ppxf_dsig, dh3, dh4 = np.loadtxt(PPXF_FILE, unpack=True)
+    # ppxf_vel = ppxf_tasks.ppxf_kinematics(BIN_SCI, PPXF_FILE, PPXF_BESTFIT, TEMPLATE_FITS, FWHM_tem, FWHM_gal,
+    # VEL_INIT, SIG_INIT, bias=0.6, plot=False, badPixels=badPixels, clean=True)
+    # ppxf_vel, ppxf_sig, h3, h4, ppxf_dvel, ppxf_dsig, dh3, dh4, chi2 = np.loadtxt(PPXF_FILE, unpack=True)
     # plot_velfield_setup(ppxf_vel, V2B_XY_FILE, FLUX_SCOPY_FILE)
     #
     # ## Optional: If uses self-defined bins, plot with this method instead
@@ -1441,25 +960,34 @@ if __name__ == '__main__':
 
     # Make spectra of just emission and just absorption lines, necessary to have isolated absorption spectra for
     # cross-correlation fitting techniques, use plot=yes to check
-    # If this does not work (for example, if the emission features are not symmetric, or too close to each other)
-    # you can isolate the emission spectra with the function remove_lines.subtract_bestfit and use the bestfit as the
-    # absorption spectra. This method will give you a LOG binned spectra though.
-    # As the smission lines in our case are quite strong, we can just use the galaxy spectra for the xcor. You may have
-    # adjsut the rvsao.emsao.lingsig parameter (default 1.5) to 1.0 (for example) to detect the lines if you're not
+    # As the smission lines in our case are quite strong, we can just use the galaxy spectra for the corss correlation.
+    # You may have to adjsut the rvsao.emsao.lingsig parameter (default 1.5) to 1.0 to detect the lines if you're not
     # rebinning to S/N that's high enough for a 1.5sigma detection.
+    #
+    # This method fits the absorption spectra when coincident with emission lines, and fits the bestfit template
+    # where the emission lines are isolated
+    #
+    # remove_emission_lines(BIN_SCI, PPXF_BESTFIT, ABS_BIN_SCI, plot=True, bad_lines=[4496])
+    #
+    # This method fits the absorption spectra when coincident with emission lines, and fits the isolated emission lines
+    # to a sum of a gaussian and lorentz, and subtracts that fitted function to remove the emission line.
     #
     # remove_lines.fit_absorp_spectra(BIN_SCI, PPXF_BESTFIT, ABS_BIN_SCI, plot=True)
     # remove_lines.fit_emission_spectra(BIN_SCI, PPXF_BESTFIT, EM_BIN_SCI, plot=False)
     #
+    # If this does not work (for example, if the emission features are not symmetric, or too close to each other)
+    # you can isolate the emission spectra with the function remove_lines.subtract_bestfit and use the bestfit as the
+    # absorption spectra. This method will give you a LOG binned spectra though.
+    #
     # EM_BIN_SCI = EM_BIN_SCI.split('.fits')[0] + '_log.fits'
-    ABS_BIN_SCI = PPXF_BESTFIT
+    # ABS_BIN_SCI = PPXF_BESTFIT
     # remove_lines.subtract_besftfit(BIN_SCI, PPXF_BESTFIT, EM_BIN_SCI)
 
     # Run rv fxcor for stellar population velocites, then gas velocities
     # select an appropriate range to cross-correlation i.e. not including the chip gap feature, run interactively
     # to see if this is an issue or not.
     #
-    # fxcor(ABS_BIN_SCI, 'abs', TEMPLATE_SPECTRA, ABS_FXCOR_BIN_LIST, ABS_FXCOR_FILE, "4337-5021", "no")
+    # fxcor(ABS_BIN_SCI, 'abs', TEMPLATE_SPECTRA, ABS_FXCOR_BIN_LIST, ABS_FXCOR_FILE, "4337-5000", "no")
     # plot_velfield_setup(read_fxcor_output(ABS_FXCOR_FILE), V2B_XY_FILE, FLUX_SCOPY_FILE)
     # plot_velfield_bybin(read_fxcor_output(ABS_FXCOR_FILE), V2B_FILE)
     #
@@ -1474,11 +1002,16 @@ if __name__ == '__main__':
     # success using it. Instead I use the technique above
     # adjust st_lambda and end_lambda to avoid regions of strong noise that give spurious measurements
     #
-    rvsao(ABS_BIN_SCI, 'xcsao', TEMPLATE_SPECTRA, XCSAO_FILE, XCSAO_BIN_LIST, "no", st_lambda=4500., end_lambda=5000.)
-    plot_velfield_setup(read_xcsao_output(XCSAO_FILE), V2B_XY_FILE, FLUX_SCOPY_FILE)
-    plot_velfield_bybin(read_xcsao_output(XCSAO_FILE), V2B_FILE)
+    # Create list of bad lines, which will be eliminated from the cross correlation. lambda step is 0.9110890030860901
+    # np.savetxt(XCSAO_BADLINES, np.arange(4489, 4505, 0.9110890030860901))
+    # rvsao(ABS_BIN_SCI, 'xcsao', TEMPLATE_SPECTRA, XCSAO_FILE, XCSAO_BIN_LIST, interactive="yes", st_lambda=4300.,
+    #       end_lambda=5000., badlines=XCSAO_BADLINES)
+    # plot_velfield_setup(read_xcsao_output(XCSAO_FILE), V2B_XY_FILE, FLUX_SCOPY_FILE)
+    # plot_velfield_bybin(read_xcsao_output(XCSAO_FILE), V2B_FILE)
     #
-    # rvsao(EM_BIN_SCI, 'emsao', TEMPLATE_SPECTRA, EMSAO_FILE, EMSAO_BIN_LIST, "yes", 1., 1550., 4300.)
+    # rvsao(EM_BIN_SCI, 'emsao', TEMPLATE_SPECTRA, EMSAO_FILE, EMSAO_BIN_LIST, "no", linesig=1., czguess=1550.,
+    # st_lambda=4600., end_lambda=5300.)
+    # It looks a lot clearer using just the original spectra
     # rvsao(BIN_SCI, 'emsao', TEMPLATE_SPECTRA, EMSAO_FILE, EMSAO_BIN_LIST, "yes", 1., 1550., 4300.)
     # plot_velfield_setup(read_emsao_output(EMSAO_FILE), V2B_XY_FILE, FLUX_SCOPY_FILE)
     # plot_velfield_bybin(read_emsao_output(EMSAO_FILE), V2B_FILE)
@@ -1487,13 +1020,14 @@ if __name__ == '__main__':
     # fit of the stellar kinematics does not match what it measured by the method above, and doesn't make much sense.
     # Despite this, the gas kinematics match well the output from fxcor so they look a-okay
     #
-    # PPXF_FILE = os.path.join(PPXF_PATH, 'ppxf_output_sn{}_absspec_4-8.txt'.format(TARGET_SN))
-    # PPXF_BESTFIT = os.path.join(PPXF_PATH, 'bestfit_{}_absspec.fits')
-    # #
-    # ppxf_IC225_vJT.ppxf_kinematics_gas_parallel(BIN_SCI, PPXF_FILE, PPXF_BESTFIT, TEMPLATE_FITS, TEMPLATE_RES, VEL_INIT,
-    #                                             SIG_INIT, plot=True)
-    # ppxf_vel = pd.read_table(PPXF_FILE, sep=r"\s*", skiprows=1, usecols=[0], names=["vel"], squeeze=True).values
-    # #
-    # plot_velfield_setup(ppxf_vel, V2B_XY_FILE, FLUX_SCOPY_FILE)
-    # plot_velfield_setup(ppxf_vel_gas, V2B_XY_FILE, FLUX_SCOPY_FILE)
+    # ppxf_tasks.ppxf_kinematics_gas(BIN_SCI, PPXF_FILE_2CMP, PPXF_BESTFIT_2CMP, TEMPLATE_FITS, FWHM_tem, VEL_INIT, SIG_INIT, plot=False)
 
+
+    ppxf_tasks.ppxf_population_gas(BIN_SCI, FWHM_gal, TEMPLATE_FITS, FWHM_tem, PPXF_FILE_2CMP, PPXF_BESTFIT_2CMP, VEL_INIT, 0.6, True)
+    ppxf_2cmp = pd.read_table(PPXF_FILE_2CMP, sep=r"\s*", skiprows=1, usecols=[8], names=["velg"])
+    ppxf_2cmp = pd.read_table(PPXF_FILE_2CMP, sep=r"\s*", skiprows=2, usecols=[0, 8], names=["vel","velg"])
+    ppxf_vel_2cmp = ppxf_2cmp.vel.values
+    ppxf_vel_gas = ppxf_2cmp.velg.values
+
+    plot_velfield_setup(ppxf_vel_2cmp, V2B_XY_FILE, FLUX_SCOPY_FILE)
+    plot_velfield_setup(ppxf_vel_gas, V2B_XY_FILE, FLUX_SCOPY_FILE)
