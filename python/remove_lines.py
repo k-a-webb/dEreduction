@@ -7,6 +7,7 @@ import glob
 from astropy.io import fits
 import ppxf_util as util
 from matplotlib import pyplot as plt
+from scipy import interpolate
 
 
 def fit_emission_spectra(bin_sci, ppxf_bestfit, em_bin_sci, plot=False):
@@ -195,6 +196,36 @@ def fit_ems_lincont(lin_bins, odata, iline, bestfit, bad_pt=0, mask_region=[]):
     #plt.show()
 
     return popt, pcov
+
+
+def em_chop(lin_bins, odata, iline, log_bins, bestfit):
+    """
+    """
+
+    w = 40 # Half width of fitting region
+    line_region = odata[iline - w:iline + w]
+
+    # Find the peak within this cutout, emission line may be shifted from where it is expected to be
+    iline2 = np.where(odata == np.max(line_region))[0][0]  # This is the index of the real emission line
+    wline2 = lin_bins[iline2]
+
+    x_cutout = lin_bins[iline2 - w:iline2 + w]
+    cutout = odata[iline2 - w:iline2 + w]
+
+
+    f = interpolate.interp1d(log_bins, bestfit)
+
+    interp = np.empty_like(cutout)
+    for idx, x in enumerate(x_cutout):
+        interp[idx] = f(x)
+
+    i_st = (np.abs(lin_bins - x_cutout[0])).argmin()
+    i_end = (np.abs(lin_bins - x_cutout[-1])).argmin()
+
+    abs_fit = odata
+    abs_fit[i_st:i_end] = interp[:-1]
+
+    return abs_fit
 
 
 def pvoight(x, a, w, x0, b, frac):
